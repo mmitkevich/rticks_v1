@@ -1,0 +1,3 @@
+useDynLib(rticks)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
