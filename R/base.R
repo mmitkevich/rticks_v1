@@ -1,6 +1,10 @@
-library(settings)
+library(yaml)
+library(lubridate)
+library(dplyr)
+library(R.utils)
+library(yaml)
+library(RPostgreSQL)
+library(DBI)
+library(functional)
 
-fetch <- function(x,...) UseMethod("fetch")
-store <- function(x,...) UseMethod("store")
-
-cfg.global(cfg.load())
+cfg.set(cfg.load())
