@@ -1,9 +1,9 @@
 # rticks
 
-Documentation is tests:
+## Documentation is tests:
 - here [tests/](./tests)
 
-Usage example:
+## Usage example:
 
 ```R
 # redefine configuration file url
@@ -20,5 +20,18 @@ print(config(db, password))
 query_symbols("VIX%", limit=5)
 ```
 
-
-
+## Installation:
+1. in ssh do the following
+```bash
+ssh username@quant1....
+cd ~
+git clone git@bitbucket.org:exante_quant/rticks.git
+cd ~/rticks/scripts
+./rticks-install.sh
+```
+2. in R-studio do menu Session-Restart R. In new session type
+```
+library(devtools)
+load_all("~/rticks")
+config()
+```
