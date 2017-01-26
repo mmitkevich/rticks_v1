@@ -17,7 +17,7 @@ print(config(db))
 print(config(db, password))
 
 # query symbols (with first notice days)
-query_symbols("VIX%", limit=5)
+query_symbols("CL.NYMEX.%2016", limit=2)
 ```
 
 ## Installation:

@@ -22,6 +22,7 @@ update.cfg <- function(self, ...) modifyList(self, list(...))
 #' converts R object into config class
 #' @examples 
 #'   as.cfg(list(a=1, b=2))
+#' @export
 as.cfg  <- function(value) structure(value, class="cfg") 
 
 #' creates configuration
@@ -66,4 +67,16 @@ config <- function(sect, key, global=cfg.get()) {
     as.cfg(val)
   else
     val
+}
+
+# convert unix timestamp to POSIXct
+#' @export
+as.datetime = function(datetime) {
+  lt<-as.POSIXct(as.numeric(datetime)/1000, origin="1970-01-01")
+}
+
+# convert unix timestamp to POSIXct
+#' @export
+as.date = function(datetime) {
+  lt<-as.POSIXct(as.numeric(datetime)/1000, origin="1970-01-01")
 }
