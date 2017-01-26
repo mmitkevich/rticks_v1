@@ -1,5 +1,5 @@
 .onLoad <- function(libname, pkgname){
-  url <- getOption("ticks.cfg.url", "~/.rticks.yaml")
+  url <- getOption("ticks.config.url", "~/.rticks.yaml")
   cat("cfg.load(",url,")\n")
   cfg.set(cfg.load(url))
 }

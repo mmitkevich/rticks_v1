@@ -4,8 +4,13 @@
 #' @examples
 #'   config <- config.load(url="~/My_config.yaml")
 #' @export
-cfg.load <- function(url=getOption("ticks.cfg.url","~/.rticks.yaml"),...) {
-  cfg <- structure(yaml.load_file(url), class="cfg")
+cfg.load <- function(url=getOption("ticks.config.url","~/.rticks.yaml"),...) {
+  if(file.exists(url)) {
+    structure(yaml.load_file(url), class="cfg")
+  }else if(!is.null(url)) {
+    warning("RTICKS: File ",url," doesn't exist. config() is empty. Use cfg.load(\"~/.rticks.yaml\") to fix.")
+    cfg()
+  }
 }
 
 #' updates config object
@@ -28,6 +33,7 @@ cfg <- function(...) structure(list(...), class="cfg")
 #' prints config in YAML format
 #' @examples 
 #'   cfg(a=1, b=2) %>% print()
+#' @export
 print.cfg  <- function(self,...) cat(as.yaml(self))
 
 #' sets cfg as global
