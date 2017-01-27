@@ -151,7 +151,7 @@ as.rowlist <- function(df, id) {
 
 #' convert symbols dataframe to list of config objects
 #' @export
-as.symlist <- function(df, id) as.rowlist(df, id) %>% as.cfg()
+as.symlist <- function(df, id) as.rowlist(df, id) %>% map(~ as.cfg(.x) ) %>% as.cfg()
 
 #' as_datetime with prefix support
 #' @examples 
@@ -172,6 +172,6 @@ as_dt <- function(x) {
   as_datetime(x)
 }
 
-schedule <- function(symbols) {
+schedule <- function(symbols, pattern) {
   
 }
