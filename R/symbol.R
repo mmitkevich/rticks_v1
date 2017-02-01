@@ -137,7 +137,7 @@ query_quant_data <- function(x, table, key, fields = NULL, json_cols = NULL, f.p
   x <- as.data.frame(x, nm=key, stringsAsFactors=F)[[key]]
   w <- .sql.match_id(x, name=key, f.prefix=f.prefix)
   #result <- tryCatch(
-  result <- sql.select(table, fields = fields, where = w),
+  result <- sql.select(table, fields = fields, where = w)
   #warning=function(w){})
   for(col in json_cols) {
     result[[col]] <- result[[col]] %>% map (fromJSON)
