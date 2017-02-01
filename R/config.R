@@ -1,3 +1,5 @@
+# misc utils
+
 #' load config from url (yaml file path)
 #' note: only file paths implemented
 #' @param url file path or http(s) url or postgresql:// url
@@ -24,6 +26,11 @@ update.cfg <- function(self, ...) modifyList(self, list(...))
 #'   as.cfg(list(a=1, b=2))
 #' @export
 as.cfg  <- function(value) structure(value, class="cfg") 
+
+#' convert symbols dataframe to list of config objects
+#' @export
+as.cfglist <- function(df, id) listby(df, id) %>% map(~ as.cfg(.x) ) %>% as.cfg()
+
 
 #' creates configuration
 #' @examples 
@@ -67,16 +74,4 @@ config <- function(sect, key, global=cfg.get()) {
     as.cfg(val)
   else
     val
-}
-
-# convert unix timestamp to POSIXct
-#' @export
-as.datetime = function(datetime) {
-  lt<-as.POSIXct(as.numeric(datetime)/1000, origin="1970-01-01")
-}
-
-# convert unix timestamp to POSIXct
-#' @export
-as.date = function(datetime) {
-  lt<-as.POSIXct(as.numeric(datetime)/1000, origin="1970-01-01")
 }

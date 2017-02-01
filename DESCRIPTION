@@ -14,9 +14,11 @@ Depends:
     yaml,
     lubridate,
     dplyr,
+    purrr,
     R.utils,
     RPostgreSQL,
     DBI,
+    jsonlite,
     functional
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
