@@ -17,7 +17,7 @@ sql.select <- function(from, fields=NULL, where=NULL, order=NULL, limit=1000, co
     
   }
   if(is.null(fields))
-    fields <- list("*")
+    fields <- c("*")
   have.con = !is.null(con)
   if(!have.con)
     con = sql.connect(db=db)

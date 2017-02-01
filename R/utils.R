@@ -15,7 +15,7 @@ as.date = function(datetime) {
 #' paste list
 #' @export
 paste.list <- function(lst, sep="") {
-  do.call(paste, modifyList(lst,list(sep=sep)))  
+  do.call(paste, modifyList(as.list(lst),list(sep=sep)))  
 } 
 
 

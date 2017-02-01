@@ -129,27 +129,41 @@ query_symbols<-function(x=NULL, key="exante_id", start=lubridate::now(), stop=NU
   result
 }
 
-#' query instruments
+#' query quant_data
 #' @examples 
 #'   query_instruments("VIX")
 #' @export
-query_instruments <- function(x=NULL, key="instrument_id",
-                              fields = list("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "meta"), 
-                              f.prefix=T) {
+query_quant_data <- function(x, table, key, fields = NULL, json_cols = NULL, f.prefix = T) {
   x <- as.data.frame(x, nm=key, stringsAsFactors=F)[[key]]
   w <- .sql.match_id(x, name=key, f.prefix=f.prefix)
-  #tryCatch(
-  result <- sql.select("quant_data.instruments", 
-                       fields = fields,
-                       where = w)
-  #         warning=function(w){ })
-  #result <- modifyList(result, result %>% map(~.x %>% map_at("meta", fromJSON) %>% purrr::flatten()))
-  meta <- result$meta %>% map(fromJSON)
-  result$roll_pattern <- meta %>% map(~ .x[["roll_pattern"]])
-  result$meta <- NULL
+  #result <- tryCatch(
+  result <- sql.select(table, fields = fields, where = w),
+  #warning=function(w){})
+  for(col in json_cols) {
+    result[[col]] <- result[[col]] %>% map (fromJSON)
+  }
   result
 }
 
+#' query_instruments
+#' @examples 
+#'  query_instruments("VIX")
+#' @export
+
+query_instruments <- function(x=NULL, key = "instrument_id",
+                             fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
+                             json_cols = c("active_contract"),
+                             f.prefix = T) {
+  query_quant_data(x, "quant_data.instruments", key, fields=fields, json_cols=json_cols, f.prefix=f.prefix)
+}
+
+#' query_schedule
+#' @exampels
+#'   query_schedule("NYMEX")
+#' @export
+query_schedule <- function(x=NULL, key = "instrument_id", f.prefix=T) {
+  query_quant_data(x, "quant_data.schedule", key, f.prefix=f.prefix)
+}
 
 #' mutate list config
 #' 
@@ -164,7 +178,6 @@ mutate.cfg <- function(.x, ...) {
   }
   args <- list(...)
   Reduce(function(x, key) modifyList(x, args[[key]] %>% map(~ list.kv(key,.x))), names(args), .x)
-  #modifyList(.x, v %>% map(~ list(roll_pattern=.x)))
 }
 
 #' convert list of lists to data.frame
@@ -175,7 +188,8 @@ as_df <- function(.x) do.call(rbind.data.frame, .x)
 #' 
 #' @export
 roll_schedule <- function(instruments, 
-                          max_active = 3,
+                          active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
+                          max_active_contract = 3,
                           start = NULL,
                           stop = NULL,
                           fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
@@ -191,10 +205,10 @@ roll_schedule <- function(instruments,
   
   # go through instruments
   result <- instruments %>% by_row(function(ins) {
-      # get symbols for the instrument, conforming to roll_pattern
+      # get symbols for the instrument, conforming to active_contract pattern
       s <- symbols %>% select_(.dots=fields) %>%
         filter(instrument_id==ins$instrument_id) %>%
-        filter(month %in% ins$roll_pattern[[1]]) %>%
+        filter(month %in% ins$active_contract[[1]]) %>%
         arrange(fut_notice_first)
       
       # print(s)
@@ -202,7 +216,7 @@ roll_schedule <- function(instruments,
       
       # for each active month .a in [0..max_active] create clones of each row
       # datetime for .a cloned row is lagging .a rows before its source
-      rs <- seq(0, max_active) %>% 
+      rs <- seq(0, max_active_contract) %>% 
         map_df( function(.a) {
           s %>% mutate(active=.a, datetime=lag(fut_notice_first, n=.a))
         }) %>% # and sort by datetime
