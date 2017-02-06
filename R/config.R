@@ -6,7 +6,7 @@
 #' @examples
 #'   config <- config.load(url="~/My_config.yaml")
 #' @export
-cfg.load <- function(url=getOption("ticks.config.url","~/.rticks.yaml"),...) {
+cfg.load <- function(url=getOption("rticks.config.url","~/.rticks.yaml"),...) {
   if(file.exists(url)) {
     structure(yaml.load_file(url), class="cfg")
   }else if(!is.null(url)) {
@@ -49,14 +49,14 @@ print.cfg  <- function(self,...) cat(as.yaml(self))
 #'    cfg.set(cfg.load(url="~/mycfg.yaml"))
 #' @export
 cfg.set <- function(cfg) {
-  options(ticks.config = cfg)
+  options(rticks.config = cfg)
 }
 
 #' gets global cfg and optionally returns additional transient fields
 #' @examples 
 #'   cfg.get(some_addition=1)
 #' @export
-cfg.get <- function(...) getOption("ticks.config", cfg()) %>% update(...)
+cfg.get <- function(...) getOption("rticks.config", cfg()) %>% update(...)
 
 #' gets item from global config
 #' @examples 

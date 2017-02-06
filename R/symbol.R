@@ -1,15 +1,20 @@
-#                           1   2   3   4   5   6   7   8   9  10  11  12
-#' @export
-contract_month_letter <- c("F","G","H","J","K","M","N","Q","U","V","X","Z")
-
+# querying symbols from SQL
 
 #' print symbol
+#' 
 #' @examples 
 #'   symbols("VIX") %>% print()
 #' @export
 print.symbol <- function(self, ...) cat(as.yaml(self), "\n")
 
+#' contract months
+#'                           1   2   3   4   5   6   7   8   9  10  11  12
+#' @export
+contract_month_letter <- c("F","G","H","J","K","M","N","Q","U","V","X","Z")
+
+
 #' fetch symbol from SQL database
+#' 
 #' @examples
 #'   fetch(s("VIX.CBOE.M2016")) # will fetch all fields from the symbol database
 #' @export 
@@ -154,12 +159,14 @@ query_instruments <- function(x=NULL, key = "instrument_id",
                              fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
                              json_cols = c("active_contract"),
                              f.prefix = T) {
-  query_quant_data(x, "quant_data.instruments", key, fields=fields, json_cols=json_cols, f.prefix=f.prefix)
+  r <- query_quant_data(x, "quant_data.instruments", key, fields=fields, json_cols=json_cols, f.prefix=f.prefix)
+  r$exante_id <- r[[key]]
 }
 
 #' query_schedule
-#' @exampels
-#'   query_schedule("NYMEX")
+#' 
+#' @examples
+#'  query_schedule("NYMEX")
 #' @export
 query_schedule <- function(x=NULL, key = "instrument_id", f.prefix=T) {
   query_quant_data(x, "quant_data.schedule", key, f.prefix=f.prefix)
@@ -187,7 +194,7 @@ as_df <- function(.x) do.call(rbind.data.frame, .x)
 #' roll_schedule
 #' 
 #' @export
-roll_schedule <- function(instruments, 
+roll_schedule1 <- function(instruments, 
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
                           max_active_contract = 3,
                           start = NULL,

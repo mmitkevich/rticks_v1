@@ -33,6 +33,20 @@ nnmap<-function(.x, ...) {
     as_function(...)(.x)
 }
 
+#' maps NULLs into default value
+#' @examples
+#'  nget(NULL, 5)
+#'  # 5
+#'  nget(1, 5)
+#'  # 1
+#' @export
+nget <- function(.x, .v) {
+  if(is.null(.x))
+    return(.v)
+  else
+    return(.x)
+} 
+
 #' converts c("a","b") to list(a=NULL,b=NULL)
 #' @examples 
 #' c("GD","PL") %>% nlist %>% map_at("GD", ~ 12) %>% as.cfg
