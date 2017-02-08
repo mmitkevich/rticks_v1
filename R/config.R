@@ -29,7 +29,7 @@ as.cfg  <- function(value) structure(value, class="cfg")
 
 #' convert symbols dataframe to list of config objects
 #' @export
-as.cfglist <- function(df, id) listby(df, id) %>% map(~ as.cfg(.x) ) %>% as.cfg()
+as.cfglist <- function(df, id) list_by(df, id) %>% map(~ as.cfg(.x) ) %>% as.cfg()
 
 
 #' creates configuration

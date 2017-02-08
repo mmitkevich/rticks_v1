@@ -117,7 +117,7 @@ roll_schedule <- function(.x,
   .x <- .x %>% parse_symbols(key=key)
   symbols <- .x[[key]]
   
-  active_contract <- .x %>% listby(key) %>% 
+  active_contract <- .x %>% list_by(key) %>% 
                           map(~ .x$active_contract[[1]]) %>% 
                           modifyList(as.list(active_contract))
   #print(active_contract)
@@ -151,9 +151,9 @@ roll_schedule <- function(.x,
       
       if (z == 1) {
         
-        datetime <- rep(as.character(comDF$fut_notice_first[z]), max_active_contract)
+        datetime <- rep(comDF$fut_notice_first[z], max_active_contract)
         actContrNumberDF1 <- .get_act_num_contract_after1(comDF$exante_id[z], activeMonthNumericPattern, max_active_contract)
-        resSchedDF.0 <- cbind(rep(as.character(start), max_active_contract), actContrNumberDF1, rep(symbols[i], nrow(actContrNumberDF1)))
+        resSchedDF.0 <- cbind(rep(start, max_active_contract), actContrNumberDF1, rep(symbols[i], nrow(actContrNumberDF1)))
         colnames(resSchedDF.0) <- c("datetime", "exanteID", "activeContractNumber", "exanteIDpat")
         resSchedDF.1 <- cbind(datetime, actContrNumberDF1, rep(symbols[i], nrow(actContrNumberDF1)))
         colnames(resSchedDF.1) <- c("datetime", "exanteID", "activeContractNumber", "exanteIDpat")
@@ -163,7 +163,7 @@ roll_schedule <- function(.x,
         
         if (comDF$exante_id[z] == actContrNumberDF1$exanteID[2]) {
           
-          datetime <- rep(as.character(comDF$fut_notice_first[z]), max_active_contract + 1)
+          datetime <- rep(comDF$fut_notice_first[z], max_active_contract + 1)
           actContrNumberDF1 <- .get_act_num_contract_after1(comDF$exante_id[z], activeMonthNumericPattern, max_active_contract)
           actContrNumberDF <- rbind(c(comDF$exante_id[z-1], 0), actContrNumberDF1)
           exanteIDpat <- rep(symbols[i], nrow(actContrNumberDF))
@@ -185,7 +185,7 @@ roll_schedule <- function(.x,
     }
     
   }
-  finSchedDF$datetime <- as.Date(finSchedDF$datetime, format = "%Y-%m-%d")
+  finSchedDF$datetime <- as_datetime(finSchedDF$datetime)
   resDF <- arrange(finSchedDF, datetime) %>% 
     rename(exante_id=exanteID, active_contract=activeContractNumber, instrument_id=exanteIDpat) # TODO: fix the above code to produce theese columns names
   
