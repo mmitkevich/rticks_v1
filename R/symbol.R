@@ -143,7 +143,7 @@ query_symbols<-function(df = NULL,
       result[[f]] <- as.datetime(result[[f]])
   }
   # return result
-  result
+  result%>%parse_symbols
 }
 
 #' query quant_data
@@ -187,19 +187,18 @@ query_schedule <- function(x=NULL, nm = "instrument_id", ...) {
 #' roll_schedule
 #' 
 #' @export
-roll_schedule <- function(instruments, 
+roll_schedule1 <- function(.d,
+                           .qs = query_symbols,
+                           .qi = query_instruments,
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
                           max_active_contract = 12,
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
-
+  .d <- .d %>% .qi
   # load symbols including those expiring 1 year after the end of backtesting period so all the patterns could be built
-  symbols <- instruments%>%parse_symbols() %>% 
-    query_symbols(
-      start = start,
-      stop =  nnmap(stop, ~ . + years(1)))
+  symbols <- .d %>% .qs(start = start, stop =  nnmap(stop, ~ . + years(1)))
   
   if(is.null(fields))
     fields <- names(r)
@@ -207,11 +206,13 @@ roll_schedule <- function(instruments,
     start <- min(symbols$fut_notice_first, na.rm=T)
   
   # go through instruments
-  result <- instruments %>% by_row(function(ins) {
+  result <- .d %>% by_row(function(ins) {
+      roll_pattern <- ifnull(ins$active_contract, c(1,2,3,4,5,6,7,8,9,10,11,12), ins$active_contract[[1]])
+      roll_pattern <- ifnull(active_contract[[ins$instrument_id]], roll_pattern, active_contract[[ins$instrument_id]])
       # get symbols for the instrument, conforming to active_contract pattern
       sym <- symbols %>% select_(.dots=fields) %>%
         filter(instrument_id==ins$instrument_id) %>%
-        filter(month %in% ins$active_contract[[1]]) %>%
+        filter(month %in% roll_pattern) %>%
         arrange(fut_notice_first)
       
 #      print(sym)
