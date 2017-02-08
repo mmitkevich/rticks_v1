@@ -108,16 +108,16 @@ get_futures_contract_letter <- function(exanteID) {
 #'   # 2016-12-17     PL.NYMEX         PL.NYMEX.Z2016         0                         # 2016-12-17 PL.NYMEX.Z2016 стал 0м контрактом
 #'   
 #' @export
-roll_schedule <- function(.x,  
+roll_schedule <- function(.d,  
                           active_contract = NULL,
                           max_active_contract = 12, 
                           start = NULL, 
                           stop = NULL,
-                          key = "instrument_id") {
-  .x <- .x %>% parse_symbols(key=key)
-  symbols <- .x[[key]]
+                          nm = "instrument_id") {
+  .d <- .d %>% parse_symbols(nm=nm)
+  symbols <- .d[[nm]]
   
-  active_contract <- .x %>% list_by(key) %>% 
+  active_contract <- .d %>% list_by(nm) %>% 
                           map(~ .x$active_contract[[1]]) %>% 
                           modifyList(as.list(active_contract))
   #print(active_contract)
