@@ -63,29 +63,40 @@ mutate_by <- function(.df, .f) {
   modifyList(.df, .f(.df))
 }
 
+#' parses exante_id vector
+#' 
+#' @export
+parse_exante_id <- function(id, instruments=NULL) {
+  if(is.null(instruments))
+    instruments = data.frame(exante_id=id)
+  q <- strsplit(id, "\\.")
+  instruments$ticker <- q %>% map_chr(~ .x[1])
+  instruments$exchange <- q %>% map_chr(~ .x[2])
+  instruments$instrument_id <- ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange))
+  future_part <- q %>% map_chr(~ .x[3])
+  #print(future_part)
+  instruments$month <- substr(future_part, 1, 1)
+  instruments$month <- match(instruments$month, contract_month_letter)
+  #ifelse(is.na(future_part), NA, which.max(contract_month_letter==substr(future_part,1,1)))
+  instruments$year <- as.numeric(substr(future_part,2,5))
+  option_part <- q %>% map(~ .x[4])
+  option_type <- substr(option_part,1,1)
+  instruments$instrument_class = ifelse(!is.na(option_type), option_type,
+                                        ifelse(!is.na(instruments$month), "F", "S"))
+  instruments$strike <- as.numeric(gsub("_","\\.",substr(option_part, 2, nchar(option_part))))
+  instruments
+}
 #' parse symbol like VIX.CBOE.G2017 
 #' @return (exante_id=VIX.CBOE.G2017, instrument_id=VIX.CBOE, exchange=CBOE, ticker=VIX, month=2, year=2017)
 #' @export
-parse_symbols <- function(.d, nm="exante_id") {
-  .d <- as.data.frame(.d, nm=nm, stringsAsFactors=F)
-  id <- .d[[nm]]
+parse_symbols <- function(instruments, nm="exante_id") {
+  instruments <- as.data.frame(instruments, nm=nm, stringsAsFactors=F)
+  if(nrow(instruments)==0)
+    return(instruments)
+  id <- instruments[[nm]]
 #  print(id)
-  q <- strsplit(id, "\\.")
-  .d$ticker <- q %>% map_chr(~ .x[1])
-  .d$exchange <- q %>% map_chr(~ .x[2])
-  .d$instrument_id <- paste0(.d$ticker,".",.d$exchange)
-  future_part <- q %>% map_chr(~ .x[3])
-  #print(future_part)
-  .d$month <- substr(future_part, 1, 1)
-  .d$month <- match(.d$month, contract_month_letter)
-  #ifelse(is.na(future_part), NA, which.max(contract_month_letter==substr(future_part,1,1)))
-  .d$year <- as.numeric(substr(future_part,2,5))
-  option_part <- q %>% map(~ .x[4])
-  option_type <- substr(option_part,1,1)
-  .d$instrument_class = ifelse(!is.na(option_type), option_type,
-                               ifelse(!is.na(.d$month), "F", "S"))
-  .d$strike <- as.numeric(gsub("_","\\.",substr(option_part, 2, nchar(option_part))))
-  .d 
+  instruments <- parse_exante_id(id, instruments)
+  instruments 
 }
 
 #' query contracts meta-data from sql "quant_data.symbols"
@@ -113,8 +124,7 @@ parse_symbols <- function(.d, nm="exante_id") {
 #'  > c("VIX.CBOE","PL.NYMEX") %>% parse_symbols() %>% query_symbols(start=now())
 #'
 #' @export 
-query_symbols<-function(df = NULL, 
-                        nm = "exante_id", 
+query_symbols<-function(instruments = NULL, 
                         start = NULL, 
                         stop = NULL, 
                         where = NULL, 
@@ -122,10 +132,10 @@ query_symbols<-function(df = NULL,
                         fields = list("exante_id", "ric", "fut_notice_first"), 
                         fields.dt = list("fut_notice_first", "fut_first_trade_dt", "last_tradeable_dt", "fut_dlv_dt_first", "fut_dlv_dt_last")) {
   # convert to data.frame
-  df <- parse_symbols(df)
+  instruments <- parse_symbols(instruments)
   # prepare WHERE
   w <- c(
-    df[[nm]] %>% nnmap( ~ .sql.match_id(.x, nm, f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
+    instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "exante_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
     start %>% nnmap( ~ paste("fut_notice_first", ">=", trunc(as.numeric(.x)*1000))), # start date
     stop %>% nnmap( ~ paste("fut_notice_first", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
@@ -151,6 +161,7 @@ query_symbols<-function(df = NULL,
 #'   query_instruments("VIX")
 #' @export
 query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = T, ...) {
+  # TODO: as_tibble ?
   x <- as.data.frame(x, nm=nm, stringsAsFactors=F)[[nm]]
   w <- .sql.match_id(x, name=nm, f.prefix=f.prefix)
   #result <- tryCatch(
@@ -167,11 +178,12 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 #'  query_instruments("VIX")
 #' @export
 
-query_instruments <- function(x=NULL, nm = "instrument_id",
+query_instruments <- function(instruments = NULL, 
                              fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
                              json_cols = c("active_contract"), ...) {
-  r <- query_quant_data(x, "quant_data.instruments", nm, fields=fields, json_cols=json_cols, ...)
-  r$exante_id <- r[[nm]]
+  r <- query_quant_data(instruments, "quant_data.instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
+  # FIXME: patch exante_id == instrument_id so every symbol df has some exante_id column
+  r$exante_id <- r[["instrument_id"]]
   return(r)
 }
 
@@ -180,25 +192,29 @@ query_instruments <- function(x=NULL, nm = "instrument_id",
 #' @examples
 #'  query_schedule("NYMEX")
 #' @export
-query_schedule <- function(x=NULL, nm = "instrument_id", ...) {
-  query_quant_data(x, "quant_data.schedule", nm=nm, ...)
+query_schedule <- function(instruments = NULL, ...) {
+  query_quant_data(instruments, "quant_data.schedule", nm = "instrument_id", ...)
 }
 
 #' roll_schedule
 #' 
 #' @export
-roll_schedule1 <- function(.d,
-                           .qs = query_symbols,
-                           .qi = query_instruments,
+roll_schedule <- function(instruments,
+                          symbols = NULL,
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
-                          max_active_contract = 12,
+                          max_active_contract = 3,
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
-  .d <- .d %>% .qi
+  cat("roll_schedule\n")
+  print(instruments)
+  # lazy instruments loading
+  if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
+    instruments <- instruments %>% query_instruments()
   # load symbols including those expiring 1 year after the end of backtesting period so all the patterns could be built
-  symbols <- .d %>% .qs(start = start, stop =  nnmap(stop, ~ . + years(1)))
+  if(is.null(symbols))
+    symbols <- instruments %>% query_symbols(start = start, stop = NULL) #nnmap(stop, ~ . + years(1))
   
   if(is.null(fields))
     fields <- names(r)
@@ -206,7 +222,7 @@ roll_schedule1 <- function(.d,
     start <- min(symbols$fut_notice_first, na.rm=T)
   
   # go through instruments
-  result <- .d %>% by_row(function(ins) {
+  result <- instruments %>% by_row(function(ins) {
       roll_pattern <- ifnull(ins$active_contract, c(1,2,3,4,5,6,7,8,9,10,11,12), ins$active_contract[[1]])
       roll_pattern <- ifnull(active_contract[[ins$instrument_id]], roll_pattern, active_contract[[ins$instrument_id]])
       # get symbols for the instrument, conforming to active_contract pattern
