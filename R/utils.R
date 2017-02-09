@@ -55,8 +55,8 @@ nlist <- function(.x, .f=function(x) x) sapply(.x, .f, simplify=F, USE.NAMES=T)
 
 #' convert dataframe to list of lists
 #' @export
-listby <- function(df, id) {
-  setNames(split(df, seq(nrow(df))), df[[id]])
+list_by <- function(df, id, .f=identity) {
+  setNames(split(df, seq(nrow(df))) %>% map(~ as_function(.f)(.x)), df[[id]])
 }
 
 #' as_datetime with prefix support

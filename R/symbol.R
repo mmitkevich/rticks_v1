@@ -44,12 +44,10 @@ sql.or <- function(x,y) {
 
 #' return f(x) 
 #' @export
-ifelsenull<-function(x,f,true,fals) {
+ifnull <- function(x, default, modified=x) {
   if(is.null(x))
-    return(NULL)
-  if(f(x))
-    return(true);
-  return(false)
+    return(default)
+  return(modified)
 }
 
 #'
@@ -68,9 +66,9 @@ mutate_by <- function(.df, .f) {
 #' parse symbol like VIX.CBOE.G2017 
 #' @return (exante_id=VIX.CBOE.G2017, instrument_id=VIX.CBOE, exchange=CBOE, ticker=VIX, month=2, year=2017)
 #' @export
-parse_symbols <- function(.d, key="exante_id") {
-  .d <- as.data.frame(.d, nm=key, stringsAsFactors=F)
-  id <- .d[[key]]
+parse_symbols <- function(.d, nm="exante_id") {
+  .d <- as.data.frame(.d, nm=nm, stringsAsFactors=F)
+  id <- .d[[nm]]
 #  print(id)
   q <- strsplit(id, "\\.")
   .d$ticker <- q %>% map_chr(~ .x[1])
@@ -90,59 +88,73 @@ parse_symbols <- function(.d, key="exante_id") {
   .d 
 }
 
-#' query futures from sql database
-#' 
-#' query actual futures contracts from 'quant_data.minutes' postgres table
+#' query contracts meta-data from sql "quant_data.symbols"
 #'
-#' @param x        instrument_id
-#' @param start    min(first notice day)
-#' @param stop     max(first notice day)
-#' 
-#' @return         list of symbols, grouped by instruments
+#' @param df       vector of instrument patterns (should match exante_id)
+#'                 If data.frame was specified, its df[[nm]] will be used as instrument pattern.
+#' @param nm       which column to use for instrument patterns, if df parameter is data.frame.
+#' @param start    min(first notice day), or NULL (by default) to return everything
+#' @param stop     max(first notice day), or NULL (by default) to return everything
+#' @param where    additional SQL where conditions (will be AND-ed into the SQL query)
+#' @param f.prefix TRUE if df contains instrument patterns, FALSE if it is exact exante_id
+#' @param fields   list of fields to be returned
+#' @param fields.dt list of datetime fields, would be converted into POSIXct automatically
+#' @return         data.frame with symbols
 #' 
 #' @examples                  
-#'   query_symbols()
-#'   c("VIX.CBOE","PL.NYMEX") %>% query_symbols(start=NULL)
-#'   query_symbols(stop = now() + months(1))
-#'   query_symbols("ZW", stop = as_dt(18))
-#'   c("VIX.CBOE","PL.NYMEX") %>% parse_symbols() %>% query_symbols(start=now())
+#'  > query_symbols()
+#'  > c("VIX.CBOE","PL.NYMEX") %>% query_symbols(start=now())
+#'  > query_symbols(start = now() + months(1))
+#'  > query_symbols("ZW", start=now())
+#'     exante_id ric fut_notice_first ticker exchange instrument_id month year instrument_class strike
+#' ZW.CBOT.H2017 WH7       2017-02-28     ZW     CBOT       ZW.CBOT     3 2017                F     NA
+#' ZW.CBOT.K2017 WK7       2017-04-28     ZW     CBOT       ZW.CBOT     5 2017                F     NA
+#' ...
+#'  > c("VIX.CBOE","PL.NYMEX") %>% parse_symbols() %>% query_symbols(start=now())
+#'
 #' @export 
-query_symbols<-function(x=NULL, key="exante_id", start=lubridate::now(), stop=NULL, where=NULL, 
-                          f.prefix = T,
-                          fields = list("exante_id", "ric", "fut_notice_first"), 
-                          fields.dt = list("fut_notice_first", "fut_first_trade_dt", "last_tradeable_dt", "fut_dlv_dt_first", "fut_dlv_dt_last")) {
-  x <- as.data.frame(x, nm=key, stringsAsFactors=F)
-  id <- x[[key]]
-  w <- Reduce(sql.and, c(
-    nnmap(id, function(x) .sql.match_id(x, key, f.prefix)),
-    nnmap(start, function(x) paste("fut_notice_first", ">=", trunc(as.numeric(x)*1000))),
-    nnmap(stop, function(x) paste("fut_notice_first", "<", trunc(as.numeric(x)*1000))),
+query_symbols<-function(df = NULL, 
+                        nm = "exante_id", 
+                        start = NULL, 
+                        stop = NULL, 
+                        where = NULL, 
+                        f.prefix = T,
+                        fields = list("exante_id", "ric", "fut_notice_first"), 
+                        fields.dt = list("fut_notice_first", "fut_first_trade_dt", "last_tradeable_dt", "fut_dlv_dt_first", "fut_dlv_dt_last")) {
+  # convert to data.frame
+  df <- parse_symbols(df)
+  # prepare WHERE
+  w <- c(
+    df[[nm]] %>% nnmap( ~ .sql.match_id(.x, nm, f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
+    start %>% nnmap( ~ paste("fut_notice_first", ">=", trunc(as.numeric(.x)*1000))), # start date
+    stop %>% nnmap( ~ paste("fut_notice_first", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
-    ))
+    ) %>% reduce(sql.and)
+  # proceed with SQL
   result <- sql.select("quant_data.symbols", 
              fields = fields,
              where = w,
              order = "fut_notice_first")
+  # fix datetime columns
   if(nrow(result)>0 && !is.null(fields.dt)) {
     if(!is.null(fields))
-      fields.dt<-intersect(fields.dt,fields)
-    for(c in fields.dt)
-      result[[c]]<-as.datetime(result[[c]])
+      fields.dt<-intersect(fields.dt, fields)
+    for(f in fields.dt)
+      result[[f]] <- as.datetime(result[[f]])
   }
-  #result <- result %>% as.cfglist("exante_id") %>% map(~ modifyList(.x, symbol(.x$exante_id)%>%flatten()))
-  result <- result %>% parse_symbols()
-  result
+  # return result
+  result%>%parse_symbols
 }
 
 #' query quant_data
 #' @examples 
 #'   query_instruments("VIX")
 #' @export
-query_quant_data <- function(x, table, key, fields = NULL, json_cols = NULL, f.prefix = T) {
-  x <- as.data.frame(x, nm=key, stringsAsFactors=F)[[key]]
-  w <- .sql.match_id(x, name=key, f.prefix=f.prefix)
+query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = T, ...) {
+  x <- as.data.frame(x, nm=nm, stringsAsFactors=F)[[nm]]
+  w <- .sql.match_id(x, name=nm, f.prefix=f.prefix)
   #result <- tryCatch(
-  result <- sql.select(table, fields = fields, where = w)
+  result <- sql.select(table, fields = fields, where = w, ...)
   #warning=function(w){})
   for(col in json_cols) {
     result[[col]] <- result[[col]] %>% map (fromJSON)
@@ -155,12 +167,12 @@ query_quant_data <- function(x, table, key, fields = NULL, json_cols = NULL, f.p
 #'  query_instruments("VIX")
 #' @export
 
-query_instruments <- function(x=NULL, key = "instrument_id",
+query_instruments <- function(x=NULL, nm = "instrument_id",
                              fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
-                             json_cols = c("active_contract"),
-                             f.prefix = T) {
-  r <- query_quant_data(x, "quant_data.instruments", key, fields=fields, json_cols=json_cols, f.prefix=f.prefix)
-  r$exante_id <- r[[key]]
+                             json_cols = c("active_contract"), ...) {
+  r <- query_quant_data(x, "quant_data.instruments", nm, fields=fields, json_cols=json_cols, ...)
+  r$exante_id <- r[[nm]]
+  return(r)
 }
 
 #' query_schedule
@@ -168,64 +180,49 @@ query_instruments <- function(x=NULL, key = "instrument_id",
 #' @examples
 #'  query_schedule("NYMEX")
 #' @export
-query_schedule <- function(x=NULL, key = "instrument_id", f.prefix=T) {
-  query_quant_data(x, "quant_data.schedule", key, f.prefix=f.prefix)
+query_schedule <- function(x=NULL, nm = "instrument_id", ...) {
+  query_quant_data(x, "quant_data.schedule", nm=nm, ...)
 }
-
-#' mutate list config
-#' 
-#' @examples
-#'   symbols("GC","PL") %>% query_instruments() %>% mutate.cfg(roll_pattern=list(GC.COMEX=c(1,2,3)))
-#' @export
-mutate.cfg <- function(.x, ...) {
-  list.kv <- function(key, value) { 
-    ret <- list(); 
-    ret[[key]] <- value
-    ret
-  }
-  args <- list(...)
-  Reduce(function(x, key) modifyList(x, args[[key]] %>% map(~ list.kv(key,.x))), names(args), .x)
-}
-
-#' convert list of lists to data.frame
-#' @export
-as_df <- function(.x) do.call(rbind.data.frame, .x)
 
 #' roll_schedule
 #' 
 #' @export
-roll_schedule1 <- function(instruments, 
+roll_schedule1 <- function(.d,
+                           .qs = query_symbols,
+                           .qi = query_instruments,
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
-                          max_active_contract = 3,
+                          max_active_contract = 12,
                           start = NULL,
                           stop = NULL,
+                          nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
-
+  .d <- .d %>% .qi
   # load symbols including those expiring 1 year after the end of backtesting period so all the patterns could be built
-  symbols <- instruments$instrument_id %>% 
-    query_symbols(
-      start = start,
-      stop =  nnmap(stop, ~ . + years(1)))
+  symbols <- .d %>% .qs(start = start, stop =  nnmap(stop, ~ . + years(1)))
   
   if(is.null(fields))
     fields <- names(r)
+  if(is.null(start))
+    start <- min(symbols$fut_notice_first, na.rm=T)
   
   # go through instruments
-  result <- instruments %>% by_row(function(ins) {
+  result <- .d %>% by_row(function(ins) {
+      roll_pattern <- ifnull(ins$active_contract, c(1,2,3,4,5,6,7,8,9,10,11,12), ins$active_contract[[1]])
+      roll_pattern <- ifnull(active_contract[[ins$instrument_id]], roll_pattern, active_contract[[ins$instrument_id]])
       # get symbols for the instrument, conforming to active_contract pattern
-      s <- symbols %>% select_(.dots=fields) %>%
+      sym <- symbols %>% select_(.dots=fields) %>%
         filter(instrument_id==ins$instrument_id) %>%
-        filter(month %in% ins$active_contract[[1]]) %>%
+        filter(month %in% roll_pattern) %>%
         arrange(fut_notice_first)
       
-      # print(s)
-      # cat("----")
+#      print(sym)
+#      cat("----")
       
       # for each active month .a in [0..max_active] create clones of each row
       # datetime for .a cloned row is lagging .a rows before its source
       rs <- seq(0, max_active_contract) %>% 
-        map_df( function(.a) {
-          s %>% mutate(active=.a, datetime=lag(fut_notice_first, n=.a))
+        map_df( function(.active_contract) {
+          sym %>% mutate(active_contract=.active_contract, datetime=lag(fut_notice_first, n=.active_contract))
         }) %>% # and sort by datetime
         arrange(datetime)
       # take properly formed
@@ -234,8 +231,16 @@ roll_schedule1 <- function(instruments,
       # patch it by taking first row for each contract and setting datetime = start
       rs0 <- rs %>% filter(is.na(datetime)) %>% 
                     group_by(exante_id) %>% filter(row_number()==1) %>% mutate(datetime=start)
+#      print("===== rs0")
+#      print(rs0)
+#      print("===== rs1")
+#      print(rs1)
+      
       # return them combined
-      bind_rows(rs0, rs1)
+      rs2<-as.data.frame(bind_rows(rs0, rs1))
+      #browser()
+      return(as.data.frame(rs2))
     })
-  result$.out[[1]]
+  #browser()
+  bind_rows(result$.out) %>% arrange(datetime)
 }
