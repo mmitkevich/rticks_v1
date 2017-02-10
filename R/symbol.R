@@ -207,8 +207,8 @@ roll_schedule <- function(instruments,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
-  cat("roll_schedule\n")
-  print(instruments)
+#  cat("roll_schedule\n")
+#  print(instruments)
   # lazy instruments loading
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
     instruments <- instruments %>% query_instruments()
