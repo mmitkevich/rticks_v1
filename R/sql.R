@@ -12,7 +12,7 @@ sql.connect <- function(db=config(db)) {
 #' @examples 
 #'   sql.select("quant_data.symbols")
 #' @export
-sql.select <- function(from, fields=NULL, where=NULL, order=NULL, limit=1000, con=NULL, db=config(db), no_cache=TRUE) {
+sql.select <- function(from, fields=NULL, where=NULL, order=NULL, limit=NULL, con=NULL, db=config(db), no_cache=TRUE) {
   if(!no_cache) {
     
   }

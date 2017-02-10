@@ -13,6 +13,7 @@ Imports:
 Depends:
     yaml,
     lubridate,
+    tibble,
     dplyr,
     purrr,
     R.utils,

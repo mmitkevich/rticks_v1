@@ -78,6 +78,12 @@ as_dt <- function(x) {
   as_datetime(x)
 }
 
+#' grouped df -> list conversion
+#' 
+#' @export
+grouped_df_as_list <- function(.d) (.d %>% do(.out=(.)) %>% select(.out)) [[1]]
+
+
 mutate_rows <- function(.d, .k, .v, .fk, .fv) {
   #col <- .d[[deparse(substitute(.k))]]
   #k<-deparse(substitute(.k))
