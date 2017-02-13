@@ -36,7 +36,35 @@ sql.select <- function(from, fields=NULL, where=NULL, order=NULL, limit=NULL, co
 sql.quote <- function(.x) paste0("'",.x,"'")
 
 
-
 #' fuzzy SQL equals
 #' @export
 sql.eq_or_like <- function(.x, name) paste(name, ifelse(grepl("%",.x),"LIKE","="), sql.quote(.x))
+
+
+#' make sql AND expression
+#' @export
+sql.and <- function(x,y) {
+  if(is.null(x))
+    return(y);
+  if(is.null(y))
+    return(x);
+  paste0("(",paste(x,"AND",y),")")
+}
+
+#' make sql OR expression
+#' @export
+sql.or <- function(x,y) {
+  if(is.null(x))
+    return(y);
+  if(is.null(y))
+    return(x);
+  paste0("(",paste(x,"OR",y),")")  
+}
+
+
+#'
+#' @export
+.sql.match_id <- function(x, name, f.prefix=T) {
+  #nnmap(x, function(x) sql.eq_or_like(ifelse(f.prefix, paste0(x,"%"),x), name=name))
+  Reduce(sql.or, Map(function(x) sql.eq_or_like(ifelse(f.prefix, paste0(x,"%"),x), name=name), x))
+}

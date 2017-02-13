@@ -29,14 +29,6 @@ ifply <- function(.x, .f, .p=function()T,...) {
   return(s)  
 }
 
-#' unique datetimes
-#' 
-#' @export
-timeline <- function(schedule, start=NULL) {
-  schedule <- ifnull(start, schedule, schedule%>%filter(datetime>=start))
-  unique(schedule$datetime)
-}
-
 #' query candles from reuters minutes sql database
 #' @examples
 #' @export
@@ -83,7 +75,6 @@ to_virtual_id <- function(instruments, mapping) {
     virtual_id = parsed$instrument_id %>% paste0(".", mapping$active_contract)
   )
 }
-
 
 #' fetch query
 #' 
@@ -150,54 +141,3 @@ fetch.reuters <- function(q) {
   return(result)
 }
 
-#' print chunk
-#' 
-#' @export
-print.chunk <- function(q) {
-  cat("start: ", as.character(as_datetime(q$start)),
-      ", stop:", as.character(as_datetime(q$stop)), 
-      ", symbols: ", (q$mapping%>%arrange(active_contract))$exante_id %>% paste,"\n")
-}
-
-#' fetch all chunks
-#' 
-#' @export
-fetch_all <- function(q) {
-  chunk <- fetch(q)
-  result <- list()
-  i <- 1
-  while(!is.null(chunk)) {
-    result[[i]] <- chunk
-    i <- i+1
-    chunk <- fetch(q)
-  }
-  return(result)
-}
-
-#' rbind chunks
-#' 
-#' @export
-combine.chunks <- function(chunks) {
-  setNames(nm=.reuters.fields) %>% map(function(f) {
-    chunks %>% map( ~ .x[[f]] )  %>% bind_rows()
-  })
-}
-
-
-#' 
-#' @export
-
-clean.chunk <- function(chunk, 
-                        time_filter = as_function( ~ T), 
-                        value_filter = as_function( ~ T)) {
-  chunk$fields %>% map(function(df) {
-    # apply value_filter to each instrument
-    vf <- colnames(df) %>% 
-            keep(~ .x != "datetime") %>% 
-            map(~ df[[.x]])
-            map(value_filter) %>% 
-            reduce(`&`) 
-    tf <- df$datetime %>% time_filter
-    df[vf & tf]
-  })
-}
