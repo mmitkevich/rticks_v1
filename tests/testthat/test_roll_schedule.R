@@ -39,11 +39,11 @@ test_that("nrows(.get_act_num_contract_after1)",
           expect_equal(nrow(s), 6))
 
 
-schedule <- roll_schedule(c("GOLD.FORTS", "PL.NYMEX", "FOAT.EUREX"),  
-                          active_contract = list(GOLD.FORTS = c(3, 6, 9, 12), PL.NYMEX = c(1, 4, 7, 10), FOAT.EUREX = c(3,6,9,12)),
-                          max_active_contract = 10, 
-                          start = as_datetime("2015-01-01"), 
-                          stop = as_datetime("2017-01-01"))
+schedule <- roll_schedule_vgo(c("GOLD.FORTS", "PL.NYMEX", "FOAT.EUREX"),  
+                              active_contract = list(GOLD.FORTS = c(3, 6, 9, 12), PL.NYMEX = c(1, 4, 7, 10), FOAT.EUREX = c(3,6,9,12)),
+                              max_active_contract = 10, 
+                              start = as_datetime("2015-01-01"), 
+                              stop = as_datetime("2017-01-01"))
 
 test_that("nrow(schedule)", 
           expect_equal(nrow(schedule), 819))

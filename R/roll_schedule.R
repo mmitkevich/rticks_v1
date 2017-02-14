@@ -128,6 +128,7 @@ roll_schedule_vgo <- function(instruments,
 
   # TODO: why query from the beginning of the time? start is enough
   data <- query_symbols(symbols, start = NULL) 
+  #data <- data%>% filter(exante_id!="PL.NYMEX.N2013")
   start <- nget(min(data$fut_notice_first, na.rm=T), as_dt(1900))
   
   for (i in 1:length(symbols)) {
