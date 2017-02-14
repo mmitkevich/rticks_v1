@@ -90,7 +90,7 @@ parse_symbols <- function(instruments, nm="exante_id") {
 #'  > c("VIX.CBOE","PL.NYMEX") %>% parse_symbols() %>% query_symbols(start=now())
 #'
 #' @export 
-query_symbols<-function(instruments = NULL, 
+query_symbols <- function(instruments = NULL, 
                         start = NULL, 
                         stop = NULL, 
                         where = NULL, 
