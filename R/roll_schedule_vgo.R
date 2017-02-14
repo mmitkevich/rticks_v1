@@ -72,7 +72,7 @@ get_futures_contract_letter <- function(exanteID) {
 
 #' @examples
 #'   # выбрать контракты с first_notice_date в 2016 году из БД таблицы symbols
-#'   symbols <- query_symbols(start=as_dt(2016), stop=as_dt(2017))
+#'   symbols <- query_symbols(start=dt(2016), stop=dt(2017))
 #'   
 #'   # cформировать паттерн экспирации
 #'   active_contract <- list(            # в примерах ниже считаем, что контракты:
@@ -128,8 +128,7 @@ roll_schedule_vgo <- function(instruments,
 
   # TODO: why query from the beginning of the time? start is enough
   data <- query_symbols(symbols, start = NULL) 
-  #data <- data%>% filter(exante_id!="PL.NYMEX.N2013")
-  start <- nget(min(data$fut_notice_first, na.rm=T), as_dt(1900))
+  start <- ifnull(min(data$fut_notice_first, na.rm=T), dt(1900))
   
   for (i in 1:length(symbols)) {
     # query_symbols(symbols[i], start = NULL) # MM: moved query out of cycle

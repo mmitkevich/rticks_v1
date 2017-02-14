@@ -33,20 +33,6 @@ nnmap<-function(.x, ...) {
     as_function(...)(.x)
 }
 
-#' maps NULLs into default value
-#' @examples
-#'  nget(NULL, 5)
-#'  # 5
-#'  nget(1, 5)
-#'  # 1
-#' @export
-nget <- function(.x, .v) {
-  if(is.null(.x))
-    return(.v)
-  else
-    return(.x)
-} 
-
 #' converts c("a","b") to list(a=NULL,b=NULL)
 #' @examples 
 #' c("GD","PL") %>% nlist %>% map_at("GD", ~ 12) %>% as.cfg
@@ -61,13 +47,17 @@ list_by <- function(df, id, .f=identity) {
 
 #' as_datetime with prefix support
 #' @examples 
-#'   as.dt("2016")
-#'   as.dt(2016)
-#'   as.dt(16)
-#'   as.dt("2016-01")
-#'   as.dt("2016-01-02")
+#'   dt("2016")
+#'   dt(2016)
+#'   dt(16)
+#'   dt("2016-01")
+#'   dt("2016-01-02")
 #' @export
-as_dt <- function(x) {
+dt <- function(x) {
+  if(is.null(x))
+    return(x)
+  if(is.POSIXct(x))
+    return(x)
   x <- as.character(x)
   if(nchar(x)==2)
     x <- paste0("20", x)
@@ -84,22 +74,12 @@ as_dt <- function(x) {
 grouped_df_as_list <- function(.d) (.d %>% do(.out=(.)) %>% select(.out)) [[1]]
 
 
-mutate_rows <- function(.d, .k, .v, .fk, .fv) {
-  #col <- .d[[deparse(substitute(.k))]]
-  #k<-deparse(substitute(.k))
-  #print(f)
-  #p<-.d[substitute(.f)]
-  #print(p)
-  #substitute(.d$.k) <- ifelse(substitute(.f, env=.d), .v, substitute(.d$.k))
-  #print(col)
-  #return(col)
-  #print(substitute(.f))
-  #filter_(.d, substitute(.f))$a<-500
-  #col[[f]][substitute(.f)] <- substitute(.v)
-  #.d
-  c <- .d[[deparse(substitute(.k))]]
-  p <- .d[[deparse(substitute(.fk))]] == .fv
-  c[sla]
-  .d
+#' return f(x) 
+#' @export
+ifnull <- function(x, default, modified=x) {
+  if(is.null(x))
+    return(default)
+  return(modified)
 }
+
 
