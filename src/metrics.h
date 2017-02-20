@@ -1,7 +1,7 @@
 namespace Rcpp {
 
-struct Perfs {
-  typedef RowWrapper<DataFrame, Perfs, double> NumericMetric;
+struct Metrics {
+  typedef RowWrapper<DataFrame, Metrics, double> NumericMetric;
   
   List result;
   CharacterVector symbols;
@@ -17,12 +17,10 @@ struct Perfs {
   NumericMetric sell_volume;
   NumericMetric roundtrips;
   NumericMetric fill_price;
-  
 
-  
 public:
   
-  Perfs() {
+  Metrics() {
     itime = 0;
     ntime = 0;
   }
@@ -34,6 +32,7 @@ public:
       lst[(const char*)symbols[i]] = NumericVector(ntime);
     }
     result[name] = lst;
+    
     return NumericMetric(DataFrame(lst), this);
   }
   
@@ -60,19 +59,16 @@ public:
     fill_price = make_metric("fill_price");
   }
   
-  void on_bar() {
-    itime++;
-  }
-  
-  void on_trade(long sym, double volume, double price) {
-    pos[sym] += volume;
-    cash[sym] -= volume * price;
-    (volume > 0 ? buy_volume : sell_volume)[sym] += fabs(volume);
+  template<typename TEvent>
+  void fill(const TEvent & fill) {
+    pos[fill.sym] += fill.fill_qty;
+    cash[fill.sym] -= fill.fill_qty * fill.fill_price;
+    (fill.fill_qty > 0 ? buy_volume : sell_volume)[fill.sym] += fabs(fill.fill_qty);
     
-    if(is_zero(pos[sym]))
-      roundtrips[sym]++;
+    if(is_zero(pos[fill.sym]))
+      roundtrips[fill.sym]++;
     
-    fill_price[sym] = price;
+    fill_price[fill.sym] = fill.fill_price;
     //    std::cout << t << " | " << q << " * " << price << " | " << pos << " | " << cash << "\n";
   }
   

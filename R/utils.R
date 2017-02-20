@@ -82,4 +82,10 @@ ifnull <- function(x, default, modified=x) {
   return(modified)
 }
 
-
+#' replace NA with something
+#' 
+#' @export
+na_replace <- function(x, default = 0) {
+  x[is.na(x)] <- default
+  return(x)
+}

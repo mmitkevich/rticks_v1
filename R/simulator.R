@@ -1,11 +1,17 @@
 library(dplyr)
 
 #' calculate (pnl, dd ,mdd, rpnl)
+#' backtest grid gamma strategy for single instrument
 #' 
+#'
 #' @param data = (datetime, bid, ask, high, low)
 #' @param pos = initial position
 #' @param pars = (gamma=d(pos)/d(price), buy_limit=17, sell_limit=-INF, )
-#' @return 
+#' @return results 
+
+
+#' @examples 
+#' 
 #' 
 #' @export
 backtest.gamma <- function(
@@ -62,8 +68,8 @@ backtest.gamma <- function(
   ) 
   
   r4 <- r3 %>% mutate( # calc pnl
-    rpnl = cumsum(sell_avg*sell_qty - buy_avg*buy_qty, rm.),
-    pos = cumsum(buy_qty - sell_qty)
+    rpnl = cumsum(na_replace(sell_avg*sell_qty, 0)) - cumsum(na_replace(buy_avg*buy_qty)),
+    pos = cumsum(na_replace(buy_qty,0) - na_replace(sell_qty,0))
   )
   
   return(r4)
