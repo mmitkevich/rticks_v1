@@ -10,7 +10,7 @@ typedef const char* symbol_t;
 class Simulator;
 
 
-class GammaAlgorithm {
+struct GammaAlgorithm {
   NumericVector buy_qty;      // increment in position (in lots) per increment in price ( in MPI )
   NumericVector sell_qty;     
   NumericVector buy;            // maximum price to buy
@@ -18,7 +18,7 @@ class GammaAlgorithm {
   NumericVector mpi;
 public:
   template<typename TContext>
-  void init(TContext& ctx, DataFrame params) {
+  void init(TContext& ctx, DataFrame params, List config) {
      buy_qty = NumericVector(ctx.nsym());
      sell_qty = NumericVector(ctx.nsym());
      buy = as<NumericVector>(params["buy"]);
@@ -110,7 +110,7 @@ public:
       DataFrame params,     // symbol, p1, p2, p3
       List config) 
   {
-    algo.init(params);
+    algo.init(*this, params, config);
   }
   
   template<typename TAlgorithm>
@@ -157,13 +157,28 @@ class GammaSimulator : public Simulator {
     for(int i = 0; i < nsym_; i++) {
       Fill evt(i);
       // TODO: make high, low direction adaptive due to distance (high, close) <> (low, close)
-      if(low_[i] < algo.buy_[i]) {
-        fill(algo, i, algo.buy_[i], low_[i], algo.buy_qty[i]);
+      if(low_[i] < algo.buy[i]) {
+        fill(algo, i, algo.buy[i], low_[i], algo.buy_qty[i]);
       }
-      if(high_[i] > algo.sell_[i]) {
-        fill(algo, i, algo.sell_[i], high_[i], algo.sell_qty[i]);
+      if(high_[i] > algo.sell[i]) {
+        fill(algo, i, algo.sell[i], high_[i], algo.sell_qty[i]);
       }
     }
   }
 };
+
+template<class TAlgo, class TSim> List backtest(List data, List params, List config) {
+  TSim sim;
+  TAlgo algo;
+  sim.template init<TAlgo>(algo, params, config);
+  List res = sim.template run<TAlgo>(algo, data);
+  return res;
+}
+    
+// [[Rcpp::export]]
+List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
+  if(clazz[0] == "Gamma") {
+    return backtest<GammaAlgorithm, GammaSimulator>(data, params, config);
+  }
+}
 
