@@ -175,10 +175,16 @@ template<class TAlgo, class TSim> List backtest(List data, List params, List con
   return res;
 }
     
+//' bt_gamma
+//'
+//' will backtest gamma scalping
+//' @useDynLib rticks
 // [[Rcpp::export]]
 List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
+  List result;
   if(clazz[0] == "Gamma") {
-    return backtest<GammaAlgorithm, GammaSimulator>(data, params, config);
+    result =  backtest<GammaAlgorithm, GammaSimulator>(data, params, config);
   }
+  return result;
 }
 
