@@ -7,7 +7,7 @@ ifply <- function(.x, .f, .p=function()T,...) {
 }
 
 #' @export
-.reuters.fields = c("bid", "ask", "high", "low")
+.reuters.fields = c("high", "low", "bid", "ask")
 
 #' @export
 .reuters.fields.sql = c("s.exante_id", "m.datetime", "m.close_bid", "m.close_ask", "m.high_bid", "m.low_ask")
@@ -27,14 +27,6 @@ ifply <- function(.x, .f, .p=function()T,...) {
   if(!is.null(stop))
     s <- s %>% filter(datetime<stop)
   return(s)  
-}
-
-#' unique datetimes
-#' 
-#' @export
-timeline <- function(schedule, start=NULL) {
-  schedule <- ifnull(start, schedule, schedule%>%filter(datetime>=start))
-  unique(schedule$datetime)
 }
 
 #' query candles from reuters minutes sql database
@@ -84,6 +76,7 @@ to_virtual_id <- function(instruments, mapping) {
   )
 }
 
+.candles.attributes <- c("mapping", "start", "stop", "events")
 
 #' fetch query
 #' 
@@ -123,81 +116,40 @@ fetch.reuters <- function(q) {
       bid = close_bid, 
       ask = close_ask, 
       high = high_bid, 
-      low = low_ask)
-  df <- df %>%
-    to_virtual_id(mapping)
-  #browser()
-  dfs <- df %>%
+      low = low_ask) 
+  df <- df %>% to_virtual_id(mapping)
+  
+  df <- df %>% gather_("event", "value", .reuters.fields) %>% arrange(datetime) # todo: match("event",c("h","l","b","a")) so h,l before b,a
+  
+  attr(df, "mapping") <- mapping
+  attr(df, "start") <- q$start
+  attr(df, "stop") <- stop
+  attr(df, "events") <- .reuters.fields
+  
+  attr(df, "class") <- c(attr(df, "class"), "chunk")
+  q$start <- stop
+  
+  #result<-structure(result, class="chunk")
+  #if(getOption("debug"))
+  #  print(attributes(df))
+  return(df)
+}
+
+#' group chunk by events
+#' 
+#' @export
+by_event.chunk <- function(df) {
+  dfs <- df %>% spread(event, value) %>% 
     group_by(virtual_id) %>% 
     grouped_df_as_list
   result <- setNames(nm=.reuters.fields) %>% 
     map(function(.col) {
       dfs %>% map(~ .x %>% 
-        select_(.dots = c("datetime", .col)) %>% 
-        rename_(.dots = setNames(.col, .x$virtual_id[[1]]))) %>% 
-      reduce(~ full_join(.x, .y, by="datetime"))
+                    select_(.dots = c("datetime", .col)) %>% 
+                    rename_(.dots = setNames(.col, .x$virtual_id[[1]]))) %>% 
+        reduce(~ full_join(.x, .y, by="datetime"))
     })
-  result$mapping <- mapping
-  result$start <- q$start
-  result$stop <- stop
-  result$fields <- .reuters.fields
-  
-  q$start <- stop
-  
-  result<-structure(result, class="chunk")
-#  if(getOption("debug"))
-    print(result)
-  return(result)
-}
-
-#' print chunk
-#' 
-#' @export
-print.chunk <- function(q) {
-  cat("start: ", as.character(as_datetime(q$start)),
-      ", stop:", as.character(as_datetime(q$stop)), 
-      ", symbols: ", (q$mapping%>%arrange(active_contract))$exante_id %>% paste,"\n")
-}
-
-#' fetch all chunks
-#' 
-#' @export
-fetch_all <- function(q) {
-  chunk <- fetch(q)
-  result <- list()
-  i <- 1
-  while(!is.null(chunk)) {
-    result[[i]] <- chunk
-    i <- i+1
-    chunk <- fetch(q)
-  }
-  return(result)
-}
-
-#' rbind chunks
-#' 
-#' @export
-combine.chunks <- function(chunks) {
-  setNames(nm=.reuters.fields) %>% map(function(f) {
-    chunks %>% map( ~ .x[[f]] )  %>% bind_rows()
-  })
-}
-
-
-#' 
-#' @export
-
-clean.chunk <- function(chunk, 
-                        time_filter = as_function( ~ T), 
-                        value_filter = as_function( ~ T)) {
-  chunk$fields %>% map(function(df) {
-    # apply value_filter to each instrument
-    vf <- colnames(df) %>% 
-            keep(~ .x != "datetime") %>% 
-            map(~ df[[.x]])
-            map(value_filter) %>% 
-            reduce(`&`) 
-    tf <- df$datetime %>% time_filter
-    df[vf & tf]
-  })
+  for(a in .candles.attributes)
+    attr(result,a) <- attr(df, a)
+  result
 }
