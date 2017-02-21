@@ -56,7 +56,7 @@ combine.chunks <- function(chunks) {
 #'  chunks %>% map(~clean.chunk(., time_filter=)
 #' 
 #' @export
-clean.chunk <- function(chunk, 
+clean_mim.chunk <- function(chunk, 
                         time_filter = NULL, 
                         value_filter = NULL ) {
   time_filter = ifnull(time_filter, ~ map_lgl(., ~ T)) %>% as_function()
