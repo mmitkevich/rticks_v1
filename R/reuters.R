@@ -63,11 +63,10 @@ query_candles.reuters <- function(instruments = NULL,
 #' translate exante_id into continious id, adds instrument_id
 #'
 #' @export
-to_virtual_id <- function(instruments, mapping) {
-  parsed <- parse_exante_id(instruments$exante_id)
-  instruments %>% mutate(
-    virtual_id = parsed$instrument_id %>% paste0(".", mapping$active_contract)
-  )
+to_virtual_id <- function(df, symbols) {
+  df %>% 
+    left_join(symbols %>% select(exante_id,active_contract,instrument_id), by="exante_id") %>% 
+    mutate(virtual_id=paste0(instrument_id,".",active_contract))
 }
 
 .candles.attributes <- c("instruments", "start", "stop", "events")
