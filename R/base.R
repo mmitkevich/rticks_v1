@@ -16,3 +16,6 @@ fetch <- function(x,...) UseMethod("fetch")
 #' store something...
 #' @export
 store <- function(x,...) UseMethod("store")
+
+#' @importFrom Rcpp evalCpp
+#' @useDynLib rticks

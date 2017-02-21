@@ -119,7 +119,12 @@ query_symbols <- function(instruments = NULL,
       result[[f]] <- as.datetime(result[[f]])
   }
   # return result
-  result%>%parse_symbols
+  result <- result %>% parse_symbols
+  # add additional fields from instruments
+  #browser()
+  instruments <- query_instruments(instruments)
+  result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
+  return(result)
 }
 
 #' query quant_data
@@ -128,7 +133,8 @@ query_symbols <- function(instruments = NULL,
 #' @export
 query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = T, ...) {
   # TODO: as_tibble ?
-  x <- as.data.frame(x, nm=nm, stringsAsFactors=F)[[nm]]
+  #x <- as.data.frame(x, nm=nm, stringsAsFactors=F)[[nm]]
+  x <- parse_symbols(x, nm = nm)
   w <- .sql.match_id(x, name=nm, f.prefix=f.prefix)
   #result <- tryCatch(
   result <- sql.select(table, fields = fields, where = w, ...)

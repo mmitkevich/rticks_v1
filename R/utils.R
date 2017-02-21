@@ -18,6 +18,16 @@ paste.list <- function(lst, sep="") {
   do.call(paste, modifyList(as.list(lst),list(sep=sep)))  
 } 
 
+#' return cached attribute, or set it if not found 
+#' 
+#' @export
+cached_attr <- function(x, nm, value) {
+  val <- attr(x, nm)
+  if(!is.null(val))
+    return(val)
+  attr(x, nm) <- value
+  return(value)
+}
 
 #' applies function to value or keeps NULL value
 #' @examples
@@ -82,4 +92,10 @@ ifnull <- function(x, default, modified=x) {
   return(modified)
 }
 
-
+#' replace NA with something
+#' 
+#' @export
+na_replace <- function(x, default = 0) {
+  x[is.na(x)] <- default
+  return(x)
+}

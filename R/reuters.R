@@ -33,14 +33,13 @@ ifply <- function(.x, .f, .p=function()T,...) {
 #' @examples
 #' @export
 query_candles.reuters <- function(instruments = NULL, 
-                               schedule = NULL,
+                                  schedule = NULL,
                                active_contract = seq(1,3),
                                start = NULL, 
                                stop = lubridate::now(), 
                                where = NULL) {
-  if(is.null(schedule))
-    schedule <- instruments %>% parse_symbols(nm="instrument_id") %>% 
-      roll_schedule(max_active_contract=max(active_contract), start=start, stop=stop)
+  instruments <- query_instruments(instruments)
+  schedule <- schedule %>% ifnull(cached_attr(instruments, "schedule", instruments %>% roll_schedule(max_active_contract=max(active_contract), start=start, stop=stop)))
   schedule <- schedule %>% .filter_schedule(start=start, stop=stop)
   q <- structure(new.env(), class="reuters")
   with(q, {
@@ -50,21 +49,16 @@ query_candles.reuters <- function(instruments = NULL,
     where = where
     active_contract = active_contract
     fields = .reuters.fields
+    instruments = instruments
   })
-#  if(getOption("debug"))
-    print(q)
+  #if(getOption("debug"))
+  #  print(q)
   return(q)
 }
 
-#' print query
-#' 
-#' @export
-print.reuters <- function(q) {
-  cat("start: ", as.character(q$start),
-      ", stop:", as.character(q$stop), 
-      ", symbols: ", q$schedule$instrument_id %>% unique %>% paste,
-      ", next: ", as.character(timeline(q$schedule, start = q$start)[[2]]),"\n")
-}
+#print.reuters <- function(q) {
+#  print(as.list(q))
+#}
 
 #' translate exante_id into continious id, adds instrument_id
 #'
@@ -76,7 +70,7 @@ to_virtual_id <- function(instruments, mapping) {
   )
 }
 
-.candles.attributes <- c("mapping", "start", "stop", "events")
+.candles.attributes <- c("instruments", "start", "stop", "events")
 
 #' fetch query
 #' 
@@ -86,21 +80,15 @@ fetch.reuters <- function(q) {
     return(NULL)
   tl = timeline(q$schedule, start=q$start)
   stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
-  #mapping <- q$schedule %>% group_by(exante_id) %>% 
-  #               summarise(
-  #                 datetime = head(datetime,1),
-  #                 active_contract = head(active_contract,1),
-  #                 instrument_id = head(instrument_id,1))
-  mapping <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
+  symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
     group_by(exante_id) %>%      # for each contract's group
       arrange(datetime) %>%      # sort by datetime
       filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
-  
   w <- c(
     "m.ric=s.ric",
     "m.datetime BETWEEN s.fut_first_trade_dt AND s.last_tradeable_dt",
-    paste("s.exante_id","IN","(",paste.list(paste0("'", mapping$exante_id, "'"),sep=","),")"),
+    paste("s.exante_id","IN","(",paste.list(paste0("'", symbols$exante_id, "'"),sep=","),")"),
     paste("m.datetime", "BETWEEN", 1000*as.numeric(q$start), "AND", 1000*as.numeric(stop)),
     q$where
   ) %>% reduce(sql.and)
@@ -117,11 +105,13 @@ fetch.reuters <- function(q) {
       ask = close_ask, 
       high = high_bid, 
       low = low_ask) 
-  df <- df %>% to_virtual_id(mapping)
+  df <- df %>% to_virtual_id(symbols)
+#  browser()
+  df <- df  %>% # gather_("event", "value", .reuters.fields)  %>%
+      arrange(datetime) # todo: match("event",c("h","l","b","a")) so h,l before b,a
   
-  df <- df %>% gather_("event", "value", .reuters.fields) %>% arrange(datetime) # todo: match("event",c("h","l","b","a")) so h,l before b,a
-  
-  attr(df, "mapping") <- mapping
+  attr(df, "symbols") <- symbols
+  attr(df, "instruments") <- q$instruments
   attr(df, "start") <- q$start
   attr(df, "stop") <- stop
   attr(df, "events") <- .reuters.fields
@@ -130,8 +120,9 @@ fetch.reuters <- function(q) {
   q$start <- stop
   
   #result<-structure(result, class="chunk")
-  #if(getOption("debug"))
-  #  print(attributes(df))
+  if(getOption("debug",F))
+    print(attributes(df))
+  row.names(df) <- NULL
   return(df)
 }
 
