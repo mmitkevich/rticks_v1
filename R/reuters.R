@@ -113,7 +113,7 @@ fetch.reuters <- function(q) {
   attr(df, "symbols") <- symbols
   attr(df, "instruments") <- q$instruments
   attr(df, "start") <- q$start
-  attr(df, "stop") <- stop
+  attr(df, "stop") <- as_datetime(stop)
   attr(df, "events") <- .reuters.fields
   
   attr(df, "class") <- c(attr(df, "class"), "chunk")
