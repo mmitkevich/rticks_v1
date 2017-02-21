@@ -61,7 +61,9 @@ roll_schedule <- function(instruments,
     return(as.data.frame(rs2))
   })
   #browser()
-  bind_rows(result$.out) %>% arrange(datetime)
+  result <- bind_rows(result$.out) %>% arrange(datetime)
+  result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id")
+  result
 }
 
 #' unique datetimes

@@ -7,8 +7,6 @@ using namespace Rcpp;
 
 typedef const char* symbol_t;
 
-class Simulator;
-
 
 struct GammaAlgorithm {
   NumericVector buy_qty;      // increment in position (in lots) per increment in price ( in MPI )
@@ -52,8 +50,10 @@ struct Fill {
 
 class Simulator
 {
-protected:
+public:
   NumericVector datetimes_;
+  CharacterVector events_;
+  NumericVector values_;
   DataFrame bids_df_;
   DataFrame asks_df_;
   int itime_;
@@ -67,6 +67,7 @@ protected:
   NumericVector fill_price_;
   NumericVector fill_qty_;
   NumericVector mpi_;
+  DataFrame instruments_;
   Metrics metrics_;
 public:
 
@@ -101,7 +102,7 @@ public:
 
   template<typename TEvent>
   void fill(const TEvent &fill) {
-      metrics_.fill<TEvent>(fill);
+      metrics_.template fill<TEvent>(fill);
   }
   
   template<typename TAlgorithm>
@@ -119,8 +120,9 @@ public:
       List data)            // datetime; bid->df<datetime, MSFT, AAPL, ...>; ask->df<datetime, MSFT, AAAPL, ....> 
   {
     datetimes_ = as<NumericVector>(data["datetime"]);
-    bids_df_ = as<DataFrame>(data["bid"]);
-    asks_df_ = as<DataFrame>(data["ask"]);
+    events_ = as<CharacterVector>(data["event"]);
+    values_ = as<NumericVector>(data["value"]);
+    instruments_ = as<DataFrame>(data.attr("instruments"));
     itime_ = 0;
     ntime_ = datetimes_.size();
     nsym_ = bids_df_.size();
@@ -140,6 +142,7 @@ public:
   }
 };
 
+template<typename TMetrics>
 class GammaSimulator : public Simulator {
   typedef Simulator base_type;
   
@@ -183,7 +186,7 @@ template<class TAlgo, class TSim> List backtest(List data, List params, List con
 List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
   List result;
   if(clazz[0] == "Gamma") {
-    result =  backtest<GammaAlgorithm, GammaSimulator>(data, params, config);
+    result =  backtest<GammaAlgorithm, GammaSimulator<Metrics> >(data, params, config);
   }
   return result;
 }
