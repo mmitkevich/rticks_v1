@@ -51,19 +51,17 @@ struct Fill {
 class Simulator
 {
 public:
-  NumericVector datetimes_;
-  CharacterVector events_;
-  NumericVector values_;
-  DataFrame bids_df_;
-  DataFrame asks_df_;
+  NumericVector datetime_;
+  CharacterVector virtual_id_;
+  NumericVector bid_;
+  NumericVector ask_;
+  NumericVector high_;
+  NumericVector low_;
+  
   int itime_;
   int ntime_;
   int nsym_;
   CharacterVector symbols_;
-  NumericVector bids_;
-  NumericVector asks_;
-  NumericVector high_;
-  NumericVector low_;
   NumericVector fill_price_;
   NumericVector fill_qty_;
   NumericVector mpi_;
@@ -117,10 +115,10 @@ public:
   template<typename TAlgorithm>
   List run( 
       TAlgorithm &algo,
-      List data)            // datetime; bid->df<datetime, MSFT, AAPL, ...>; ask->df<datetime, MSFT, AAAPL, ....> 
+      List data)            // datetime, virtual_id, bid, ask, high, low
   {
     datetimes_ = as<NumericVector>(data["datetime"]);
-    events_ = as<CharacterVector>(data["event"]);
+    virtual_id_ = as<CharacterVector>(data["virtual_id"]);
     values_ = as<NumericVector>(data["value"]);
     instruments_ = as<DataFrame>(data.attr("instruments"));
     itime_ = 0;
