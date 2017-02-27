@@ -133,8 +133,6 @@ query_symbols <- function(instruments = NULL,
 #' @export
 query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = T, ...) {
   # TODO: as_tibble ?
-  #x <- as.data.frame(x, nm=nm, stringsAsFactors=F)[[nm]]
-  x <- parse_symbols(x, nm = nm)
   w <- .sql.match_id(x, name=nm, f.prefix=f.prefix)
   #result <- tryCatch(
   result <- sql.select(table, fields = fields, where = w, ...)
@@ -153,7 +151,8 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 query_instruments <- function(instruments = NULL, 
                              fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
                              json_cols = c("active_contract"), ...) {
-  r <- query_quant_data(instruments, "quant_data.instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
+  instruments <- parse_symbols(instruments, nm = "instrument_id")
+  r <- query_quant_data(instruments$instrument_id, "quant_data.instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
   # FIXME: patch exante_id == instrument_id so every symbol df has some exante_id column
   r$exante_id <- r[["instrument_id"]]
   return(r)
