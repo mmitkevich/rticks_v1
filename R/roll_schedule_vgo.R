@@ -126,7 +126,6 @@ roll_schedule_vgo <- function(instruments,
                                  Letter = c("F","G","H","J","K","M","N","Q","U","V","X","Z"),
                                  stringsAsFactors = FALSE)
 
-  # TODO: why query from the beginning of the time? start is enough
   data <- query_symbols(symbols, start = NULL) 
   start <- ifnull(min(data$fut_notice_first, na.rm=T), dt(1900))
   
