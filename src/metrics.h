@@ -1,74 +1,61 @@
+#pragma once
+
+#include "utils.h"
+#include "events.h"
+
 namespace Rcpp {
 
-struct Metrics {
-  typedef RowWrapper<DataFrame, Metrics, double> NumericMetric;
+struct Metrics : Algo {
+  typedef RowWrapper<DataFrame, Metrics, double, NumericVector> NumericMetric;
   
   List result;
   CharacterVector symbols;
-  int itime;
-  int ntime;
+  
+  int index;
+  int stop;
+  
   NumericMetric time;
   NumericMetric max;  // by symbol
   NumericMetric dd;
   NumericMetric mdd;
   NumericMetric pos;
-  NumericMetric cash;
+  NumericMetric rpnl;
   NumericMetric buy_volume;
   NumericMetric sell_volume;
   NumericMetric roundtrips;
   NumericMetric fill_price;
 
-public:
-  
-  Metrics() {
-    itime = 0;
-    ntime = 0;
+  Metrics(DataFrame params, List config)
+    : Algo(params, config),
+      index(0),
+      stop(0) {
+    max = make_metric("pnl"); // summary equity
+    dd  = make_metric("dd");
+    mdd  = make_metric("mdd");
+    pos = make_metric("pos");
+    rpnl = make_metric("rpnl"); // realized cash equity
+    symbols = required<CharacterVector>(params, "symbols");
   }
   
   NumericMetric make_metric(const char *name, double def = NAN) {
     List lst;
     
-    for(int i=0; i<ncol(); i++) {
-      lst[(const char*)symbols[i]] = NumericVector(ntime);
+    for(int isym=0; isym<symbols.size(); isym++) {
+      lst[(const char*)symbols[isym]] = NumericVector(stop);
     }
     result[name] = lst;
-    
     return NumericMetric(DataFrame(lst), this);
   }
   
-  int ncol() {
-    return symbols.size();  
-  }
-  
-  int nrow() {
-    return ntime;
-  }
-
-  double& current_value(DataFrame &df) {
-    return as<NumericVector>(df)[itime];
-  }
-
-  void init(int ntime_, CharacterVector symbols_) {
-    ntime = ntime_;
-    symbols = symbols_;
-    max = make_metric("max");
-    dd  = make_metric("dd");
-    mdd = make_metric("mdd");
-    pos = make_metric("pos");
-    cash = make_metric("cash");
-    fill_price = make_metric("fill_price");
-  }
-  
-  template<typename TEvent>
-  void fill(const TEvent & fill) {
-    pos[fill.sym] += fill.fill_qty;
-    cash[fill.sym] -= fill.fill_qty * fill.fill_price;
-    (fill.fill_qty > 0 ? buy_volume : sell_volume)[fill.sym] += fabs(fill.fill_qty);
+  void on_next(const OrderFilled& fill) {
+    int i = fill.symbol.index;
+    pos[i] += fill.qty;
+    rpnl[i] -= fill.qty * fill.price;
+    (fill.qty > 0 ? buy_volume : sell_volume)[i] += fabs(fill.qty);
     
-    if(is_zero(pos[fill.sym]))
-      roundtrips[fill.sym]++;
+    if(is_zero(pos[i]))
+      roundtrips[i]++;
     
-    fill_price[fill.sym] = fill.fill_price;
     //    std::cout << t << " | " << q << " * " << price << " | " << pos << " | " << cash << "\n";
   }
   

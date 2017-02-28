@@ -17,5 +17,11 @@ fetch <- function(x,...) UseMethod("fetch")
 #' @export
 store <- function(x,...) UseMethod("store")
 
+#' rticks
+#' 
+#' @author mim <mim@exante.eu>
+#' @docType package
+#' @name rticks
 #' @importFrom Rcpp evalCpp
 #' @useDynLib rticks
+NULL

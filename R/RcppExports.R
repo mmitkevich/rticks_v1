@@ -4,7 +4,7 @@
 #' bt_gamma
 #'
 #' will backtest gamma scalping
-#' @useDynLib rticks
+#' @export
 bt_gamma <- function(clazz, data, params, config) {
     .Call('rticks_bt_gamma', PACKAGE = 'rticks', clazz, data, params, config)
 }
