@@ -9,11 +9,11 @@ struct RowWrapper  {
   TData data;
   TCursor *cur;
 
-  RowWrapper() {
-    cur = NULL;
+  RowWrapper(TCursor *cur=NULL)
+    : cur(cur) {
   }
   
-  RowWrapper(const TData &data, TCursor *cur) :
+  RowWrapper(TCursor *cur, const TData &data) :
     data(data), 
     cur(cur) {
   }
@@ -32,14 +32,13 @@ struct RowWrapper  {
   }
 
   TValue& operator[](int icol) {
-    return get<TValue>(icol);
+    return get(icol);
   }
   
   int size() const {
     return data.size();
   }
   
-  template<typename TColumn> 
   TValue& get(int icol) {
     if(cur==NULL)
       throw new std::range_error("cur==NULL");

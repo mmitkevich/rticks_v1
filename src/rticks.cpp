@@ -1,3 +1,5 @@
+#include <Rcpp.h>
+
 #include "rticks.h"
 #include "gamma.h"
 

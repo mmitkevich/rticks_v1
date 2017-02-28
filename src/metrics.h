@@ -44,7 +44,7 @@ struct Metrics : Algo {
       lst[(const char*)symbols[isym]] = NumericVector(stop);
     }
     result[name] = lst;
-    return NumericMetric(DataFrame(lst), this);
+    return NumericMetric(this, DataFrame(lst));
   }
   
   void on_next(const OrderFilled& fill) {

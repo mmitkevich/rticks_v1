@@ -15,16 +15,19 @@ struct Player : public Algo,
 {
   using TObservable::notify;
 
+  typedef RowWrapper<DataFrame, Player, double, NumericVector> DataRow;
+  
     // from params
   NumericVector mpi;
   CharacterVector symbols;
   
   // from data
   NumericVector datetimes;
-  DataFrame df_bid;
-  DataFrame df_ask;
-  DataFrame df_high;
-  DataFrame df_low;
+  DataRow df_bid;
+  DataRow df_ask;
+  DataRow df_high;
+  DataRow df_low;
+  
   int index;
   int stop; 
   
@@ -33,8 +36,11 @@ struct Player : public Algo,
     : Algo(params, config),
       index(0),
       stop(0),
-      mpi(required<NumericVector>(params, "mpi")) {
-  }
+      mpi(required<NumericVector>(params, "mpi")),
+      df_bid(this),
+      df_ask(this),
+      df_high(this),
+      df_low(this) {  }
   
   double now() {
     return datetimes[index];
@@ -50,9 +56,12 @@ struct Player : public Algo,
   
   void on_next(const List &data)    // datetime, bid, ask, high, low 
   {
-    datetimes = required<DataFrame>(data, "datetime");
-    df_bid = required<DataFrame>(data, "bid");
-    df_ask = required<DataFrame>(data, "ask");
+    datetimes = required<NumericVector>(data, "datetime");
+    df_bid.data = required<DataFrame>(data, "bid");
+    df_ask.data = required<DataFrame>(data, "ask");
+    df_high.data = required<DataFrame>(data, "high");
+    df_low.data = required<DataFrame>(data, "low");
+    
     index = 0;
     stop = data.size();
     int nsym = df_bid.size();
@@ -73,7 +82,7 @@ struct Player : public Algo,
         TOutput e;
         e.set_flag(Message::FROM_MARKET);
         e.symbol = SymbolId(symbols[isym], isym);
-        e.datetime = datetimes[index];
+        e.datetime = now();
         e.quotes.buy = df_bid[isym];
         e.quotes.sell = df_ask[isym];
         notify(e);
