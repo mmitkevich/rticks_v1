@@ -1,7 +1,3 @@
-library(rticks)
-library(lubridate)
-library(magrittr)
-
 .mapping_file = function(exanteID) {
   mappingFile <- fromJSON("/usr/local/share/exante-stat-schedule-data/.mapping")
   fileName <- mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))]
