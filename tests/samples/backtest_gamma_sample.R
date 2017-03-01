@@ -12,7 +12,7 @@ saveRDS(data,"~/rticks/tests/VIX.rds")
 }
 results <- bt_gamma("gamma",
   data, 
-  params = list(buy=c(20),sell=c(25)),
+  params = list(buy=c(20),sell=c(25),mpi=c(0.05)),
   config = list())
 cat("DONE\n")
 

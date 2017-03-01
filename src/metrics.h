@@ -1,6 +1,5 @@
 #pragma once
 
-#include "utils.h"
 #include "events.h"
 
 namespace Rcpp {
@@ -47,7 +46,7 @@ struct Metrics : Algo {
     return NumericMetric(this, DataFrame(lst));
   }
   
-  void on_next(const OrderFilled& fill) {
+  void on_next(OrderFilled fill) {
     int i = fill.symbol.index;
     pos[i] += fill.qty;
     rpnl[i] -= fill.qty * fill.price;

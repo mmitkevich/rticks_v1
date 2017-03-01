@@ -47,12 +47,12 @@ struct QuotingAlgo : public Algo,
     return pos.size();
   }
   
-  virtual void on_next(const QuotesUpdated &e) {
+  virtual void on_next(QuotesUpdated e) {
     market.update(e.symbol, e.quotes);
     notify();
   }
   
-  virtual void on_next(const OrderFilled &e) {
+  virtual void on_next(OrderFilled e) {
     int side = e.side();
     int i = e.symbol.index;
     if((qty(side)[i] -= e.qty*side)==0)
@@ -110,7 +110,7 @@ struct GammaSimulator : public Algo,
     : Algo(params, config) { 
   }
   
-  virtual void on_next(const QuotesUpdated &e) {
+  virtual void on_next(QuotesUpdated e) {
     if(e.get_flag(Message::FROM_MARKET))
       market.update(e.symbol, e.quotes);
     else {
@@ -119,12 +119,12 @@ struct GammaSimulator : public Algo,
   }
   
   // quotes from the gamma strategy  -  receive the gamma
-  virtual void on_next(const GammaQuotesUpdated &e) {
+  virtual void on_next(GammaQuotesUpdated e) {
     gamma.update(e.symbol, e.gamma);
     simulate(e.symbol);
   }
   
-  virtual void simulate(const SymbolId &s) {
+  virtual void simulate(SymbolId s) {
     if(market.buy[s] >= quotes.sell[s]) {
       // simulate the sells
       OrderFilled e;

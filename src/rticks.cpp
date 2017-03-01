@@ -3,11 +3,15 @@
 #include "rticks.h"
 #include "gamma.h"
 
+namespace Rcpp {
+    int Messages_Constructed = 0;
+};
+
 using namespace Rcpp;
 template<int mask, typename TInput> 
 struct Flags {
-  typedef TInput value_type;
-  bool operator()(const value_type &e) const { return e.get_flag(mask); }
+  typedef TInput argument_type;
+  bool operator()(const argument_type &e) const { return e.get_flag(mask); }
 };
 
 //' bt_gamma

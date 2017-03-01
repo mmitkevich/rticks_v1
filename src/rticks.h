@@ -1,5 +1,6 @@
 #include <Rcpp.h>
-#include "utils.h"
-#include "events.h"
+
+#define HAS_AUTO
+
 #include "metrics.h"
 #include "simulator.h"

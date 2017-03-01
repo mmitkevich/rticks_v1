@@ -1,160 +1,10 @@
 #pragma once
-#include "utils.h"
+
+#include "algo.h"
+
 namespace Rcpp {
 
-namespace OrderSide {
-  enum {
-    BUY = 1,
-    SELL = -1
-  };
-};
-
-struct Algo  {
-  double datetime;
-  
-  DataFrame params;
-  List config;
-  
-  
-  Algo(
-    DataFrame params, // (symbol, mpi, par1, par2,....)
-    List config) : 
-    params(params), 
-    config(config), 
-    datetime(NAN)
-  { }
-};
-
-template<typename TOutput, typename TObserver>
-struct Observable {
-  typedef TObserver observer_type;
-  observer_type* observer;
-
-  Observable() : observer(NULL) {
-  }  
-
-  // preprocess output
-  virtual void notify(const TOutput &e) {
-    observer->on_next(e);
-  }
-  
-  void subscribe(TObserver *obs) {
-    observer = obs;
-  }
-};
-
-template<typename TInput>
-struct Observer {
-  typedef TInput value_type;
-  virtual void on_next(const TInput &e) = 0;
-};
-
-template<typename TOutput, typename TObserver>
-struct MultiObservable {
-  typedef TOutput result_type;
-  typedef TObserver observer_type;
-  typedef std::vector<observer_type*> observers_type;
-  observers_type observers;
-  
-  MultiObservable() {
-  }  
-  
-  // preprocess output
-  virtual void notify(TOutput &e) {
-    for(int i=0; i<observers.size(); i++)
-      observers[i]->on_next(e);
-  }
-  
-  void subscribe(TObserver *obs) {
-    observers.push_back(obs);
-  }
-};
-
-struct SymbolId {
-  const char* id;
-  int index;
-  
-  SymbolId(const char* id, int index=-1) 
-    : id(id), index(index) { }
-  
-  operator int() const {
-    return index;
-  }
-};
-
-struct BuySell {
-  double buy;
-  double sell;
-  
-  BuySell() 
-    : buy(NAN), sell(NAN) { }
-  
-  BuySell(double buy, double sell)
-    : buy(buy), sell(sell) { }
-  
-  BuySell(const BuySell &rhs) 
-    : buy(rhs.buy), sell(rhs.sell) { }
-  
-  BuySell &operator=(const BuySell &rhs) {
-    buy = rhs.buy;
-    sell = rhs.sell;
-    return *this;
-  }
-  
-  double& operator()(int side) {
-    return side>0 ? buy:sell;
-  }
-  
-};
-
-struct BuySellVector {
-  NumericVector buy;
-  NumericVector sell;
-  
-  BuySellVector(NumericVector buy, NumericVector sell)
-    : buy(buy),
-      sell(sell) { 
-  }
-  
-  BuySellVector(int n)
-    : buy(n),
-      sell(n) {
-  }
-  
-  BuySellVector() { }
-  
-  BuySell get(int index) {
-    return BuySell(buy[index], sell[index]);
-  }
-  
-  void update(int index, const BuySell& val) {
-    buy[index] = val.buy;
-    sell[index] = val.sell;
-  }
-  
-  int size() {
-    return buy.size();
-  }
-  
-  BuySellVector(const BuySellVector& rhs) 
-    : buy(rhs.buy),
-      sell(rhs.sell) {
-  }
-  
-  BuySellVector& operator=(const BuySellVector& rhs) {
-    buy = rhs.buy;
-    sell = rhs.sell;
-    return *this;
-  }
-  
-  NumericVector& operator()(int side) {
-    if(side>0)
-      return buy;
-    return sell;
-  }
-};
-
-class RAlgo;
+extern int Messages_Constructed;
 
 struct Message {
   double datetime;
@@ -163,11 +13,17 @@ struct Message {
   enum {
     FROM_MARKET = 2<<0,  // or from strategy ?
   };
-  
-  Message() : 
-    flags(0),
-    datetime(NAN),
-    symbol(NULL) { }  
+
+
+  Message(double datetime = NAN, SymbolId symbol = SymbolId(), unsigned long flags = 0) :
+    flags(flags),
+    datetime(datetime),
+    symbol(symbol) {
+#ifdef DEBUG_MESSAGE
+    std::cerr << "Message#" << Messages_Constructed;
+    Messages_Constructed++;
+#endif
+  }
   
   int get_flag(int mask=-1) const {
     return flags & mask;
@@ -180,7 +36,17 @@ struct Message {
     flags &= ~mask;
     return *this;
   }
+
+  operator double() const {
+      return datetime;
+  }
 };
+
+template <typename OutputStream>
+OutputStream & operator<< (OutputStream &os, const Message &msg) {
+    os << "(" << msg.datetime << ", "<< msg.symbol << ")" << "\n";
+    return os;
+}
 
 struct SymbolUpdated : public Message {
   double mpi;

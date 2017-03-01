@@ -1,14 +1,14 @@
 #pragma once
 
-#include "utils.h"
 #include "events.h"
+#include "metrics.h"
 
 namespace Rcpp {
 
 // Observable<QuotesUpdated>
 template<typename TOutput=QuotesUpdated, 
          typename TObserver=Observer<TOutput>,
-         typename TObservable=MultiObservable<TOutput, TObserver> >
+         typename TObservable=Observable<TOutput, TObserver> >
 struct Player : public Algo, 
                 public TObservable,
                 public Observer<List>
@@ -54,7 +54,7 @@ struct Player : public Algo,
     return df_ask[sym.index][index];
   }
   
-  void on_next(const List &data)    // datetime, bid, ask, high, low 
+  void on_next(List data)    // datetime, bid, ask, high, low
   {
     datetimes = required<NumericVector>(data, "datetime");
     df_bid.data = required<DataFrame>(data, "bid");
@@ -92,80 +92,6 @@ struct Player : public Algo,
   }
 };
 
-template<typename F,
-         typename TInput=typename F::value_type,
-         typename TObserver=Observer<TInput>,
-         typename TObservable=Observable<TInput, TObserver> >
-struct Filter : public TObservable, 
-                public Observer<TInput> 
-{
-  typedef TInput result_type;
-  typedef TInput value_type;
-  using TObservable::notify;
-  
-  F fn;
-  
-  Filter(const F &fn = F()) 
-    : fn(fn) 
-  {  }
-  
-  virtual void on_next(const TInput& e) {
-    if(fn(e))
-      notify(e);
-  }
-};
 
-template<typename F,
-         typename TInput,
-         typename TOutput, 
-         typename TObserver=Observer<TOutput>,
-         typename TObservable=Observable<TOutput, TObserver> >
-struct Map : public TObservable 
-{
-  F fn;
-  
-  Map(const F &fn = F()) 
-    : fn(fn) 
-  { }
-  
-  virtual void on_next(const TInput& e) {
-    notify(fn(e));
-  }
-};
-
-template< typename TLeft,
-          typename TRight,
-          typename TInput=typename TLeft::value_type,
-          typename TOutput=typename TRight::result_type,
-          typename TObserver=typename TRight::observer_type,
-          typename TObservable=MultiObservable<TOutput, TObserver> >
-struct Apply : TObservable, Observer<TInput>
-{
-  typedef typename TRight::observer_type observer_type;
-  using TObservable::notify;
-  
-  TLeft left;
-  TRight right;
-  
-  Apply(const TLeft &left, const TRight &right ) 
-    : left(left), right(right)
-  { }
-  
-  virtual void on_next(const TInput& e) {
-    left.on_next(e);
-  }
-  
-  virtual void subscribe(observer_type *obs) {
-    left.subscribe(&right);
-    right.subscribe(obs);
-  }
-};
-
-
-template<typename TLeft, 
-         typename TRight>
-Apply<TLeft,TRight> operator>>(const TLeft &left, const TRight &right) {
-  return Apply<TLeft, TRight>(left, right);
-}
 
 }; //namespace Rcpp
