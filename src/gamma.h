@@ -4,6 +4,7 @@
 #include "events.h"
 #include "simulator.h"
 #include "metrics.h"
+#include <cmath>
 
 namespace Rcpp {
 
@@ -58,6 +59,18 @@ struct QuotingAlgo : public Algo,
   
   virtual void on_next(QuotesUpdated e) {
     market.update(e.symbol, e.quotes);
+    auto q = quotes[e.symbol];
+    if(std::isnan(q.buy) && std::isnan(q.sell)) {
+        auto mid = 0.5 * (e.quotes.buy+e.quotes.sell);
+        quotes.buy[e.symbol] = q.buy = mid - 0.5 * spread[e.symbol];
+        quotes.sell[e.symbol] = q.sell = mid + 0.5 * spread[e.symbol];
+    }else if(std::isnan(q.buy)) {
+        quotes.buy[e.symbol] = q.buy = e.quotes.sell - spread[e.symbol];
+    }else if(std::isnan(q.sell)) {
+        quotes.sell[e.symbol]= q.sell = e.quotes.buy + spread[e.symbol];
+    }else
+        return;
+    notify(e.symbol);
   }
   
   virtual void on_next(OrderFilled e) {
@@ -100,6 +113,7 @@ struct GammaSimulator : public Algo,
   
   GammaSimulator(DataFrame params, List config) 
     : Algo(params, config) { 
+      quotes.buy = quotes.sell = NAN;
   }
   
   virtual void on_next(QuotesUpdated e) {
@@ -114,6 +128,7 @@ struct GammaSimulator : public Algo,
   // quotes from the gamma strategy  -  receive the gamma
   virtual void on_next(GammaQuotesUpdated e) {
     gamma.update(e.symbol, e.gamma);
+    quotes.update(e.symbol, e.quotes);
     on_simulate(e.symbol);
   }
   
@@ -125,13 +140,13 @@ struct GammaSimulator : public Algo,
     auto q = quotes[s];
     auto pi = mpi[s];
     auto g = gamma[s];
-    if(m.buy >= q.sell) {
+    if(!std::isnan(q.sell) && m.buy >= q.sell) {
       // simulate the sells
       e.price = q.sell + 0.5*(m.buy+q.sell);
       e.qty = - (g.sell + truncl((m.buy-q.sell)/pi)*g.sell);
       notify(e);
     }
-    if(m.sell <= q.buy) {
+    if(!std::isnan(q.buy) && m.sell <= q.buy) {
       // simulate the buys
       e.price = q.sell + 0.5*(m.sell+q.buy);
       e.qty =  (g.buy + truncl((q.buy-m.sell)/pi)*g.buy);

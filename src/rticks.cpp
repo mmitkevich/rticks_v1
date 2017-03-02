@@ -37,6 +37,8 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
 
     // send data
     player(data);
+
+    result = metrics.toR();
   }
   return result;
 }

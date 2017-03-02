@@ -2,6 +2,7 @@
 
 #include "events.h"
 #include "metrics.h"
+#include <tuple>
 
 namespace Rcpp {
 
@@ -100,7 +101,7 @@ struct Player : public Algo,
       //e.set_flag(QuotesUpdated::HIGH_LOW);
       //hl.push_back(e);
       std::cout << std::flush;
-      std::cout << std::tuple(Datetime(dt), e.symbol, ;
+      std::cout << "Q    "<< std::make_tuple(Datetime(dt), e.symbol, e.quotes.buy, e.quotes.sell) << "\n";
 
       open_dt = close_dt;
       close_dt = datetimes[index];

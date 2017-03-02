@@ -151,8 +151,8 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
   }
 
   BuySellVector(int n)
-    : buy(n),
-      sell(n) {
+    : buy(n,NAN),
+      sell(n,NAN) {
   }
 
   BuySellVector() { }
