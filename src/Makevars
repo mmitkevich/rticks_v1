@@ -1,2 +1,2 @@
 #PKG_CXXFLAGS = -std=c++11
-PKG_CXXFLAGS = -g -O0
+PKG_CXXFLAGS = -g -O0 -std=c++14

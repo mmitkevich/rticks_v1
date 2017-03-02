@@ -6,6 +6,7 @@
 
 namespace Rcpp {
 
+
 // Remove the first item in a tuple
 template<typename T>
 struct tuple_tail;

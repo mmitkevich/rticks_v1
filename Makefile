@@ -5,7 +5,7 @@ TARBALL = $(PACKAGE)_$(VERSION).tar.gz
 TARBALL_LOC = $(PARENTDIR)/$(TARBALL)
 CHECKDIR = $(PARENTDIR)/$(PACKAGE).Rcheck
 
-all: cpp_examples
+all: install cpp_examples
 #doc check install cpp deps build 
 
 deps:

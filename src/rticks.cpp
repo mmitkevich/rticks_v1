@@ -21,11 +21,22 @@ struct Flags {
 // [[Rcpp::export]]
 List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
   List result;
-  
+
+
   if(clazz[0] == "gamma") {
-    typedef Player<> player_type;
-    player_type player(params, config);
-    player >> Filter<Flags<Message::FROM_MARKET, QuotesUpdated> >();
+    Player<> player(params, config);
+    GammaSimulator<> simulator(params, config);
+    QuotingAlgo<> algo(params, config);
+    Metrics<> metrics(params, config);
+
+    player >>= simulator; // quotes - first to sim (to fill old orders)
+    player >>= algo;      // quotes - second to algo (to create new orders)
+
+    simulator >>= algo; // fills
+    simulator >>= metrics; // fills
+
+    // send data
+    player(data);
   }
   return result;
 }

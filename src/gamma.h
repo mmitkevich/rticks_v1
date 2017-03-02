@@ -13,27 +13,36 @@ namespace Rcpp {
 /// after processing the input, all overloads call
 ///   operator() without parameters so some post-action could be applied
 
-template< typename TOutput=QuotesUpdated, 
-          typename TObserver=void>
-struct QuotingAlgo : public Algo, 
-                     public Observable<TOutput, TObserver>, 
-                     public Observer<QuotesUpdated>, 
-                     public Observer<OrderFilled> 
+/// GammaAlgorithm holds a bunch of limit orders, at each minimal price step
+/// qty at each level is exactly buy_gamma(t) for buys and sell_gamma(t) for sells.
+/// distance between bid and ask is spread(t)
+
+template< typename TOutput=GammaQuotesUpdated,
+          typename TObserver=Observer<TOutput> >
+struct QuotingAlgo : public Algo,
+                     public Observable<TOutput, TObserver>,
+                     public Observer<QuotesUpdated>,
+                     public Observer<OrderFilled>
 {
   using Observable<TOutput,TObserver>::notify;
 
+  /// parameters
   NumericVector spread;       // spread to maintain  
   NumericVector offset;       // midspread directional offset 
-  
+  BuySellVector gamma;        // qty to quote on buy/sell sides
+
+  /// from parameters also
   CharacterVector symbols;
   NumericVector mpi;
-  BuySellVector market;  // market prices
-  
-  BuySellVector quotes;  // algorithm's bid & ask
-  BuySellVector qty;     // algorithm's bid & ask qty
-  
+
+  /// inputs
+  BuySellVector market;  // current market prices
   NumericVector pos;     // current position
-  
+
+  /// outputs
+  BuySellVector quotes;  // algorithm's bid & ask
+  BuySellVector qty;     // algorithm's best bid & ask qty unfilled
+
   QuotingAlgo(DataFrame params, List config) 
     : Algo(params, config),
       symbols(required<CharacterVector>(params, "symbol")),
@@ -44,56 +53,39 @@ struct QuotingAlgo : public Algo,
   {  }
 
   int size() {
-    return pos.size();
+    return symbols.size();
   }
   
   virtual void on_next(QuotesUpdated e) {
     market.update(e.symbol, e.quotes);
-    notify();
   }
   
   virtual void on_next(OrderFilled e) {
     int side = e.side();
-    int i = e.symbol.index;
-    if((qty(side)[i] -= e.qty*side)==0)
-      quotes(side)[i] = NAN;
-    notify();
+    if((qty(side)[e.symbol] -= e.qty*side)==0)
+        on_filled(e.symbol, side);
   }
 
-  virtual void notify() {
+  // full fill - move the spread
+  virtual void on_filled(SymbolId s, int side) {
+    quotes(side)[s] -= mpi[s]*side; // side>0 => we bought at buy => move down
+    qty(side)[s] = gamma(side)[s];     // restore liquidity
+    notify(s);
+  }
+
+  // notify on quotes change
+  virtual void notify(SymbolId symbol) {
     TOutput e;
     e.datetime = datetime;
-    for(int i=0; i<size(); i++) {
-      e.symbol = SymbolId(symbols[i], i);
-      e.quotes = quotes.get(e.symbol);
-      notify(e);
-    }
+    e.symbol = symbol;
+    e.quotes = quotes[e.symbol];
+    notify(e);
   }
 };
 
-/// GammaAlgorithm holds a bunch of limit orders, at each minimal price step
-/// qty at each level is exactly buy_gamma(t) for buys and sell_gamma(t) for sells.
-/// distance between bid and ask is spread(t)
 
-template<typename TObserver>
-struct GammaAlgo : public QuotingAlgo<GammaQuotesUpdated, TObserver> {
-  BuySellVector gamma;
-  
-  GammaAlgo(DataFrame params, List config)
-    : QuotingAlgo<TObserver>(params, config),
-      gamma(required<NumericVector>(params, "gamma.sell"),
-            required<NumericVector>(params, "gamma.buy")) {
-  }
-  
-  virtual bool notify(GammaQuotesUpdated &e) {
-    e.gamma.buy = gamma.buy[e.symbol];
-    e.gamma.sell = gamma.sell[e.symbol];
-    return true;
-  }
-};
-
-template< typename TOutput, 
-          typename TObserver>
+template< typename TOutput=OrderFilled,
+          typename TObserver=Observer<TOutput> >
 struct GammaSimulator : public Algo, 
                         public Observable<TOutput, TObserver>, 
                         public Observer<QuotesUpdated>,
@@ -111,34 +103,38 @@ struct GammaSimulator : public Algo,
   }
   
   virtual void on_next(QuotesUpdated e) {
-    if(e.get_flag(Message::FROM_MARKET))
+    if(e.flag(Message::FROM_MARKET))
       market.update(e.symbol, e.quotes);
     else {
       // quotes from strategy
     }
+    on_simulate(e.symbol);
   }
   
   // quotes from the gamma strategy  -  receive the gamma
   virtual void on_next(GammaQuotesUpdated e) {
     gamma.update(e.symbol, e.gamma);
-    simulate(e.symbol);
+    on_simulate(e.symbol);
   }
   
-  virtual void simulate(SymbolId s) {
-    if(market.buy[s] >= quotes.sell[s]) {
+  virtual void on_simulate(SymbolId s) {
+    OrderFilled e;
+    e.symbol = s;
+    e.datetime = datetime;
+    auto m = market[s];
+    auto q = quotes[s];
+    auto pi = mpi[s];
+    auto g = gamma[s];
+    if(m.buy >= q.sell) {
       // simulate the sells
-      OrderFilled e;
-      e.datetime = datetime;
-      e.price = quotes.sell + 0.5*(market.buy[s]+quotes.sell);
-      e.qty = - (gamma.sell[s] + truncl((market.buy[s]-quotes.sell[s])/mpi[s])*gamma.sell[s]);
+      e.price = q.sell + 0.5*(m.buy+q.sell);
+      e.qty = - (g.sell + truncl((m.buy-q.sell)/pi)*g.sell);
       notify(e);
     }
-    if(market.sell[s] <= quotes.buy[s]) {
+    if(m.sell <= q.buy) {
       // simulate the buys
-      OrderFilled e;
-      e.datetime = datetime;
-      e.price = quotes.sell + 0.5*(market.sell[s]+quotes.buy);
-      e.qty =  (gamma.buy[s] + truncl((quotes.buy[s]-market.sell[s])/mpi[s])*gamma.buy[s]);
+      e.price = q.sell + 0.5*(m.sell+q.buy);
+      e.qty =  (g.buy + truncl((q.buy-m.sell)/pi)*g.buy);
       notify(e);
     }
   }

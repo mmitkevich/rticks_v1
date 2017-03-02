@@ -22,6 +22,11 @@ struct SymbolId {
   SymbolId(const char* id=NULL, int index=-1)
     : id(id), index(index) { }
 
+  SymbolId(const SymbolId &rhs)
+      :id(rhs.id), index(rhs.index) {
+
+  }
+
   operator int() const {
     return index;
   }
@@ -29,22 +34,18 @@ struct SymbolId {
 
 struct Algo  {
   double datetime;
-
-  DataFrame params;
   List config;
-
+  DataFrame params;
 
   Algo(
     DataFrame params, // (symbol, mpi, par1, par2,....)
-    List config) :
-    params(params),
-    config(config),
-    datetime(NAN)
-  { }
+    List config)
+      : datetime(NAN),
+        config(config),
+        params(params) { }
 };
 
-template <typename OutputStream>
-OutputStream & operator<< (OutputStream &os, const SymbolId &s) {
+/*std::ostream & operator<< (std::ostream &os, const SymbolId &s) {
     if(s.id!=NULL)
         os << s.id;
     else
@@ -55,7 +56,7 @@ OutputStream & operator<< (OutputStream &os, const SymbolId &s) {
     else
         os << "?";
     return os;
-}
+}*/
 
 
 struct BuySell {
@@ -83,33 +84,59 @@ struct BuySell {
 
 };
 
-struct BuySellVector {
+template<typename TValue,
+         typename TVector>
+struct vector_iterator {
+    TVector *parent;
+    int index;
+    typedef TValue value_type;
+
+    vector_iterator(TVector *p, int index)
+        : parent(p), index(index) { }
+
+    vector_iterator(const vector_iterator &rhs)
+      : parent(rhs.parent),
+        index(rhs.index)
+    { }
+
+    bool operator==(const vector_iterator &rhs){
+        return index==rhs.index;
+    }
+
+    TValue operator*() {
+        return parent[index];
+    }
+};
+
+template<typename TValue, typename TVector>
+struct vector_base
+{
+    typedef vector_iterator<TValue, TVector> iterator;
+
+    iterator begin() {
+      return iterator(self());
+    }
+
+    iterator end() {
+        return iterator(self(), self()->size());
+    }
+private:
+    TVector* self() {
+        return static_cast<TVector*>(this);
+    }
+};
+
+struct BuySellVector : public vector_base<BuySell, BuySellVector> {
   NumericVector buy;
   NumericVector sell;
+
+  int size() const {
+      return buy.size();
+  }
 
   BuySellVector(NumericVector buy, NumericVector sell)
     : buy(buy),
       sell(sell) {
-  }
-
-  BuySellVector(int n)
-    : buy(n),
-      sell(n) {
-  }
-
-  BuySellVector() { }
-
-  BuySell get(int index) {
-    return BuySell(buy[index], sell[index]);
-  }
-
-  void update(int index, const BuySell& val) {
-    buy[index] = val.buy;
-    sell[index] = val.sell;
-  }
-
-  int size() {
-    return buy.size();
   }
 
   BuySellVector(const BuySellVector& rhs)
@@ -121,6 +148,27 @@ struct BuySellVector {
     buy = rhs.buy;
     sell = rhs.sell;
     return *this;
+  }
+
+  BuySellVector(int n)
+    : buy(n),
+      sell(n) {
+  }
+
+  BuySellVector() { }
+
+  BuySell operator[](int index) {
+    return BuySell(buy[index], sell[index]);
+  }
+
+  void update(int index, BuySell val) {
+    buy[index] = val.buy;
+    sell[index] = val.sell;
+  }
+
+  BuySellVector& operator=(BuySell val) {
+    buy = val.buy;   // TODO: std::forward vs std::move
+    sell = val.sell;
   }
 
   NumericVector& operator()(int side) {

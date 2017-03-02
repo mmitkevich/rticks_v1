@@ -8,14 +8,12 @@ namespace Rcpp {
 // Observable<QuotesUpdated>
 template<typename TOutput=QuotesUpdated, 
          typename TObserver=Observer<TOutput>,
-         typename TObservable=Observable<TOutput, TObserver> >
+         typename TBase=Processor<DataFrame, TOutput, TObserver> >
 struct Player : public Algo, 
-                public TObservable,
-                public Observer<List>
+                public TBase
 {
-  using TObservable::notify;
+  using TBase::notify;
 
-  typedef RowWrapper<DataFrame, Player, double, NumericVector> DataRow;
   
     // from params
   NumericVector mpi;
@@ -23,70 +21,89 @@ struct Player : public Algo,
   
   // from data
   NumericVector datetimes;
-  DataRow df_bid;
-  DataRow df_ask;
-  DataRow df_high;
-  DataRow df_low;
-  
+  NumericVector bids;
+  NumericVector asks;
+  NumericVector highs;
+  NumericVector lows;
+  CharacterVector virtual_symbol;
+
   int index;
   int stop; 
   
+
   Player(DataFrame params,     // symbol, mpi, spread, buy_gamma, sell_gamma
             List config)                // metrics_interval
     : Algo(params, config),
       index(0),
       stop(0),
       mpi(required<NumericVector>(params, "mpi")),
-      df_bid(this),
-      df_ask(this),
-      df_high(this),
-      df_low(this) {  }
+      symbols(required<CharacterVector>(params, "symbol"))
+      {  }
   
   double now() {
     return datetimes[index];
   }
-  
-  double bid(SymbolId sym) {
-    return df_bid[sym.index][index];
+
+  int nsym() {
+      return params.size();
   }
-  
-  double ask(SymbolId sym) {
-    return df_ask[sym.index][index];
+
+  SymbolId to_symbol_id(const char* sym) {
+      for(int i=0;i<symbols.size();i++){
+          if(symbols[i]==sym) {
+              return SymbolId(sym, i);
+          }
+      }
+      std::stringstream s;
+      s << "symbol '" << sym << "' not found in params";
+      Rcpp::stop(s.str());
   }
-  
-  void on_next(List data)    // datetime, bid, ask, high, low
+
+  void on_next(DataFrame data)    // datetime, symbol, bid, ask, high, low
   {
     datetimes = required<NumericVector>(data, "datetime");
-    df_bid.data = required<DataFrame>(data, "bid");
-    df_ask.data = required<DataFrame>(data, "ask");
-    df_high.data = required<DataFrame>(data, "high");
-    df_low.data = required<DataFrame>(data, "low");
-    
+    bids = required<NumericVector>(data, "bid");
+    asks = required<NumericVector>(data, "ask");
+    highs = optional<NumericVector>(data, "high");
+    lows = optional<NumericVector>(data, "low");
+    virtual_symbol = required<CharacterVector>(data, "virtual_id");
+
     index = 0;
-    stop = data.size();
-    int nsym = df_bid.size();
+    stop = data.nrows();
+    std::deque<TOutput> ba; // bid & ask
+    std::deque<TOutput> hl; // high & low
+    double close_dt = datetimes[0];
+    double open_dt = close_dt; // TODO: close_dt -1
     while(index < stop) {
-      int isym;
-      // feed market quotes (sell = lowest(sell), buy = highest(buy)) into simulator to work out fills upto time t
-      for(isym = 0; isym < nsym; isym++) {
-        TOutput e; 
-        e.set_flag(Message::FROM_MARKET | QuotesUpdated::HIGH_LOW);
-        e.datetime = index > 0 ? datetimes[index-1] : NAN; // previous time
-        e.symbol = SymbolId(symbols[isym], isym);
-        e.datetime = now();
-        e.quotes.buy = df_high[isym];
-        e.quotes.sell = df_low[isym];
-        notify(e);
+      double dt = datetimes[index];
+      // TODO: notify high-low events before bid-ask
+      // for(int i=0; i<hl.size(); i++)
+      //    notify(hl[i]);
+      if(dt<close_dt) {
+          std::stringstream s;
+          s << "datetimes not sorted " << dt << ", " << close_dt;
+          Rcpp::stop(s.str());
+      }else if(!is_zero(dt-close_dt)) {
+          while(ba.size()>0) {
+              notify(ba.front());
+              ba.pop_front();
+          }
       }
-      for(isym = 0; isym < nsym; isym++) {
-        TOutput e;
-        e.set_flag(Message::FROM_MARKET);
-        e.symbol = SymbolId(symbols[isym], isym);
-        e.datetime = now();
-        e.quotes.buy = df_bid[isym];
-        e.quotes.sell = df_ask[isym];
-        notify(e);
-      }
+      // buffer events
+      TOutput e;
+      e.set_flag(Message::FROM_MARKET);
+      e.symbol = to_symbol_id(virtual_symbol[index]);
+      e.datetime = open_dt;
+      e.quotes.buy = bids[index];
+      e.quotes.sell = asks[index];
+      ba.push_back(e);
+      //e.set_flag(QuotesUpdated::HIGH_LOW);
+      //hl.push_back(e);
+      std::cout << std::flush;
+      std::cout << std::tuple(Datetime(dt), e.symbol, ;
+
+      open_dt = close_dt;
+      close_dt = datetimes[index];
       index++;
     }
   }
