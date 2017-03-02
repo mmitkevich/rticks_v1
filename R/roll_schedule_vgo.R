@@ -185,8 +185,7 @@ roll_schedule_vgo <- function(instruments,
     
   }
   finSchedDF$datetime <- as_datetime(finSchedDF$datetime)
-  resDF <- arrange(finSchedDF, datetime) %>% 
-    rename(exante_id=exanteID, active_contract=activeContractNumber, instrument_id=exanteIDpat) # TODO: fix the above code to produce theese columns names
+  resDF <- arrange(finSchedDF, datetime)
   
   return(resDF)
 }
