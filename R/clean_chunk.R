@@ -4,9 +4,9 @@
   return(fileName)
 }
 
-.parseDateTime <- function(datetime) {
+'.parseDateTime <- function(datetime) {
   parse_date_time(datetime, orders = "ymd HMOSz")
-}
+}'
 
 .get_historical_schedule <- function(exanteID,
                                      start = NULL,    # means earliest possible 

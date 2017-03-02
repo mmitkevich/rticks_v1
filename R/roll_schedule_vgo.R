@@ -126,7 +126,6 @@ roll_schedule_vgo <- function(instruments,
                                  Letter = c("F","G","H","J","K","M","N","Q","U","V","X","Z"),
                                  stringsAsFactors = FALSE)
 
-  # TODO: why query from the beginning of the time? start is enough
   data <- query_symbols(symbols, start = NULL) 
   start <- ifnull(min(data$fut_notice_first, na.rm=T), dt(1900))
   
@@ -186,8 +185,7 @@ roll_schedule_vgo <- function(instruments,
     
   }
   finSchedDF$datetime <- as_datetime(finSchedDF$datetime)
-  resDF <- arrange(finSchedDF, datetime) %>% 
-    rename(exante_id=exanteID, active_contract=activeContractNumber, instrument_id=exanteIDpat) # TODO: fix the above code to produce theese columns names
+  resDF <- arrange(finSchedDF, datetime)
   
   return(resDF)
 }
