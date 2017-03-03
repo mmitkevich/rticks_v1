@@ -135,19 +135,8 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
   }
 
   BuySellVector(NumericVector buy, NumericVector sell)
-    : buy(buy),
-      sell(sell) {
-  }
-
-  BuySellVector(const BuySellVector& rhs)
-    : buy(rhs.buy),
-      sell(rhs.sell) {
-  }
-
-  BuySellVector& operator=(const BuySellVector& rhs) {
-    buy = rhs.buy;
-    sell = rhs.sell;
-    return *this;
+    : buy(std::move(buy)),
+      sell(std::move(sell)) {
   }
 
   BuySellVector(int n)
@@ -155,9 +144,12 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
       sell(n,NAN) {
   }
 
-  BuySellVector() { }
+  BuySellVector() = default;
 
-  BuySell operator[](int index) {
+  BuySellVector(const BuySellVector& rhs) = default;
+
+
+  const BuySell operator[](int index) const {
     return BuySell(buy[index], sell[index]);
   }
 
@@ -166,12 +158,7 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
     sell[index] = val.sell;
   }
 
-  BuySellVector& operator=(BuySell val) {
-    buy = val.buy;   // TODO: std::forward vs std::move
-    sell = val.sell;
-  }
-
-  NumericVector& operator()(int side) {
+  NumericVector operator()(int side) {
     if(side>0)
       return buy;
     return sell;

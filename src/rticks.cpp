@@ -31,7 +31,7 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
 
     player >>= simulator; // quotes - first to sim (to fill old orders)
     player >>= algo;      // quotes - second to algo (to create new orders)
-
+    algo >>= simulator;     // orders from algo into simulator
     simulator >>= algo; // fills
     simulator >>= metrics; // fills
 

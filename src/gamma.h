@@ -92,6 +92,7 @@ struct QuotingAlgo : public Algo,
     e.datetime = datetime;
     e.symbol = symbol;
     e.quotes = quotes[e.symbol];
+    e.gamma = gamma[e.symbol];
     notify(e);
   }
 };
