@@ -4,9 +4,6 @@
 #include <tuple>
 #include <functional>
 
-namespace Rcpp {
-
-
 // Remove the first item in a tuple
 template<typename T>
 struct tuple_tail;
@@ -117,6 +114,5 @@ struct same_arguments : std::is_same<
   >
 {};
 
-};
 #endif // FUNCTION_TRAITS_H
 

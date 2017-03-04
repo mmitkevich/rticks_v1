@@ -1,6 +1,9 @@
 #ifndef __R_UTILS_H__
 #define __R_UTILS_H__
 
+#include "cxx14.h"
+#include <Rcpp.h>
+
 namespace Rcpp {
 
 /** thin wrapper around some indexable data */
@@ -86,10 +89,10 @@ void copy_if(TVector &output, TVector &input, TFunctor condition) {
 }
 
 // debug stuff
-extern "C" void breakpoint();
-extern "C" const char* printR(SEXP sexp);
+//extern "C" void breakpoint();
+//extern "C" const char* printR(SEXP sexp);
 
-#define BREAKPOINT breakpoint();
+//#define BREAKPOINT breakpoint();
 
 } //namespace
 #endif

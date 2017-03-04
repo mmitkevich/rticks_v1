@@ -1,8 +1,8 @@
-#include <Rcpp.h>
-#include "events.h"
-#include <memory>
+#include "reactive.h"
+#include "cxx14.h"
 
 using namespace Rcpp;
+
 
 template<typename T>
 struct Greater {
@@ -35,9 +35,6 @@ void test_from_filter_print_cpp98() {
         >>= printer;    // means "subscribe" printer "on" (from % filter)
 }
 
-int Messages_Constructed;
-
-    //player >> Filter<Flags<Message::FROM_MARKET, QuotesUpdated> >() >> Print(stdout);
 
 void test_from_filter_print_cpp11_operators() {
     std::cout << "\ntest_from_filter_print_cpp11_operators\n";
@@ -53,7 +50,7 @@ void test_from_map_print_cpp11_operators() {
              << "expected: 4, 9, 16\n";
 
    std::vector<double> input {2, 3};
-   input << 4.;
+   input.push_back(4.);
    std::vector<double> output;
    auto obs = from(input.begin(), input.end())
             % map([](double m) $(m*m))
@@ -115,7 +112,7 @@ void test_from_filter_print_cpp14() {
 #endif
 
 int main(int argc, char* argv[]) {
-     test_combine();
+    test_combine();
     test_from_filter_print_cpp98();
     test_from_filter_print_cpp11_operators();
     test_from_map_print_cpp11_operators();
@@ -124,3 +121,4 @@ int main(int argc, char* argv[]) {
     std::cout << "\n";
     return 0;
 }
+

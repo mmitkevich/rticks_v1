@@ -1,7 +1,8 @@
-#include <Rcpp.h>
-
 #include "rticks.h"
-#include "gamma.h"
+
+
+// *.cpp renamed to *.hpp for @Unity Build
+
 
 namespace Rcpp {
     int Messages_Constructed = 0;
@@ -24,19 +25,26 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
 
 
   if(clazz[0] == "gamma") {
-    Player<> player(params, config);
-    GammaSimulator<> simulator(params, config);
-    QuotingAlgo<> algo(params, config);
+    Player<GammaMessage> player(params, config); // player acts like scheduler / latency simulator
+    GammaSimulator<GammaMessage> market(params, config);
+    GammaAlgo<GammaMessage> algo(params, config);
     Metrics<> metrics(params, config);
 
-    player >>= simulator; // quotes - first to sim (to fill old orders)
-    player >>= algo;      // quotes - second to algo (to create new orders)
-    algo >>= simulator;     // orders from algo into simulator
-    simulator >>= algo; // fills
-    simulator >>= metrics; // fills
+    // wire up market
+    player.$quotes >>= market;
+    player.$orders >>= market;
+    market.$execs >>= player.$execs; // will delay them
+
+    // wire up algo
+    player.$quotes >>= algo;
+    player.$execs >>= algo;
+    algo.$orders >>= player.$orders;
+
+    // wire up metrics
+    player.$execs >>= metrics;
 
     // send data
-    player(data);
+    player.process(data);
 
     result = metrics.toR();
   }

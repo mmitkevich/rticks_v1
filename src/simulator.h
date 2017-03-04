@@ -2,20 +2,69 @@
 
 #include "events.h"
 #include "metrics.h"
-#include <tuple>
 
 namespace Rcpp {
 
-// Observable<QuotesUpdated>
-template<typename TOutput=QuotesUpdated, 
-         typename TObserver=Observer<TOutput>,
-         typename TBase=Processor<DataFrame, TOutput, TObserver> >
-struct Player : public Algo, 
-                public TBase
-{
-  using TBase::notify;
 
-  
+struct Scheduler: public Algo {
+    std::priority_queue<Algo*> queue;
+
+    Scheduler(DataFrame params, List config)
+        :Algo(params, config) { }
+
+    void on_recv(Algo* algo, double dt) {
+        queue.push(algo);
+    }
+
+    void schedule(double time) {
+        while(!queue.empty()) {
+            auto algo = queue.top();
+            if(algo->datetime() <= time) {
+                queue.pop();
+                algo->notify();
+            }
+        }
+    }
+};
+
+
+template<typename TMessage=Message>
+struct DelayedStream : public Algo,
+              public StreamProcessor<TMessage>
+{
+    using StreamProcessor<TMessage>::notify;
+
+    std::priority_queue<TMessage> queue;
+    Scheduler *scheduler;
+
+    DelayedStream(DataFrame params, List config, Scheduler *scheduler)
+        : Algo(params, config),
+          scheduler(scheduler) {
+    }
+
+    virtual void on_next(TMessage e) {
+        queue.push(e);
+    }
+
+    virtual void notify() {
+        notify(queue.top());
+        queue.pop();
+    }
+
+    void enqueue(TMessage e) {
+        queue.push(e);
+    }
+
+    virtual bool empty() {
+        return queue.empty();
+    }
+};
+
+template<typename TOrderMessage=OrderMessage,
+         typename TQuoteMessage=QuoteMessage,
+         typename TExecutionMessage=ExecutionMessage>
+struct Player : public Scheduler
+{
     // from params
   NumericVector mpi;
   CharacterVector symbols;
@@ -30,25 +79,24 @@ struct Player : public Algo,
 
   int index;
   int stop; 
-  
+
+  /// outputs
+  DelayedStream<TQuoteMessage> $quotes;
+  DelayedStream<TExecutionMessage> $execs;
+  DelayedStream<TOrderMessage> $orders;
 
   Player(DataFrame params,     // symbol, mpi, spread, buy_gamma, sell_gamma
             List config)                // metrics_interval
-    : Algo(params, config),
+    : Scheduler(params, config),
+      $quotes(params, config, this),
+      $execs(params, config, this),
+      $orders(params, config, this),
       index(0),
       stop(0),
       mpi(required<NumericVector>(params, "mpi")),
       symbols(required<CharacterVector>(params, "symbol"))
       {  }
   
-  double now() {
-    return datetimes[index];
-  }
-
-  int nsym() {
-      return params.size();
-  }
-
   SymbolId to_symbol_id(const char* sym) {
       for(int i=0;i<symbols.size();i++){
           if(symbols[i]==sym) {
@@ -60,7 +108,7 @@ struct Player : public Algo,
       Rcpp::stop(s.str());
   }
 
-  void on_next(DataFrame data)    // datetime, symbol, bid, ask, high, low
+  void process(DataFrame data)    // datetime, symbol, bid, ask, high, low
   {
     datetimes = required<NumericVector>(data, "datetime");
     bids = required<NumericVector>(data, "bid");
@@ -71,37 +119,28 @@ struct Player : public Algo,
 
     index = 0;
     stop = data.nrows();
-    std::deque<TOutput> ba; // bid & ask
-    std::deque<TOutput> hl; // high & low
-    double close_dt = datetimes[0];
-    double open_dt = close_dt; // TODO: close_dt -1
+    double close_dt = datetimes.size() >0 ? datetimes[1] : datetimes[0];
+    double open_dt = datetimes[0];
     while(index < stop) {
       double dt = datetimes[index];
-      // TODO: notify high-low events before bid-ask
-      // for(int i=0; i<hl.size(); i++)
-      //    notify(hl[i]);
       if(dt<close_dt) {
           std::stringstream s;
           s << "datetimes not sorted " << dt << ", " << close_dt;
           Rcpp::stop(s.str());
-      }else if(!is_zero(dt-close_dt)) {
-          while(ba.size()>0) {
-              notify(ba.front());
-              ba.pop_front();
-          }
       }
       // buffer events
-      TOutput e;
+      QuoteMessage e;
       e.set_flag(Message::FROM_MARKET);
+      e.set_side(OrderSide::BUY);
       e.symbol = to_symbol_id(virtual_symbol[index]);
       e.datetime = open_dt;
-      e.quotes.buy = bids[index];
-      e.quotes.sell = asks[index];
-      ba.push_back(e);
-      //e.set_flag(QuotesUpdated::HIGH_LOW);
-      //hl.push_back(e);
-      std::cout << std::flush;
-      std::cout << "Q    "<< std::make_tuple(Datetime(dt), e.symbol, e.quotes.buy, e.quotes.sell) << "\n";
+      e.price = bids[index];
+
+      $quotes(e);  // send bid
+
+      e.set_side(OrderSide::SELL);
+      e.price = asks[index];
+      $quotes(e);  // send ask
 
       open_dt = close_dt;
       close_dt = datetimes[index];

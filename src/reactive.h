@@ -3,25 +3,19 @@
 #ifndef REACTIVE_H
 #define REACTIVE_H
 
-#include <functional>
-
-#define HAS_AUTO
-
-#ifdef HAS_AUTO
-#include "function_traits.h"
-#endif
+#include "utils.h"
 
 namespace Rcpp {
 
 template<typename TInput>
-struct Observer {
+struct IObserver {
   typedef TInput argument_type;
 
-  virtual ~Observer() { }
+  virtual ~IObserver() { }
   virtual void on_next(TInput e) = 0;
-  void operator()(TInput e) {
-    on_next(e);
-  }
+  //void operator()(TInput e) {
+  //  on_next(e);
+  //}
 };
 
 template<typename TOutput, typename TObserver> struct IObservable;
@@ -34,7 +28,7 @@ template<typename F, typename TOutput, typename TObserver, typename TBase> struc
 template<typename TLeft,
         typename TRight,
         typename TOutput=typename TRight::result_type,   // the output from the obs
-        typename TObserver=Observer<TOutput> >
+        typename TObserver=IObserver<TOutput> >
 struct Apply : IObservable<TOutput, TObserver>
 {
   typedef typename TRight::observer_type observer_type;
@@ -54,11 +48,11 @@ struct Apply : IObservable<TOutput, TObserver>
 };
 
 template<typename TOutput, typename TParent>
-struct ValueObserver : Observer<TOutput>
+struct ValueObserver : IObserver<TOutput>
 {
-    int count;
-    TOutput value;
     TParent *parent;
+    TOutput value;
+    int count;
 
     ValueObserver(TParent *p, TOutput value=0)
         : parent(p),
@@ -75,7 +69,7 @@ struct ValueObserver : Observer<TOutput>
 template<typename TLeft,
         typename TRight,
         typename TOutput,   // the output from the obs
-        typename TObserver=Observer<TOutput>,
+        typename TObserver=IObserver<TOutput>,
         typename TBase=Observable<TOutput, TObserver> >
 struct Combine: public TBase
 {
@@ -110,6 +104,7 @@ struct Combine: public TBase
 template<typename TOutput,
          typename TObserver>
 struct IObservable {
+    typedef TOutput value_type;
     typedef TOutput result_type;
     typedef TObserver observer_type;
     //virtual void on_subscribe(TObserver *obs) = 0;
@@ -125,7 +120,7 @@ struct IObservable {
 };
 
 template<typename TOutput,
-         typename TObserver>
+         typename TObserver=IObserver<TOutput> >
 struct Observable : public IObservable<TOutput, TObserver> {
   typedef TObserver observer_type;
   typedef Observable<TOutput,TObserver> this_type;
@@ -153,14 +148,18 @@ public:
   virtual void on_subscribe(TObserver *obs) {   // TODO: was =0, empty implementation means "hot" observable -- doesn't
 
   }
+
+  void operator()(TOutput e) {
+      notify(e);
+  }
 };
 
 
 template<typename TInput,
          typename TOutput,
-         typename TObserver=Observer<TOutput>,
+         typename TObserver=IObserver<TOutput>,
          typename TBase=Observable<TOutput, TObserver> >
-struct Processor : public TBase, public Observer<TInput>
+struct Processor : public TBase, public IObserver<TInput>
 {
     virtual void on_subscribe(TObserver *obs) { }
 };
@@ -168,7 +167,7 @@ struct Processor : public TBase, public Observer<TInput>
 
 template<typename F,
          typename TInput=typename F::argument_type,
-         typename TObserver=Observer<TInput>,
+         typename TObserver=IObserver<TInput>,
          typename TBase=Processor<TInput, TInput, TObserver> >
 struct Filter : public TBase
 {
@@ -193,7 +192,7 @@ struct Filter : public TBase
 template<typename F,
          typename TInput=typename F::argument_type,
          typename TOutput=typename F::result_type,
-         typename TObserver=Observer<TOutput>,
+         typename TObserver=IObserver<TOutput>,
          typename TBase=Processor<TInput, TOutput, TObserver> >
 struct Map : public TBase
 {
@@ -220,25 +219,23 @@ Apply<TLeft,TRight> operator%(TLeft left, TRight right) {
     return Apply<TLeft, TRight>(std::move(left), std::move(right));
 }
 
-#ifdef HAS_AUTO
 template<typename TLeft,
          typename TRight>
-TLeft operator>>=(TLeft && left, TRight && right) {
+TLeft operator>>=(TLeft &&left, TRight &&right) {
     left.subscribe(&right);
     return left;
 }
-#endif
 
 /// send value into observable or function
 template<typename TObserver,
          typename TInput=typename TObserver::argument_type>
 TObserver & operator|=(TInput val, TObserver &fn) {
-    fn(val);
+    fn(std::move(val));
     return fn;
 }
 
 template<typename TInput,
-         typename TObserver = Observer<TInput>,
+         typename TObserver = IObserver<TInput>,
          typename TBase = Processor<TInput, TObserver> >
 struct Buffer : public TBase
 {
@@ -267,7 +264,7 @@ struct Buffer : public TBase
 
 template<typename TOutput,
          typename TInputIterator,
-         typename TObserver = Observer<TOutput>,
+         typename TObserver = IObserver<TOutput>,
          typename TBase = Observable<TOutput, TObserver> >
 struct From : public TBase
 {
@@ -293,7 +290,7 @@ struct From : public TBase
 
 template<typename TOutput,
          typename TStep = TOutput,
-         typename TObserver = Observer<TOutput>,
+         typename TObserver = IObserver<TOutput>,
          typename TBase = Observable<TOutput, TObserver> >
 struct FromRange: public TBase
 {
@@ -315,38 +312,36 @@ struct FromRange: public TBase
 
 
 template<typename TInput,
-         typename TStream = std::ostream,
-         typename TObserver=Observer<TInput>,
+         typename TObserver=IObserver<TInput>,
          typename TBase=Processor<TInput, TInput, TObserver> >
 struct Into : public TBase
 {
     using TBase::notify;
-    TStream &os;
-    Into(TStream &os)
+    std::vector<TInput> & os;
+    Into(std::vector<TInput> &os)
         : os(os)
     {
 
     }
 
     virtual void on_next(TInput e) {
-        os << e;
+        os.push_back(e);
         notify(e);
     }
 };
 
 template<typename TInput,
-         typename TStream = std::ostream,
-         typename TObserver=Observer<TInput>,
+         typename TObserver=IObserver<TInput>,
          typename TBase=Processor<TInput, TInput, TObserver> >
 struct Print : public TBase
 {
     using TBase::notify;
-    TStream &os;
+    std::ostream &os;
     std::string sep;
 
     Print(const Print &rhs) = default;
 
-    Print(TStream &os, std::string sep="\n")
+    Print(std::ostream &os, std::string sep="\n")
         : os(os), sep(sep)
     {
 
@@ -360,33 +355,6 @@ struct Print : public TBase
     virtual void on_subscribe(TObserver *obs) { }
 };
 
-
-#ifdef HAS_AUTO
-
-namespace detail {
-    template <size_t n, typename... T>
-    typename std::enable_if<(n >= sizeof...(T))>::type
-        print_tuple(std::ostream&, const std::tuple<T...>&)
-    {}
-
-    template <size_t n, typename... T>
-    typename std::enable_if<(n < sizeof...(T))>::type
-        print_tuple(std::ostream& os, const std::tuple<T...>& tup)
-    {
-        if (n != 0)
-            os << ", ";
-        os << std::get<n>(tup);
-        print_tuple<n+1>(os, tup);
-    }
-};
-
-template <typename... T>
-std::ostream& operator<<(std::ostream& os, const std::tuple<T...>& tup)
-{
-    os << "[";
-    detail::print_tuple<0>(os, tup);
-    return os << "]";
-}
 
 template<typename TInputIterator,
          typename TOutput=typename TInputIterator::value_type>
@@ -419,29 +387,15 @@ auto combine(L left, R right) {
     return Combine<L,R,std::tuple<typename L::result_type,typename R::result_type>>(left, right);
 }
 
-template<typename TInput,
-         typename TStream>
-auto println(TStream &os, std::string sep="\n") {
-    return Print<TInput, TStream>(os, sep);
+template<typename TInput>
+auto println(std::ostream &os, std::string sep="\n") {
+    return Print<TInput>(os, sep);
 }
 
 template<typename TInput>
 auto into(std::vector<TInput> &os) {
-    return Into<TInput, std::vector<TInput> >(os);
+    return Into<TInput>(os);
 }
-
-template<typename A, typename B, typename C>
-auto operator>>(std::function<B(A)> x, std::function<C(B)> y) {
-    return [&](A x){return y(x);};
-}
-
-/// purpose of macro to write [](T x)$(x+1) instead of [](T x){return x+1;}
-#define $(expr) { return (expr); }
-
-/// purpose of macro to write $$($+1) instead of [](auto $){return $+1;}
-#define $$(expr) [](auto $) { return (expr); }
-#endif
-
 
 #ifdef DOES_NOT_WORK
 template<typename TOutput, typename TObserver>
@@ -458,13 +412,7 @@ auto IObservable<TOutput, TObserver, TThis>::map(std::function<TResult(TOutput)>
 
 #endif
 
-#if 1
-template<typename T>
-inline std::vector<T> & operator<<(std::vector<T> &vec, T val) {
-    vec.push_back(std::move(val));
-    return vec;
-}
-#endif
+
 }; // ns Rcpp
 
 #endif // REACTIVE_H

@@ -3,15 +3,16 @@
 #ifndef ALGO_H
 #define ALGO_H
 
-#include "utils.h"
 #include "reactive.h"
+#include <cmath>
 
 namespace Rcpp {
 
 namespace OrderSide {
   enum {
     BUY = 1,
-    SELL = -1
+    SELL = -1,
+    UNKNOWN = 0
   };
 };
 
@@ -31,18 +32,54 @@ struct SymbolId {
     return index;
   }
 };
+struct Message;
 
-struct Algo  {
-  double datetime;
+struct IAlgo {
+    enum {
+        EMPTY  =  0x0001
+    };
+
+    virtual void notify() = 0;  // flush notifications to subscribers
+    virtual double datetime() = 0;   // current timestamp
+    virtual ~IAlgo(){ }
+    virtual bool operator<(IAlgo &rhs) {
+        return datetime() < rhs.datetime();
+    }
+};
+
+
+struct Algo : public IAlgo {
   List config;
   DataFrame params;
-
+  double dt;
+  std::string name;
   Algo(
     DataFrame params, // (symbol, mpi, par1, par2,....)
-    List config)
-      : datetime(NAN),
-        config(config),
-        params(params) { }
+    List config,
+    std::string name = "")
+      : config(config),
+        params(params),
+        dt(NAN),
+        name(name)
+        { }
+
+  int size() {
+      return params.size();
+  }
+
+  virtual double datetime() {
+     return dt;
+  }
+
+  virtual void notify() {
+
+  }
+
+  template<typename TMessage>
+  void on_recv(const TMessage& e) {
+    std::cout << name << " " << e;
+    std::cout << std::flush;
+  }
 };
 
 /*std::ostream & operator<< (std::ostream &os, const SymbolId &s) {
@@ -78,7 +115,31 @@ struct BuySell {
     return *this;
   }
 
+  int count_buy() const {
+    return std::isnan(buy) ? 1:0;
+  }
+
+  int count_sell() const {
+    return std::isnan(sell) ? 1:0;
+  }
+
+  int count(int side) const {
+      return side>0 ? count_buy() : count_sell();
+  }
+
+  double slippage(int side, double qty) const {
+    return NAN;
+  }
+
+  double average(int side, double qty) const {
+    return (*this)(side);
+  }
+
   double& operator()(int side) {
+    return side>0 ? buy:sell;
+  }
+
+  double operator()(int side) const {
     return side>0 ? buy:sell;
   }
 
@@ -144,7 +205,10 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
       sell(n,NAN) {
   }
 
-  BuySellVector() = default;
+  BuySellVector() {
+    buy = NAN;
+    sell = NAN;
+  }
 
   BuySellVector(const BuySellVector& rhs) = default;
 
@@ -153,12 +217,22 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
     return BuySell(buy[index], sell[index]);
   }
 
-  void update(int index, BuySell val) {
-    buy[index] = val.buy;
-    sell[index] = val.sell;
+  template<typename TMessage>
+  void update(int index, const TMessage &e) {
+    if(e.side()>0)
+        buy[index] = e.price;
+    else
+        sell[index] = e.price;
   }
 
-  NumericVector operator()(int side) {
+  void reset(int index, int side, double price) {
+      if(side>0)
+          buy[index] = price;
+      else if(side<0)
+          sell[index] = price;
+  }
+
+  NumericVector& operator()(int side) {
     if(side>0)
       return buy;
     return sell;

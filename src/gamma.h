@@ -1,10 +1,7 @@
 #pragma once
 
-#include "utils.h"
-#include "events.h"
-#include "simulator.h"
-#include "metrics.h"
-#include <cmath>
+// should be already included
+//#include "simulator.h"
 
 namespace Rcpp {
 
@@ -18,140 +15,170 @@ namespace Rcpp {
 /// qty at each level is exactly buy_gamma(t) for buys and sell_gamma(t) for sells.
 /// distance between bid and ask is spread(t)
 
-template< typename TOutput=GammaQuotesUpdated,
-          typename TObserver=Observer<TOutput> >
-struct QuotingAlgo : public Algo,
-                     public Observable<TOutput, TObserver>,
-                     public Observer<QuotesUpdated>,
-                     public Observer<OrderFilled>
+template<typename TOrderMessage = GammaMessage>
+struct GammaAlgo : public MarketAlgo,
+                     // inputs -> on_next(T)
+                     public IObserver<QuoteMessage>,
+                     public IObserver<ExecutionMessage>
 {
-  using Observable<TOutput,TObserver>::notify;
-
   /// parameters
   NumericVector spread;       // spread to maintain  
-  NumericVector offset;       // midspread directional offset 
+  //NumericVector offset;       // midspread directional offset
   BuySellVector gamma;        // qty to quote on buy/sell sides
 
   /// from parameters also
   CharacterVector symbols;
   NumericVector mpi;
 
-  /// inputs
-  BuySellVector market;  // current market prices
-  NumericVector pos;     // current position
+  /// state
+  BuySellVector market;  // latest market prices
+  NumericVector pos;     // latest position
+  BuySellVector quotes;  // latest our bid & ask
+  BuySellVector qty;     // latest our bid & ask outstanding qty (not filled as far as we could know)
 
-  /// outputs
-  BuySellVector quotes;  // algorithm's bid & ask
-  BuySellVector qty;     // algorithm's best bid & ask qty unfilled
+  /// output
+  Stream<TOrderMessage> $orders;
 
-  QuotingAlgo(DataFrame params, List config) 
-    : Algo(params, config),
+  GammaAlgo(DataFrame params, List config)
+    : MarketAlgo(params, config),
       symbols(required<CharacterVector>(params, "symbol")),
       market(params.nrows()),
       quotes(params.nrows()),
-      spread(required<NumericVector>(params, "spread")),
-      offset(params.nrows())
+      gamma(required<NumericVector>(params, "gamma.buy"),
+            required<NumericVector>(params, "gamma.sell")),
+      spread(required<NumericVector>(params, "spread"))
+      //offset(params.nrows(), NAN)
   {  }
 
   int size() {
     return symbols.size();
   }
   
-  virtual void on_next(QuotesUpdated e) {
-    market.update(e.symbol, e.quotes);
-    auto q = quotes[e.symbol];
-    if(std::isnan(q.buy) && std::isnan(q.sell)) {
-        auto mid = 0.5 * (e.quotes.buy+e.quotes.sell);
-        quotes.buy[e.symbol] = q.buy = mid - 0.5 * spread[e.symbol];
-        quotes.sell[e.symbol] = q.sell = mid + 0.5 * spread[e.symbol];
-    }else if(std::isnan(q.buy)) {
-        quotes.buy[e.symbol] = q.buy = e.quotes.sell - spread[e.symbol];
-    }else if(std::isnan(q.sell)) {
-        quotes.sell[e.symbol]= q.sell = e.quotes.buy + spread[e.symbol];
-    }else
-        return;
-    notify(e.symbol);
-  }
-  
-  virtual void on_next(OrderFilled e) {
-    int side = e.side();
-    if((qty(side)[e.symbol] -= e.qty*side)==0)
-        on_filled(e.symbol, side);
+  virtual double midprice(const BuySell &m) {
+      if(m.count_buy() && m.count_sell())
+        return 0.5 * (m.buy + m.sell);
+      else
+        assert(false);
   }
 
-  // full fill - move the spread
-  virtual void on_filled(SymbolId s, int side) {
-    quotes(side)[s] -= mpi[s]*side; // side>0 => we bought at buy => move down
-    qty(side)[s] = gamma(side)[s];     // restore liquidity
-    notify(s);
+  virtual void on_next(QuoteMessage e) {
+    auto s = e.symbol;
+    auto side = e.side();
+    // update cached market price
+    market.update(s, e);
+    auto m = market[s];
+
+    // restore our quotes if needed
+    auto q = quotes[s];
+    if(!q.count_buy() && !q.count_sell()) { // no buy & no sell
+        auto mid = midprice(m);
+        quotes.buy[s] = mid - 0.5 * spread[s];
+        notify(s, OrderSide::BUY);
+        quotes.sell[s] = mid + 0.5 * spread[s];
+        notify(s, OrderSide::SELL);
+    }else if(!q.count_buy()) {  // no buy
+        quotes.buy[s] = q.sell - spread[s];
+        notify(s, OrderSide::BUY);
+    }else if(!q.count_sell()) { // no sell
+        quotes.sell[s] = q.buy + spread[s];
+        notify(s, OrderSide::SELL);
+    }
+  }
+  
+  virtual void on_next(ExecutionMessage e) {
+    auto side = e.side();
+    auto s = e.symbol;
+
+    qty(side) = e.qty_leaves;   // update qty left
+
+    if(e.is_full_fill()) {      // full fill
+        // move this side
+        quotes(side)[s] = e.price - mpi[s]*side;      // side>0 => we bought at buy => move down
+        qty(side)[s] = gamma(side)[s];                // restore qty
+        notify(e.symbol, side);
+
+        // move opposite site
+        quotes(-side)[s] = e.price + spread[s] - mpi[s]*side;
+        qty(side)[s] = gamma(side)[s];               // restore qty
+        notify(e.symbol, -side);
+    }
   }
 
   // notify on quotes change
-  virtual void notify(SymbolId symbol) {
-    TOutput e;
-    e.datetime = datetime;
+  virtual void notify(SymbolId symbol, int side) {
+    TOrderMessage e;
+    e.datetime = dt;
     e.symbol = symbol;
-    e.quotes = quotes[e.symbol];
-    e.gamma = gamma[e.symbol];
-    notify(e);
+    e.set_side(side);
+    e.price = quotes(side)[e.symbol];
+    e.gamma = gamma(side)[e.symbol];
+    $orders.notify(e);
   }
 };
 
 
-template< typename TOutput=OrderFilled,
-          typename TObserver=Observer<TOutput> >
-struct GammaSimulator : public Algo, 
-                        public Observable<TOutput, TObserver>, 
-                        public Observer<QuotesUpdated>,
-                        public Observer<GammaQuotesUpdated>
+template<typename TOrderMessage=GammaMessage,
+         typename TQuoteMessage=QuoteMessage,
+         typename TExecutionMessage=ExecutionMessage>
+struct GammaSimulator : public MarketAlgo,
+                        // inputs
+                        public IObserver<TQuoteMessage>,         // from market
+                        public IObserver<TOrderMessage>          // from algo
 {
-  using Observable<TOutput, TObserver>::notify;
-  
   BuySellVector market;   // market prices
   BuySellVector gamma;    // gamma
   BuySellVector quotes;   // algorithm quotes
   NumericVector mpi;      // min price step
-  
+
+  // outputs
+  Stream<TQuoteMessage> $quotes;
+  Stream<TExecutionMessage> $execs;
+
   GammaSimulator(DataFrame params, List config) 
-    : Algo(params, config) { 
-      quotes.buy = quotes.sell = NAN;
+    : MarketAlgo(params, config),
+      mpi(required<NumericVector>(params, "mpi"))
+  {
+      //quotes.buy = quotes.sell = NAN; // FIXME: this is wrong. quotes.buy and quotes.sell will be SHARED NumVector.
+      // TODO: migrate to std::vector instead of NumericVector???
   }
   
-  virtual void on_next(QuotesUpdated e) {
-    if(e.flag(Message::FROM_MARKET))
-      market.update(e.symbol, e.quotes);
-    else {
-      // quotes from strategy
-    }
+  virtual void on_next(TQuoteMessage e) {
+    assert(e.flag(Message::FROM_MARKET));
+    market.update(e.symbol, e);
     on_simulate(e.symbol);
+    // forward to algorithms
+    $quotes(std::move(e));
   }
   
   // quotes from the gamma strategy  -  receive the gamma
-  virtual void on_next(GammaQuotesUpdated e) {
-    gamma.update(e.symbol, e.gamma);
-    quotes.update(e.symbol, e.quotes);
+  virtual void on_next(TOrderMessage e) {
+    assert(!std::isnan(e.price));
+    assert(!std::isnan(e.gamma));
+    gamma(e.side())[e.symbol] = e.gamma;
+    quotes(e.side())[e.symbol] = e.price;
     on_simulate(e.symbol);
   }
   
-  virtual void on_simulate(SymbolId s) {
-    OrderFilled e;
+  virtual void on_simulate(const SymbolId& s) {
+    ExecutionMessage e;
+    e.datetime = dt;
     e.symbol = s;
-    e.datetime = datetime;
     auto m = market[s];
     auto q = quotes[s];
     auto pi = mpi[s];
     auto g = gamma[s];
+    assert(!std::isnan(pi));
     if(!std::isnan(q.sell) && m.buy >= q.sell) {
       // simulate the sells
-      e.price = q.sell + 0.5*(m.buy+q.sell);
+      e.price = 0.5*(m.buy+q.sell);
       e.qty = - (g.sell + truncl((m.buy-q.sell)/pi)*g.sell);
-      notify(e);
+      $execs.notify(e);
     }
     if(!std::isnan(q.buy) && m.sell <= q.buy) {
       // simulate the buys
-      e.price = q.sell + 0.5*(m.sell+q.buy);
+      e.price = 0.5*(m.sell+q.buy);
       e.qty =  (g.buy + truncl((q.buy-m.sell)/pi)*g.buy);
-      notify(e);
+      $execs.notify(e);
     }
   }
 };

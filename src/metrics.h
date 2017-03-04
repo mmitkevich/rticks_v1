@@ -1,5 +1,4 @@
 #pragma once
-#include "events.h"
 
 namespace Rcpp {
 
@@ -124,10 +123,10 @@ struct MetricsMap : public std::map<std::string, Metric> {
     }
 };
   //typedef RowWrapper<DataFrame, Metrics, double, NumericVector> NumericMetric;
-template<typename TInput=OrderFilled>
+template<typename TExecutionMessage=ExecutionMessage>
 struct Metrics : public Algo,
         public MetricsMap,
-        public Observer<TInput>
+        public IObserver<TExecutionMessage>
 {
   int index;
   int stop;
@@ -158,26 +157,26 @@ struct Metrics : public Algo,
       roundtrips(make_metric("roundtrips"))
   {  }
 
-  void on_next(TInput fill) {
+  void on_next(TExecutionMessage e) {
     if(next_flush_dt.is_na()){
-        next_flush_dt = fill.datetime; // FIXME: convert to flush time
+        next_flush_dt = e.datetime; // FIXME: convert to flush time
     }
-    int i = fill.symbol;
+    int s = e.symbol;
     // update pos
-    pos[i] += fill.qty;
-    pos_l[i] = std::min<double>(pos_l[i], pos[i]);
-    pos_h[i] = std::max<double>(pos_h[i], pos[i]);
+    pos[s] += e.qty;
+    pos_l[s] = std::min<double>(pos_l[s], pos[s]);
+    pos_h[s] = std::max<double>(pos_h[s], pos[s]);
 
     // update qty bought/sold
-    (fill.qty > 0 ? qty_buy : qty_sell)[i] += fabs(fill.qty);
+    (e.qty > 0 ? qty_buy : qty_sell)[s] += fabs(e.qty);
 
     // update free cash
-    rpnl[i] -= fill.qty * fill.price;
+    rpnl[s] -= e.qty * e.price;
 
-    if(is_zero(pos[i]))
-      roundtrips[i]++;
+    if(is_zero(pos[s]))
+      roundtrips[s]++;
 
-    flush(fill.datetime);
+    flush(e.datetime);
     //    std::cout << t << " | " << q << " * " << price << " | " << pos << " | " << cash << "\n";
   }
 
