@@ -112,11 +112,11 @@ void test_from_filter_print_cpp14() {
 #endif
 
 int main(int argc, char* argv[]) {
-    test_combine();
-    test_from_filter_print_cpp98();
-    test_from_filter_print_cpp11_operators();
-    test_from_map_print_cpp11_operators();
-    test_filter_map_copy();
+    //test_combine();
+    //test_from_filter_print_cpp98();
+    //test_from_filter_print_cpp11_operators();
+    //test_from_map_print_cpp11_operators();
+    //test_filter_map_copy();
     //test_from_filter_print_cpp14();
     std::cout << "\n";
     return 0;

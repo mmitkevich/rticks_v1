@@ -19,3 +19,4 @@ src/reactive.h
 src/algo.h
 src/function_traits.h
 src/cxx14.h
+src/gammasim.h

@@ -25,28 +25,9 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
 
 
   if(clazz[0] == "gamma") {
-    Player<GammaMessage> player(params, config); // player acts like scheduler / latency simulator
-    GammaSimulator<GammaMessage> market(params, config);
-    GammaAlgo<GammaMessage> algo(params, config);
-    Metrics<> metrics(params, config);
-
-    // wire up market
-    player.$quotes >>= market;
-    player.$orders >>= market;
-    market.$execs >>= player.$execs; // will delay them
-
-    // wire up algo
-    player.$quotes >>= algo;
-    player.$execs >>= algo;
-    algo.$orders >>= player.$orders;
-
-    // wire up metrics
-    player.$execs >>= metrics;
-
-    // send data
-    player.process(data);
-
-    result = metrics.toR();
+    Backtester<GammaAlgo<>, GammaSimulator<>> bt(params, config);
+    bt.process(data);
+    result = bt.market.metrics.toR();
   }
   return result;
 }

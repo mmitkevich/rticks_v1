@@ -8,6 +8,26 @@
 
 namespace Rcpp {
 
+// stream of messages
+template<typename TOutput,
+         typename TObserver=IObserver<TOutput>,
+         typename TBase=Observable<TOutput, TObserver> >
+struct Stream : public TBase {
+    using TBase::notify;
+};
+
+template<typename TInput,
+         typename TOutput=TInput,
+         typename TObserver=IObserver<TOutput>,
+         typename TBase=Processor<TInput, TOutput, TObserver> >
+struct StreamProcessor : public TBase {
+    using TBase::notify;
+    using TBase::observer_type;
+
+
+};
+
+
 namespace OrderSide {
   enum {
     BUY = 1,
@@ -39,20 +59,21 @@ struct IAlgo {
         EMPTY  =  0x0001
     };
 
-    virtual void notify() = 0;  // flush notifications to subscribers
-    virtual double datetime() = 0;   // current timestamp
+    virtual void on_execute() = 0;  // eat from input queues, notify subscribers.
+    virtual double datetime() const = 0;   // current timestamp
     virtual ~IAlgo(){ }
-    virtual bool operator<(IAlgo &rhs) {
+    virtual bool operator<(IAlgo &rhs) const{
         return datetime() < rhs.datetime();
     }
 };
-
 
 struct Algo : public IAlgo {
   List config;
   DataFrame params;
   double dt;
   std::string name;
+  int log_level;
+
   Algo(
     DataFrame params, // (symbol, mpi, par1, par2,....)
     List config,
@@ -60,26 +81,140 @@ struct Algo : public IAlgo {
       : config(config),
         params(params),
         dt(NAN),
-        name(name)
+        name(name),
+        log_level(2)
         { }
 
   int size() {
       return params.size();
   }
 
-  virtual double datetime() {
+  virtual double datetime() const {
      return dt;
   }
 
-  virtual void notify() {
+  virtual void on_execute() {
 
   }
 
   template<typename TMessage>
-  void on_recv(const TMessage& e) {
-    std::cout << name << " " << e;
-    std::cout << std::flush;
+  void verify(const TMessage &e) {
+      assert(!std::isnan(e.rtime));
+      assert(!std::isnan(e.ctime));
   }
+
+  virtual void on_clock(double dtime) {
+      assert(!std::isnan(dtime));
+      dt = dtime;
+  }
+
+  template<int level, typename TMessage>
+  void dlog(const TMessage &e) {
+      verify(e);
+      assert(!std::isnan(datetime()));
+      if(log_level>=level) {
+          std::cout << std::left << std::setfill(' ')
+                    << std::setw(16)
+                    << std::fixed
+                    << std::setprecision(2)
+                    << Datetime(e.rtime) << " | " << name << " | " << e << std::endl;
+      }
+      //std::cout << std::flush;
+  }
+};
+
+template<typename TAlgo=Algo>
+struct Scheduler: public Algo, public IScheduler<TAlgo> {
+    struct algo_less {
+        bool operator()( const TAlgo* lhs, const TAlgo* rhs ) const {
+            return lhs->datetime() <= rhs->datetime();
+        }
+    };
+
+    typedef std::queue<TAlgo*> queue_type;
+    std::deque<TAlgo*> queue;
+
+    Scheduler(DataFrame params, List config, std::string name = "scheduler")
+        :Algo(params, config, name) { }
+
+    virtual void on_schedule(TAlgo* algo, double dt) {
+        // TODO: if prev!=NAN it could be used to faster find algo in the queue
+        auto it = std::find(queue.begin(), queue.end(), algo);
+        if(it!=queue.end()) {
+            queue.erase(it);    // remove first
+        }
+        if(!std::isnan(dt)) { // reschedule if needed
+
+            algo->on_clock(dt); // update tartet time
+            auto jt = std::lower_bound(queue.begin(), queue.end(), algo, algo_less()); // who after us
+            queue.insert(jt, algo); // stand before him
+        }
+    }
+
+    void on_execute(double time) {
+        while(!queue.empty()) {
+            auto algo = queue.front();
+            auto t = algo->datetime();
+            assert(!std::isnan(t));
+            if(algo->datetime() <= time) {
+                algo->on_execute();
+            }else
+                break;
+        }
+    }
+};
+
+template<typename TMessage=Message,
+         typename TScheduler=Scheduler<Algo>,
+         typename TObserver=IObserver<TMessage> >
+struct LatencyQueue : public Algo,
+              public StreamProcessor<TMessage, TMessage, TObserver>
+{
+    using StreamProcessor<TMessage>::notify;
+
+    std::queue<TMessage> queue;
+    TScheduler *scheduler;
+    NumericVector latency;
+
+    LatencyQueue(DataFrame params, List config, TScheduler *scheduler, std::string name)
+        : Algo(params, config, name),
+          latency(optional<NumericVector>(params, "latency", NumericVector(params.nrows(), 1e-1))),
+          scheduler(scheduler) {
+    }
+
+    /// will push to queue and will not process until scheduled
+    virtual void on_next(TMessage e) {
+        auto g = std::move(e);
+        verify(g);
+        g.rtime += latency[g.symbol];
+        queue.push(std::move(g));
+        on_clock(g.symbol);
+    }
+
+    void on_clock(int s) {
+        auto ndt = queue.empty() ? NAN : queue.front().rtime;
+        scheduler->on_schedule(this, ndt);
+    }
+
+    // we got scheduled
+    virtual void on_execute() {
+        if(!queue.empty()) {
+            auto e = std::move(queue.front());
+            queue.pop();
+            on_clock(e.symbol);
+            dlog<4>(e);
+            notify(std::move(e));
+        }
+    }
+
+    //virtual void notify(TObserver *obs, TMessage e) {
+    //    Algo *algo = static_cast<Algo*>(obs);
+    //    algo->on_clock(e.datetime);
+    //}
+
+    virtual bool empty() {
+        return queue.empty();
+    }
 };
 
 /*std::ostream & operator<< (std::ostream &os, const SymbolId &s) {
@@ -116,11 +251,11 @@ struct BuySell {
   }
 
   int count_buy() const {
-    return std::isnan(buy) ? 1:0;
+    return std::isnan(buy) ? 0:1;
   }
 
   int count_sell() const {
-    return std::isnan(sell) ? 1:0;
+    return std::isnan(sell) ? 0:1;
   }
 
   int count(int side) const {

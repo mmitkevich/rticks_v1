@@ -89,7 +89,7 @@ struct Combine: public TBase
       left_value(this), right_value(this)
   {  }
 
-  virtual void notify() {
+  void notify() {
     if(left_value.count*right_value.count>0) {
         TBase::notify(TOutput(left_value.value, right_value.value));
     }
@@ -119,25 +119,35 @@ struct IObservable {
     //Apply<TObservable, Filter<F, TOutput, TObserver, TObservable >, TOutput, TOutput, TObserver> filter(F f);
 };
 
+template<typename TAlgo>
+struct IScheduler {
+    virtual ~IScheduler(){}
+    virtual void on_schedule(TAlgo* algo, double dt) = 0;
+    virtual void on_execute(double dt) = 0;
+};
+
 template<typename TOutput,
          typename TObserver=IObserver<TOutput> >
 struct Observable : public IObservable<TOutput, TObserver> {
   typedef TObserver observer_type;
   typedef Observable<TOutput,TObserver> this_type;
   typedef std::vector<observer_type*> observers_type;
+private:
   observers_type observers;
+
 protected:
   Observable(const Observable &rhs) = default;
   Observable() = default;
 public:
   // preprocess output
   virtual void notify(TOutput e) {
-    for(typename observers_type::iterator it=observers.begin(); it!=observers.end(); it++)
-      notify(*it, e);
+    for(typename observers_type::iterator it=observers.begin(); it!=observers.end(); it++) {
+        notify(*it, std::move(e));
+    }
   }
 
   virtual void notify(TObserver*obs, TOutput e) {
-      obs->on_next(e);
+      obs->on_next(std::move(e));
   }
 
   void subscribe(TObserver *obs) {
@@ -149,9 +159,9 @@ public:
 
   }
 
-  void operator()(TOutput e) {
-      notify(e);
-  }
+//  void operator()(TOutput e) {
+//      notify(e);
+//  }
 };
 
 
@@ -161,7 +171,11 @@ template<typename TInput,
          typename TBase=Observable<TOutput, TObserver> >
 struct Processor : public TBase, public IObserver<TInput>
 {
+    using TBase::notify;
     virtual void on_subscribe(TObserver *obs) { }
+    virtual void on_next(TInput e) {
+        notify(e);
+    }
 };
 
 

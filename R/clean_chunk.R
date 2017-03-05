@@ -1,20 +1,19 @@
-.mapping_file = function(exanteID) {
-  mappingFile <- fromJSON("/usr/local/share/exante-stat-schedule-data/.mapping")
-  fileName <- mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))]
-  return(fileName)
-}
-
-'.parseDateTime <- function(datetime) {
-  parse_date_time(datetime, orders = "ymd HMOSz")
-}'
-
-.get_historical_schedule <- function(exanteID,
+#' load_trade_schedule
+#' 
+#' @examples 
+#' load_trade_schedule("VIX.CBOE")
+#' @export
+load_trade_schedule <- function(instrument_id,
                                      start = NULL,    # means earliest possible 
                                      end = NULL,
-                                     exclude = FALSE) {
-  
-  fileName <- .mapping_file(exanteID)
-  fullFileName <- paste0("/usr/local/share/exante-stat-schedule-data/", fileName, ".json")
+                                     exclude = FALSE,
+                                     #path="/usr/local/share/exante-stat-schedule-data/"
+                                     path="~/exante-stat-schedule-data/"
+                                ) {
+  exanteID <- paste0(instrument_id,".X0000^")
+  mappingFile <- fromJSON(paste0(path,".mapping"))
+  fileName <- mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))]
+  fullFileName <- paste0(path, fileName, ".json")
   rawHistoricalSchedule <- fromJSON(fullFileName)
   startDateTime <- ifnull(start, as_datetime(min(rawHistoricalSchedule$intervals$start)))
   endDateTime <-  ifnull(end, as_datetime(now()))
@@ -40,8 +39,17 @@
   return(schedule)
 }
 
+.parseDateTime <- function(d) {
+  #2005-01-04T02:00:00.000-06:00
+  #paste0(substring(d,1, nchar(d)-3),substring(d,nchar(d)-1)) %>% strptime(format="%Y-%m-%dT%H:%M:%S%z")
+  parse_date_time(d,"%Y-%m-%d %H:%M:%OS %z")
+}
 ###################################################
-
+#' cleans chunk of data
+#' 
+#' @examples
+#'  
+#' @export
 clean.chunk <- function(chunk, 
                         schedule, 
                         cut_minutes = 0, 
@@ -54,8 +62,9 @@ clean.chunk <- function(chunk,
   exante_ids <- unique(chunk$exante_id)
   
   schedule_list <- list()
-  for (i in 1:length(exante_ids)) {
-    schedule_list[[i]] <- .get_historical_schedule(exante_ids[i], start, end, exclude = FALSE)
+  instr_ids <- unique(parse_exante_id(exante_ids)$instrument_id)
+  for (i in 1:length(instr_ids)) {
+    schedule_list[[i]] <- load_trade_schedule(instr_ids[i], start, end, exclude = FALSE)
   }
   unique_schedule_list <- unique(schedule_list)
   
@@ -63,9 +72,9 @@ clean.chunk <- function(chunk,
     start <- unique_schedule_list[[w]]$start + minutes(cut_minutes)
     end <- unique_schedule_list[[w]]$end - minutes(cut_minutes)
     unique_schedule_with_minutes <- data_frame(start, end)
-    schedWithParamDate <- unique_schedule_with_minutes %>% gather(p, datetime) %>% mutate(p = ifelse(p == "start", 1, -1)) 
-    chunkWithParamDate <- data_frame(datetime = chunk$datetime, p = 0)
-    bindedParamDate <- bind_rows(schedWithParamDate, chunkWithParamDate) %>% arrange(datetime)
+    schedule_with_datetime <- unique_schedule_with_minutes %>% gather(p, datetime) %>% mutate(p = ifelse(p == "start", 1, -1)) 
+    chunk_with_datetime <- data_frame(datetime = chunk$datetime, p = 0)
+    bindedParamDate <- bind_rows(schedule_with_datetime, chunk_with_datetime) %>% arrange(datetime)
     
     chunk_filtered <- bindedParamDate %>% mutate(s = cumsum(p)) %>% filter(s > 0 & p == 0) %>% 
                       distinct(datetime) %>% select(datetime) %>% left_join(chunk, by = "datetime")

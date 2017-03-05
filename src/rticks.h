@@ -1,3 +1,3 @@
-#include "simulator.h"
+#include "backtester.h"
 
 #include "gamma.h"
