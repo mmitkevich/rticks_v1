@@ -31,7 +31,7 @@ void test_from_filter_print_cpp98() {
     Filter<Greater<double> > filter(1); // greater than 1 == 2, 3
     From<double, std::vector<double>::iterator> from(input.begin(), input.end());
 
-    from % filter       // means apply filter to from
+    from | filter       // means apply filter to from
         >>= printer;    // means "subscribe" printer "on" (from % filter)
 }
 
@@ -41,7 +41,7 @@ void test_from_filter_print_cpp11_operators() {
 
     std::vector<double> input {1, 2, 3};
     auto obs = from(input.begin(), input.end());
-    auto obs2 = obs % filter([](double m)$(m>1));
+    auto obs2 = obs | filter([](double m)$(m>1));
     obs2 >>= println<double>(std::cout);
 }
 
@@ -53,13 +53,13 @@ void test_from_map_print_cpp11_operators() {
    input.push_back(4.);
    std::vector<double> output;
    auto obs = from(input.begin(), input.end())
-            % map([](double m) $(m*m))
-            % into(output)
+            | map([](double m) $(m*m))
+            | into(output)
             >>= println<double>(std::cout, ", ");
 }
 
 auto return_observable_auto() {
-    return range(1, 10, 1) % filter([](int x)$(x>5));
+    return range(1, 10, 1) | filter([](int x)$(x>5));
 }
 
 void test_filter_map_copy() {
@@ -68,7 +68,9 @@ void test_filter_map_copy() {
     auto range = return_observable_auto();
     range >>= println<int>(std::cout);
 
-    range % map([](int x)$(x*x)) % filter([](int x)$(x%2==0)) >>= println<int>(std::cout);
+    range | map([](int x)$(x*x))
+          | filter([](int x)$(x%2==0))
+        >>= println<int>(std::cout);
 }
 
 
@@ -111,6 +113,13 @@ void test_from_filter_print_cpp14() {
 }
 #endif
 
+#ifdef DYNAMIC
+void test_dynamic() {
+    std::cout <<"test_dynamic\n";
+    auto d = as_dynamic(range(1, 10, 1)) >>= reduce([](int x, int y)$(x+y)) >>= println<int>(std::cout);
+}
+#endif
+
 int main(int argc, char* argv[]) {
     //test_combine();
     //test_from_filter_print_cpp98();
@@ -118,6 +127,7 @@ int main(int argc, char* argv[]) {
     //test_from_map_print_cpp11_operators();
     //test_filter_map_copy();
     //test_from_filter_print_cpp14();
+   //     test_dynamic();
     std::cout << "\n";
     return 0;
 }

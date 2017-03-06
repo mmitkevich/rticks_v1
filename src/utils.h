@@ -7,45 +7,106 @@
 namespace Rcpp {
 
 /** thin wrapper around some indexable data */
-template<typename TData, typename TCursor, typename TValue, typename TVector>
-struct RowWrapper  {
+template<typename TValue, typename TVector, typename TData=List>
+struct DFRow  {
   TData data;
-  TCursor *cur;
+  size_t *cur;
+  TValue na;
+  std::string name;
+  CharacterVector names;
 
-  RowWrapper(TCursor *cur=NULL)
-    : cur(cur) {
-  }
-  
-  RowWrapper(TCursor *cur, const TData &data) :
-    data(data), 
-    cur(cur) {
-  }
-  
-  RowWrapper(const RowWrapper &rhs) :
-    data(rhs.data),
-    cur(rhs.cur) {
-        
-  }
+  DFRow() : cur(NULL) { }
 
-  RowWrapper& operator=(const RowWrapper &rhs)
+  struct Value {
+      TVector vec;
+      size_t cur;
+      Value(const TVector &vec, size_t cur):
+          vec(std::move(vec)), cur(cur) {
+
+      }
+
+      Value() = default;
+
+      operator TValue() {
+        return vec[cur];
+      }
+
+      Value& operator=(TValue v) {
+          vec[cur] = v;
+          return *this;
+      }
+
+      Value& operator+=(TValue v) {
+          vec[cur] = vec[cur] + v;
+          return *this;
+      }
+
+      Value& operator-=(TValue v) {
+          vec[cur] = vec[cur] + v;
+          return *this;
+      }
+
+      Value& operator++() {
+          vec[cur] = vec[cur] + 1;
+          return *this;
+      }
+      Value& operator--() {
+          vec[cur] = vec[cur] - 1;
+          return *this;
+      }
+  };
+
+  DFRow(CharacterVector names, size_t nrows, TValue na, size_t* cur=NULL)
+    : cur(cur),
+      na(na),
+      names(names),
+      data(names.size())
   {
-    data = rhs.data;
-    cur = rhs.cur;
-    return *this;
+    for(int i=0; i<names.size(); i++) {
+        data[i] = TVector(nrows, na);
+    }
+  }
+  
+  DFRow(DFRow &&rhs) = default;
+
+  DFRow& operator=(DFRow &&rhs) {
+      data = std::move(rhs.data);
+      cur = rhs.cur;
+      na = rhs.na;
+      name = std::move(rhs.name);
   }
 
-  TValue& operator[](int icol) {
-    return get(icol);
+  Value operator[](int icol) {
+    return Value(as<TVector>(data[icol]), *cur);
   }
   
   int size() const {
     return data.size();
   }
-  
-  TValue& get(int icol) {
-    if(cur==NULL)
-      throw new std::range_error("cur==NULL");
-    return as<TVector>(data[icol])[cur->index];
+
+  void set(int i, TValue value) {
+    as<TVector>(data[i])[*cur] = value;
+  }
+
+  TValue get(int i, int lag=0) {
+    return as<TVector>(data[i])[*cur-lag];
+  }
+
+  void set(TVector v) {
+    for(int i=0; i<size(); i++)
+        set(i, v[i]);
+  }
+
+  void nrows(size_t nrows) {
+    TData newdata(data.size());
+    for(int i=0; i<data.size(); i++) {
+        TVector newvec(nrows);
+        TVector vec(data[i]);
+        for(int j=0; j<newvec.size(); j++)
+            newvec[j] = vec[j];
+        newdata[i] = newvec;
+    }
+    data = newdata;
   }
 };
 
@@ -55,10 +116,9 @@ TVector get(List config, const char* name, TVector def) {
 }
 
 
-template <typename T>
-bool is_zero(T x)
+bool is_zero(double x)
 {
-  return std::abs(x) < std::numeric_limits<T>::epsilon();
+  return std::abs(x) < std::numeric_limits<double>::epsilon();
 }
 
 template<typename T>
@@ -71,12 +131,20 @@ T required(List list, std::string name, std::string where = "") {
   return as<T>(list[name]);
 }
 
-template<typename T>
-T optional(List list, std::string name, T def = T()) {
+template<typename TVector>
+TVector optional(List list, std::string name, TVector def=TVector()) {
   if(!list.containsElementNamed(name.c_str())) {
     return def;
   }
-  return as<T>(list[name]);
+  return as<TVector>(list[name]);
+}
+
+template<typename TValue, typename TVector>
+TVector optional(DataFrame list, std::string name, TValue def=TValue()) {
+  if(!list.containsElementNamed(name.c_str())) {
+    return TVector(list.nrows(), def);
+  }
+  return as<TVector>(list[name]);
 }
 
 

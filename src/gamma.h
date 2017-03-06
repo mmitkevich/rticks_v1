@@ -32,7 +32,7 @@ struct GammaAlgo : public MarketAlgo,
   //BuySellVector qty;     // latest our bid & ask outstanding qty (not filled as far as we could know)
 
   /// output
-  StreamProcessor<TOrderMessage> $orders;
+  Stream<TOrderMessage> $orders;
 
   GammaAlgo(DataFrame params, List config, std::string name="gammalgo")
     : MarketAlgo(params, config, name),

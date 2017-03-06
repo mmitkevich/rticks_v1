@@ -26,6 +26,10 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
 
   if(clazz[0] == "gamma") {
     Backtester<GammaAlgo<>, GammaSimulator<>> bt(params, config);
+    /*
+    NewMetrics<> nm(params, config, "nmetrics");
+    bt.market.$execs >>= nm;
+    nm.pos >>= println<double>(std::cout);*/
     bt.process(data);
     result = bt.market.metrics.toR();
   }

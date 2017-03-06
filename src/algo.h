@@ -8,24 +8,6 @@
 
 namespace Rcpp {
 
-// stream of messages
-template<typename TOutput,
-         typename TObserver=IObserver<TOutput>,
-         typename TBase=Observable<TOutput, TObserver> >
-struct Stream : public TBase {
-    using TBase::notify;
-};
-
-template<typename TInput,
-         typename TOutput=TInput,
-         typename TObserver=IObserver<TOutput>,
-         typename TBase=Processor<TInput, TOutput, TObserver> >
-struct StreamProcessor : public TBase {
-    using TBase::notify;
-    using TBase::observer_type;
-
-
-};
 
 
 namespace OrderSide {
@@ -82,7 +64,7 @@ struct Algo : public IAlgo {
         params(params),
         dt(NAN),
         name(name),
-        log_level(2)
+        log_level(1)
         { }
 
   int size() {
@@ -166,11 +148,12 @@ struct Scheduler: public Algo, public IScheduler<TAlgo> {
 
 template<typename TMessage=Message,
          typename TScheduler=Scheduler<Algo>,
-         typename TObserver=IObserver<TMessage> >
+         typename TObserver=IObserver<TMessage>,
+         typename TBase=Stream<TMessage,TObserver> >
 struct LatencyQueue : public Algo,
-              public StreamProcessor<TMessage, TMessage, TObserver>
+              public TBase
 {
-    using StreamProcessor<TMessage>::notify;
+    using TBase::notify;
 
     std::queue<TMessage> queue;
     TScheduler *scheduler;

@@ -3,7 +3,7 @@
 namespace Rcpp {
 
 const int SECONDS_PER_DAY = 24*60*60;
-
+#if 0
 template<typename TValue>
 struct Window  {
     std::deque<TValue> data;
@@ -130,39 +130,55 @@ struct MetricsMap : public std::map<std::string, Metric> {
         }
     }
 };
-  //typedef RowWrapper<DataFrame, Metrics, double, NumericVector> NumericMetric;
+#endif
+
 template<typename TExecutionMessage=ExecutionMessage>
 struct Metrics : public Algo,
-        public MetricsMap,
         public IObserver<TExecutionMessage>
 {
-  int index;
-  int stop;
+  typedef DFRow<double, NumericVector, List> Metric;
 
+  size_t index;
+  size_t stop;
+
+  NumericVector date;
   Metric pnl, pnl_h, pnl_l;  // by symbol
   Metric rpnl;
   Metric pos, pos_h, pos_l;
   Metric qty_buy, qty_sell;
   Metric roundtrips;
-  Datetime next_flush_dt;
+
+  CharacterVector symbols;
+  std::vector<Metric*> metrics;
+
+  double next_flush_dt;
+
 
   Metrics(DataFrame params, List config, std::string name="metrics")
     : Algo(params, config, name),
-      MetricsMap(required<CharacterVector>(params, "symbol")),
-      index(0), stop(0), next_flush_dt(NAN),
-
+      symbols(required<CharacterVector>(params, "symbol")),
+      index(0), stop(10), next_flush_dt(NAN)
+  {
+      date = NumericVector(stop);
       // initialize metrics
-      pnl(make_metric("pnl",0)),
-      pnl_h(make_metric("pnl.high",-INFINITY)),
-      pnl_l(make_metric("pnl.low",+INFINITY)),
-      rpnl(make_metric("rpnl",0)),
-      pos(make_metric("pos", 0)),
-      pos_h(make_metric("pos.high",-INFINITY)),
-      pos_l(make_metric("pos.low",+INFINITY)),
-      qty_buy(make_metric("qty.buy",0)),
-      qty_sell(make_metric("qty.sell",0)),
-      roundtrips(make_metric("roundtrips",0))
-  {  }
+      init_metric(&pnl,     "pnl").set(optional<NumericVector>(params, "pnl", 0.0));
+      init_metric(&pnl_h,   "pnl.high", -INFINITY);
+      init_metric(&pnl_l,   "pnl.low",  +INFINITY);
+      init_metric(&rpnl,    "rpnl", 0);
+      init_metric(&pos,     "pos").set(optional<NumericVector>(params, "pos", 0.0));
+      init_metric(&pos_h,   "pos.high", -INFINITY);
+      init_metric(&pos_l,   "pos.low",  +INFINITY);
+      init_metric(&qty_buy,     "qty.buy", 0);
+      init_metric(&qty_sell,    "qty.sell", 0);
+      init_metric(&roundtrips,  "roundtrips", 0);
+  }
+
+  Metric &init_metric(Metric* var, std::string name, double na=NAN) {
+      *var = std::move(Metric(symbols, stop, na, &index)); // move metric into var
+      var->name = name;
+      metrics.push_back(var); // save reference
+      return *var;
+  }
 
   void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
@@ -172,36 +188,94 @@ struct Metrics : public Algo,
                   <<e
                  <<std::endl;
     }
-    if(next_flush_dt.is_na()){
+    if(std::isnan(next_flush_dt)) {
         next_flush_dt = e.rtime; // FIXME: convert to flush time
+        next_flush_dt -= ((long)next_flush_dt) % SECONDS_PER_DAY;
+        next_flush_dt = truncl(next_flush_dt);      // flush_dt = 00:00 UTC
     }
+
     int s = e.symbol;
+
+    date[index] = e.rtime;
     // update pos
-    pos[s] += e.qty;
+    pos[s] = pos[s] + e.qty;
     pos_l[s] = std::min<double>(pos_l[s], pos[s]);
     pos_h[s] = std::max<double>(pos_h[s], pos[s]);
-    time = e.rtime;
 
     // update qty bought/sold
     (e.qty > 0 ? qty_buy : qty_sell)[s] += fabs(e.qty);
 
     // update free cash
-    rpnl[s] -= e.qty * e.price;
+    rpnl[s] = rpnl[s] - e.qty * e.price;
+    assert(!std::isnan(rpnl[s]));
+
+    pnl[s] = rpnl[s] + pos[s] * e.price;
+    assert(!std::isnan(pnl[s]));
+    pnl_l[s] = std::min<double>(pnl_l[s], pos[s]);
+    pnl_h[s] = std::max<double>(pnl_h[s], pos[s]);
 
     if(is_zero(pos[s]))
-      roundtrips[s]++;
+      roundtrips[s] = roundtrips[s] + 1;
 
-    flush(e.rtime);
-    //    std::cout << t << " | " << q << " * " << price << " | " << pos << " | " << cash << "\n";
+    if(dt >= next_flush_dt) {
+        flush_metrics();
+        next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+    }
   }
 
-  void flush(Datetime datetime) {
-      if(datetime >= next_flush_dt) {
-          MetricsMap::flush();
-          next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+  void nrows_metrics(size_t size) {
+      stop = size;
+
+      NumericVector newdate(size);
+      for(int i=0; i<size; i++)
+          newdate[i] = date[i];
+
+      date = newdate;
+
+      for(Metric *metric : metrics) {
+          metric->nrows(size);
       }
   }
 
+  void flush_metrics() {
+    index++;
+    if(index>=stop) {
+        nrows_metrics(2*stop);
+    }
+    for(Metric * metric: metrics) {
+        auto is_cumulative = std::isnan(metric->na);
+        for(int i=0; i<metric->size(); i++)
+            metric->set(i, is_cumulative ? metric->get(i, 1) : metric->na);
+    }
+  }
+
+  List toR() {
+    List result;
+    nrows_metrics(index+1);
+    for(int s=0; s<metrics.size(); s++) {
+        Metric *metric = metrics[s];
+        List df = metric->data;
+        df.attr("names") = symbols;
+        //df.attr("class") = "data.frame";
+        result[metric->name] = df;
+    }
+    result["datetime"] = date;
+    return result;
+  }
 };
 
+#if 0
+template<typename TExecutionMessage=ExecutionMessage>
+struct NewMetrics : public Algo, public Stream<TExecutionMessage>
+{
+    DynamicObservable<double> pos;
+    //Map<std::function<double(TExecutionMessage)>, TExecutionMessage, double > pos;
+
+    NewMetrics(DataFrame params, List config, std::string name)
+     : Algo(params, config, name),
+       pos(std::move(as_dynamic(*this % map([](TExecutionMessage e){return e.qty;}))))
+    {
+    }
+};
+#endif
 } //namespace Rcpp

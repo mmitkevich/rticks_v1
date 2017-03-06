@@ -97,7 +97,7 @@ struct MarketAlgo : public Algo {
           symbols(required<CharacterVector>(params, "symbol")),
           market(params.nrows()),
           quotes(params.nrows()),
-          pos(optional<NumericVector>(params, "pos", NumericVector(params.nrows(), 0.0))),
+          pos(optional<NumericVector>(params, "pos", 0)),
           mpi(required<NumericVector>(params, "mpi"))
     { }
 

@@ -102,7 +102,7 @@ struct Combine: public TBase
 };
 
 template<typename TOutput,
-         typename TObserver>
+         typename TObserver=IObserver<TOutput> >
 struct IObservable {
     typedef TOutput value_type;
     typedef TOutput result_type;
@@ -118,6 +118,8 @@ struct IObservable {
 #endif
     //Apply<TObservable, Filter<F, TOutput, TObserver, TObservable >, TOutput, TOutput, TObserver> filter(F f);
 };
+
+
 
 template<typename TAlgo>
 struct IScheduler {
@@ -173,10 +175,40 @@ struct Processor : public TBase, public IObserver<TInput>
 {
     using TBase::notify;
     virtual void on_subscribe(TObserver *obs) { }
-    virtual void on_next(TInput e) {
-        notify(e);
+//    virtual void on_next(TInput e) {
+//        notify(std::move(e));
+//    }
+};
+
+// stream of messages
+template<typename TOutput,
+         typename TObserver=IObserver<TOutput>,
+         typename TBase=Processor<TOutput, TOutput, TObserver> >
+struct Stream : public TBase {
+    using TBase::notify;
+    virtual void on_next(TOutput e) {
+        notify(std::move(e));
     }
 };
+/*
+template<typename TOutput>
+struct DynamicObservable : public Stream<TOutput> {
+    std::unique_ptr<IObservable<TOutput>> impl;
+
+    DynamicObservable() = default;
+    DynamicObservable(const std::unique_ptr<IObservable<TOutput>> &impl)
+        : impl(std::move(impl)) {
+        impl->subscribe(this);
+    }
+};
+
+template<typename TObservable,
+         typename TOutput=typename TObservable::result_type>
+DynamicObservable<TOutput>&& as_dynamic(TObservable obs) {
+    return DynamicObservable<TOutput>(std::move(
+                std::unique_ptr<IObservable<TOutput>>(new TObservable(std::move(obs)))));
+}
+*/
 
 
 template<typename F,
@@ -226,10 +258,34 @@ struct Map : public TBase
   }
 };
 
+template<typename F,
+         typename TInput=typename F::argument_type,
+         typename TOutput=typename F::result_type,
+         typename TObserver=IObserver<TOutput>,
+         typename TBase=Processor<TInput, TOutput, TObserver> >
+struct Reduce : public TBase
+{
+  typedef TOutput result_type;
+  typedef TInput argument_type;
+  using TBase::notify;
+  F fn;
+  TOutput init;
+
+  Reduce(const Reduce &rhs) = default;
+
+  Reduce(const F &fn = F(), TOutput init=TOutput())
+    : fn(fn), init(std::move(init))
+  { }
+
+  virtual void on_next(TInput e) {
+    init = fn(init, e);
+    notify(init);
+  }
+};
 
 template<typename TLeft,
          typename TRight>
-Apply<TLeft,TRight> operator%(TLeft left, TRight right) {
+Apply<TLeft,TRight> operator|(TLeft left, TRight right) {
     return Apply<TLeft, TRight>(std::move(left), std::move(right));
 }
 
@@ -394,6 +450,14 @@ auto map(F f) {
     using argtype = typename function_traits<F>::template argument_type<0>;
     using restype = typename function_traits<F>::result_type;
     return Map<F,  argtype, restype >(f);
+}
+
+template<typename F,
+         typename T=typename function_traits<F>::result_type >
+auto reduce(F f, T init = T()) {
+    using argtype = typename function_traits<F>::template argument_type<0>;
+    using restype = typename function_traits<F>::result_type;
+    return Reduce<F,  argtype, restype >(f);
 }
 
 template<typename L, typename R>

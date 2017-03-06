@@ -8,6 +8,8 @@
 #include <cassert>
 #include <vector>
 #include <iostream>
+#include <memory>
+
 // will include tuple, functional
 #include "function_traits.h"
 
