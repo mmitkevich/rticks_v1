@@ -17,6 +17,9 @@ fetch <- function(x,...) UseMethod("fetch")
 #' @export
 store <- function(x,...) UseMethod("store")
 
+
+
+
 #' rticks
 #' 
 #' @author mim <mim@exante.eu>

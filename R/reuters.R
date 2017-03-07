@@ -78,7 +78,8 @@ fetch.reuters <- function(q) {
   if(q$start>=q$stop)
     return(NULL)
   tl = timeline(q$schedule, start=q$start)
-  stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
+  stop <- as_datetime(ifelse(length(tl)>1, tl[[2]], q$stop))
+  cat("fetch.reuters ", as.character(q$start),"..", as.character(stop),"....")
   symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
     group_by(exante_id) %>%      # for each contract's group
       arrange(datetime) %>%      # sort by datetime
@@ -122,6 +123,7 @@ fetch.reuters <- function(q) {
   if(getOption("debug",F))
     print(attributes(df))
   row.names(df) <- NULL
+  cat("...fetched ", nrow(df),"\n")
   return(df)
 }
 

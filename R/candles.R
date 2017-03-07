@@ -1,6 +1,7 @@
 #' query candles from candles provider
 #' 
 #' @export
+
 query_candles <- function(instruments = NULL, 
                           active_contract = seq(1,3), 
                           start = NULL, 
@@ -58,7 +59,7 @@ combine.chunks <- function(chunks) {
 #' @export
 clean_mim.chunk <- function(chunk, 
                         time_filter = NULL, 
-                        value_filter = NULL ) {
+                        value_filter = NULL) {
   time_filter = ifnull(time_filter, ~ map_lgl(., ~ T)) %>% as_function()
   value_filter = ifnull(value_filter, ~ map_lgl(., ~ .!=0 & !is.na(.))) %>% as_function
   for(f in chunk$fields) {
@@ -73,4 +74,56 @@ clean_mim.chunk <- function(chunk,
     chunk[[f]] <- df %>% filter(vf & tf)
   }
   return(chunk)
+}
+
+#' cache_path
+#' 
+#' @export
+cache_path <- function(instrument_id, start, active_contract, cache_dir="~/rticks/tests/"){
+  paste0(cache_dir,instrument_id,".",as.character(active_contract),".rds")
+}
+
+#' query_candles_cache
+#'
+#' @examples
+#' query_candles_cache("VIX.CBOE", 1) 
+#' @export
+query_candles_cache <- function(instrument_id, start=NULL, active_contract=1, no_cache=F, no_clean=F, no_save=F) {
+  path <- cache_path(instrument_id, start, active_contract)
+  if(no_cache || !file.exists(path)) {
+    cat("querying ", instrument_id, "\n")
+    q <- query_candles("VIX", start=start, active_contract = active_contract)
+    data <- q %>% fetch_all()
+    data_raw <- data
+    if(!no_save) {
+      cat("raw saved ", path, "\n")
+      saveRDS(data, cache_path(instrument_id, start, active_contract))
+    }
+    if(!no_clean) {
+      schedule <- load_trade_schedule(instrument_id = instrument_id, start = start, exclude = FALSE)
+      data<-data %>% map(~ clean.chunk(., schedule, cut_minutes=3, negative_bidask=T))
+      if(!no_save) {
+        cat("cleaned saved ", path, "\n")
+        saveRDS(data, cache_path(instrument_id, start, active_contract))
+      }
+    }
+  }else {
+    path <- cache_path(instrument_id, start, active_contract)
+    data <- readRDS(path, cache_path(instrument_id, start, active_contract))
+  }
+  return(data)
+}
+
+#' chunk.resample
+#' 
+#' @export
+chunk.resample<-function (data, freq="days") {
+  data %>% 
+    transmute(
+      datetime=as_date(trunc(data$datetime, freq))
+    ) %>% 
+    arrange(datetime) %>%
+    group_by(datetime, symbol) %>%
+    filter(row_number()==n()) %>% 
+    as_data_frame()
 }
