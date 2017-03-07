@@ -7,8 +7,8 @@ load_trade_schedule <- function(instrument_id,
                                      start = NULL,    # means earliest possible 
                                      end = NULL,
                                      exclude = FALSE,
-                                     #path="/usr/local/share/exante-stat-schedule-data/"
-                                     path="~/exante-stat-schedule-data/"
+                                     path="/usr/local/share/exante-stat-schedule-data/"
+                                     #path="~/exante-stat-schedule-data/"
                                 ) {
   exanteID <- paste0(instrument_id,".X0000^")
   mappingFile <- fromJSON(paste0(path,".mapping"))

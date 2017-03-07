@@ -88,28 +88,29 @@ cache_path <- function(instrument_id, start, active_contract, cache_dir="~/rtick
 #' @examples
 #' query_candles_cache("VIX.CBOE", 1) 
 #' @export
-query_candles_cache <- function(instrument_id, start=NULL, active_contract=1, no_cache=F, no_clean=F, no_save=F) {
-  path <- cache_path(instrument_id, start, active_contract)
+query_candles_cache <- function(instruments, start=NULL, active_contract=1, no_cache=F, no_clean=F, no_save=F) {
+  instruments <- query_instruments(instruments)
+  cache_name <- paste(unique(instruments$instrument_id), sep="_")
+  path <- cache_path(cache_name, start, active_contract)
   if(no_cache || !file.exists(path)) {
     cat("querying ", instrument_id, "\n")
-    q <- query_candles("VIX", start=start, active_contract = active_contract)
+    q <- query_candles(instruments, start=start, active_contract = active_contract)
     data <- q %>% fetch_all()
     data_raw <- data
     if(!no_save) {
       cat("raw saved ", path, "\n")
-      saveRDS(data, cache_path(instrument_id, start, active_contract))
+      saveRDS(data, path)
     }
     if(!no_clean) {
       schedule <- load_trade_schedule(instrument_id = instrument_id, start = start, exclude = FALSE)
       data<-data %>% map(~ clean.chunk(., schedule, cut_minutes=3, negative_bidask=T))
       if(!no_save) {
         cat("cleaned saved ", path, "\n")
-        saveRDS(data, cache_path(instrument_id, start, active_contract))
+        saveRDS(data, path)
       }
     }
   }else {
-    path <- cache_path(instrument_id, start, active_contract)
-    data <- readRDS(path, cache_path(instrument_id, start, active_contract))
+    data <- readRDS(path)
   }
   return(data)
 }

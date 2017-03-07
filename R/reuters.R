@@ -78,13 +78,18 @@ fetch.reuters <- function(q) {
   if(q$start>=q$stop)
     return(NULL)
   tl = timeline(q$schedule, start=q$start)
-  stop <- as_datetime(ifelse(length(tl)>1, tl[[2]], q$stop))
-  cat("fetch.reuters ", as.character(q$start),"..", as.character(stop),"....")
+  stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
+  cat("fetch.reuters ", as.character(q$start),"..", as.character(as_datetime(stop)),"....")
   symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
     group_by(exante_id) %>%      # for each contract's group
       arrange(datetime) %>%      # sort by datetime
       filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
+  if(nrow(symbols)==0) {
+    cat("\nroll schedule:\n")
+    print(q$schedule)
+    stop(paste("no symbol for ac=", paste0(q$active_contract), "found in roll schedule","start",as.character(q$start),"stop",as.character(as_datetime(stop))))
+  }
   w <- c(
     "m.ric=s.ric",
     "m.datetime BETWEEN s.fut_first_trade_dt AND s.last_tradeable_dt",
@@ -97,8 +102,9 @@ fetch.reuters <- function(q) {
       "quant_data.symbols s, quant_data.minutes m", 
       fields = .reuters.fields.sql, 
       where = w, 
-      order = "datetime") %>%
-    transmute(
+      order = "datetime")
+  browser()
+  df <- df %>% transmute(
       exante_id = exante_id, 
       datetime = as_datetime(datetime/1000), 
       bid = close_bid, 

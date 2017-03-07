@@ -1,10 +1,11 @@
-#' roll_schedule
+
+#' roll_schedule
 #' 
 #' @export
 roll_schedule <- function(instruments,
                           symbols = NULL,
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
-                          max_active_contract = 3,
+                          max_active_contract = 12,
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",

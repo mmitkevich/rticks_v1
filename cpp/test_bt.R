@@ -1,6 +1,8 @@
 library(rticks)
 library(ggplot2)
 
+options(debug=T)
+
 instrument_id <- "VIX.CBOE"
 algo <- "gamma"
 
@@ -14,8 +16,8 @@ no_clean <- F
 config <- list(log_level=0)
 
 params <- list(
-  buy=c(17),
-  sell=c(25),
+  buy=c(1),
+  sell=c(30),
   pos=c(0),
   mpi=c(0.05),
   spread=c(0.25),
@@ -24,11 +26,14 @@ params <- list(
   symbol=c("VIX.CBOE.1")
 )
 
-chunk <- query_candles_cache(instrument_id, start, active_contract) %>% fetch()
+instrums  <- query_instruments(instrument_id)
+data <- query_candles_cache(instrums, start, active_contract)
 
-r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
+r <- data %>% backtest(params, "gamma", config)
 
-r %>% plot.backtest()
+print(r$pnl%>%head())
+
+r$perfs %>% plot_bt()
 
 
 

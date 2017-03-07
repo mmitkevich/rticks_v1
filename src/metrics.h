@@ -161,7 +161,7 @@ struct Metrics : public Algo,
       index(0), stop(10), next_flush_dt(NAN),
       pnl(optional<NumericVector>(params, "pnl", 0.0)),
       pos(optional<NumericVector>(params, "pos", 0.0)),
-      rpnl(params.size()),
+      rpnl(optional<NumericVector>(params, "rpnl", 0.0)),
       pos_h(params.size()),
       pos_l(params.size()),
       pnl_h(params.size()),
@@ -261,6 +261,9 @@ struct Metrics : public Algo,
     perfs.attr("names") = CharacterVector::create("datetime", "symbol", "metric", "value");
     //perfs.attr("class") = "data.frame";
     result["perfs"] = perfs;
+    result["pos"] = pos;
+    result["pnl"] = pnl;
+    result["rpnl"] = rpnl; 
     return result;
   }
   
