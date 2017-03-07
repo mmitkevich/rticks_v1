@@ -10,12 +10,12 @@ template<size_t i, typename TVector, typename...Ts>
 void _set_nrows(List& data, List &newdata, size_t nrows)
 {
   TVector newvec(nrows);
-  while(newdata.size()<i+1)
-    newdata.push_back(TVector());
+  while(data.size()<i+1)
+    data.push_back(TVector());
   TVector vec(as<TVector>(data[i]));
-  for(int j=0; j<newvec.size(); j++)
+  for(int j=0; j<std::min(vec.size(),newvec.size()); j++)
     newvec[j] = vec[j];
-  newdata[i] = newvec;
+  newdata.push_back(newvec);
 
   _set_nrows<i+1, Ts...>(data, newdata, nrows);
 }

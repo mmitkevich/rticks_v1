@@ -236,32 +236,36 @@ struct Metrics : public Algo,
     NumericVector *metric;
     for(auto tup : metrics) {
         std::tie(name, initial, metric) = tup;
-        for(int i=0; i < metric->size(); i++) {
+        for(int i=0; i < symbols.size(); i++) {
           as<NumericVector>(perfs[0])[index] = datetime();
           as<CharacterVector>(perfs[1])[index] = (const char*)symbols[i];
-          as<NumericVector>(perfs[2])[index] = (*metric)[i];
+          as<CharacterVector>(perfs[2])[index] = (const char*)name.c_str();
+          as<NumericVector>(perfs[3])[index] = (*metric)[i];
+
+          index++;
+          if(index>=stop) {
+            stop = 2*stop;
+            perfs_nrows(stop);
+          }
+
         }
         auto is_cumulative = std::isnan(initial);
         if(!is_cumulative)
           *metric = initial;
-    }
-    index++;
-    if(index>=stop) {
-      stop = 2*stop;
-      perfs_nrows(stop);
     }
   }
 
   List toR() {
     List result;
     perfs_nrows(index);
-    perfs.attr("names") = CharacterVector::create("datetime", "symbol", "value");
+    perfs.attr("names") = CharacterVector::create("datetime", "symbol", "metric", "value");
+    //perfs.attr("class") = "data.frame";
     result["perfs"] = perfs;
     return result;
   }
   
   void perfs_nrows(size_t size) {
-    set_nrows<NumericVector, CharacterVector, NumericVector>(perfs, index);
+    set_nrows<NumericVector, CharacterVector, CharacterVector, NumericVector>(perfs, size);
   }
 };
 
