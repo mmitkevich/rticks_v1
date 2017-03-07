@@ -6,109 +6,33 @@
 
 namespace Rcpp {
 
-/** thin wrapper around some indexable data */
-template<typename TValue, typename TVector, typename TData=List>
-struct DFRow  {
-  TData data;
-  size_t *cur;
-  TValue na;
-  std::string name;
-  CharacterVector names;
+template<size_t i, typename TVector, typename...Ts>
+void _set_nrows(List& data, List &newdata, size_t nrows)
+{
+  TVector newvec(nrows);
+  while(newdata.size()<i+1)
+    newdata.push_back(TVector());
+  TVector vec(as<TVector>(data[i]));
+  for(int j=0; j<newvec.size(); j++)
+    newvec[j] = vec[j];
+  newdata[i] = newvec;
 
-  DFRow() : cur(NULL) { }
+  _set_nrows<i+1, Ts...>(data, newdata, nrows);
+}
 
-  struct Value {
-      TVector vec;
-      size_t cur;
-      Value(const TVector &vec, size_t cur):
-          vec(std::move(vec)), cur(cur) {
-
-      }
-
-      Value() = default;
-
-      operator TValue() {
-        return vec[cur];
-      }
-
-      Value& operator=(TValue v) {
-          vec[cur] = v;
-          return *this;
-      }
-
-      Value& operator+=(TValue v) {
-          vec[cur] = vec[cur] + v;
-          return *this;
-      }
-
-      Value& operator-=(TValue v) {
-          vec[cur] = vec[cur] + v;
-          return *this;
-      }
-
-      Value& operator++() {
-          vec[cur] = vec[cur] + 1;
-          return *this;
-      }
-      Value& operator--() {
-          vec[cur] = vec[cur] - 1;
-          return *this;
-      }
-  };
-
-  DFRow(CharacterVector names, size_t nrows, TValue na, size_t* cur=NULL)
-    : cur(cur),
-      na(na),
-      names(names),
-      data(names.size())
-  {
-    for(int i=0; i<names.size(); i++) {
-        data[i] = TVector(nrows, na);
-    }
-  }
-  
-  DFRow(DFRow &&rhs) = default;
-
-  DFRow& operator=(DFRow &&rhs) {
-      data = std::move(rhs.data);
-      cur = rhs.cur;
-      na = rhs.na;
-      name = std::move(rhs.name);
-  }
-
-  Value operator[](int icol) {
-    return Value(as<TVector>(data[icol]), *cur);
-  }
-  
-  int size() const {
-    return data.size();
-  }
-
-  void set(int i, TValue value) {
-    as<TVector>(data[i])[*cur] = value;
-  }
-
-  TValue get(int i, int lag=0) {
-    return as<TVector>(data[i])[*cur-lag];
-  }
-
-  void set(TVector v) {
-    for(int i=0; i<size(); i++)
-        set(i, v[i]);
-  }
-
-  void nrows(size_t nrows) {
-    TData newdata(data.size());
-    for(int i=0; i<data.size(); i++) {
-        TVector newvec(nrows);
-        TVector vec(data[i]);
-        for(int j=0; j<newvec.size(); j++)
-            newvec[j] = vec[j];
-        newdata[i] = newvec;
-    }
-    data = newdata;
-  }
+template<size_t i>
+void _set_nrows(List& data, List &newdata, size_t nrows)
+{
 };
+
+template<typename...Ts>
+void set_nrows(List& data, size_t nrows) {
+  List newdata;
+  _set_nrows<0, Ts...>(data, newdata, nrows);
+  data = newdata;
+}
+
+
 
 template<typename TVector> 
 TVector get(List config, const char* name, TVector def) {

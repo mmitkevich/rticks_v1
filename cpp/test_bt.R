@@ -36,9 +36,9 @@ bt <- function(data, algo, params, config) {
   dates <- as_date(trunc(metrics$datetime,"days"))
   metrics <- metrics%>%mutate(datetime=dates)
   dates <- as_date(trunc(data$datetime,"days"))
-  price <- data%>%transmute(datetime=dates, symbol=virtual_id, price=0.5*(bid+ask))%>%arrange(datetime)
-  browser()
-  df <- left_join(metrics, price, by=c("datetime"))
+  price <- data%>%transmute(datetime=dates, symbol=virtual_id, price=0.5*(bid+ask))%>%arrange(datetime)%>%group_by(datetime, symbol) %>% filter(row_number()==n()) %>% as_data_frame()
+  #browser()
+  df <- left_join(metrics, price, by=c("datetime","symbol"))
   return(df)
 }
 
@@ -60,9 +60,9 @@ plot.bt <- function(r) {
     facet_grid(metric ~ ., scales = "free_y")
 } 
 
-config <- list()
-r <- bt(data, "gamma", params, config)
-plot.bt(r)
+config <- list(log_level=0, warn_qty=10)
+#r <- bt("gamma", data, params, config)
+#plot.bt(r)
 #print(r$pnl);
 cat("DONE\n")
 

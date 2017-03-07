@@ -63,9 +63,10 @@ struct Algo : public IAlgo {
       : config(config),
         params(params),
         dt(NAN),
-        name(name),
-        log_level(1)
-        { }
+        name(name)
+  {
+    log_level = truncl(optional<NumericVector>(config, "log_level", 0)[0]);
+  }
 
   int size() {
       return params.size();

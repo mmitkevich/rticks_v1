@@ -136,58 +136,66 @@ template<typename TExecutionMessage=ExecutionMessage>
 struct Metrics : public Algo,
         public IObserver<TExecutionMessage>
 {
-  typedef DFRow<double, NumericVector, List> Metric;
-
   size_t index;
   size_t stop;
 
   NumericVector date;
-  Metric pnl, pnl_h, pnl_l;  // by symbol
-  Metric rpnl;
-  Metric pos, pos_h, pos_l;
-  Metric qty_buy, qty_sell;
-  Metric roundtrips;
+  NumericVector pnl, pnl_h, pnl_l;  // by symbol
+  NumericVector rpnl;
+  NumericVector pos, pos_h, pos_l;
+  NumericVector qty_buy, qty_sell;
+  NumericVector roundtrips;
 
   CharacterVector symbols;
-  std::vector<Metric*> metrics;
-
+  std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
+  
+  List perfs;
+  List trades;
+  
   double next_flush_dt;
 
 
   Metrics(DataFrame params, List config, std::string name="metrics")
     : Algo(params, config, name),
       symbols(required<CharacterVector>(params, "symbol")),
-      index(0), stop(10), next_flush_dt(NAN)
+      index(0), stop(10), next_flush_dt(NAN),
+      pnl(optional<NumericVector>(params, "pnl", 0.0)),
+      pos(optional<NumericVector>(params, "pos", 0.0)),
+      rpnl(params.size()),
+      pos_h(params.size()),
+      pos_l(params.size()),
+      pnl_h(params.size()),
+      pnl_l(params.size()),
+      qty_buy(params.size()),
+      qty_sell(params.size())
   {
-      date = NumericVector(stop);
       // initialize metrics
-      init_metric(&pnl,     "pnl").set(optional<NumericVector>(params, "pnl", 0.0));
-      init_metric(&pnl_h,   "pnl.high", -INFINITY);
-      init_metric(&pnl_l,   "pnl.low",  +INFINITY);
-      init_metric(&rpnl,    "rpnl", 0);
-      init_metric(&pos,     "pos").set(optional<NumericVector>(params, "pos", 0.0));
-      init_metric(&pos_h,   "pos.high", -INFINITY);
-      init_metric(&pos_l,   "pos.low",  +INFINITY);
-      init_metric(&qty_buy,     "qty.buy", 0);
-      init_metric(&qty_sell,    "qty.sell", 0);
-      init_metric(&roundtrips,  "roundtrips", 0);
+      init_metric(&pnl, "pnl");
+      init_metric(&pnl_h, "pnl.high", -INFINITY);
+      init_metric(&pnl_l, "pnl.low",  +INFINITY);
+      init_metric(&rpnl, "rpnl");
+      init_metric(&pos, "pos");
+      init_metric(&pos_h, "pos.high", -INFINITY);
+      init_metric(&pos_l, "pos.low",  +INFINITY);
+      init_metric(&qty_buy, "qty.buy", 0);
+      init_metric(&qty_sell, "qty.sell", 0);
+      init_metric(&roundtrips, "roundtrips", 0);
+      
+      perfs_nrows(stop);  // datetime, symbol, value 
   }
 
-  Metric &init_metric(Metric* var, std::string name, double na=NAN) {
-      *var = std::move(Metric(symbols, stop, na, &index)); // move metric into var
-      var->name = name;
-      metrics.push_back(var); // save reference
-      return *var;
+  void init_metric(NumericVector* var, std::string name, double initial=NAN) {
+      metrics.push_back(std::make_tuple(name, initial, var)); // save reference
   }
 
   void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
     dlog<3>(e);
-    if(fabs(e.qty)>3) {
-        std::cout << "BIG DEAL "
-                  <<e
-                 <<std::endl;
-    }
+    //if(fabs(e.qty)>3) {
+    //    xlog<1>() << "LARGE TRADE "
+    //              << e
+    //              << std::endl;
+    //}
     if(std::isnan(next_flush_dt)) {
         next_flush_dt = e.rtime; // FIXME: convert to flush time
         next_flush_dt -= ((long)next_flush_dt) % SECONDS_PER_DAY;
@@ -196,7 +204,6 @@ struct Metrics : public Algo,
 
     int s = e.symbol;
 
-    date[index] = e.rtime;
     // update pos
     pos[s] = pos[s] + e.qty;
     pos_l[s] = std::min<double>(pos_l[s], pos[s]);
@@ -218,49 +225,43 @@ struct Metrics : public Algo,
       roundtrips[s] = roundtrips[s] + 1;
 
     if(dt >= next_flush_dt) {
-        flush_metrics();
+        flush_perfs();
         next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
     }
   }
 
-  void nrows_metrics(size_t size) {
-      stop = size;
-
-      NumericVector newdate(size);
-      for(int i=0; i<size; i++)
-          newdate[i] = date[i];
-
-      date = newdate;
-
-      for(Metric *metric : metrics) {
-          metric->nrows(size);
-      }
-  }
-
-  void flush_metrics() {
+  void flush_perfs() {
+    std::string name;
+    double initial;
+    NumericVector *metric;
+    for(auto tup : metrics) {
+        std::tie(name, initial, metric) = tup;
+        for(int i=0; i < metric->size(); i++) {
+          as<NumericVector>(perfs[0])[index] = datetime();
+          as<CharacterVector>(perfs[1])[index] = (const char*)symbols[i];
+          as<NumericVector>(perfs[2])[index] = (*metric)[i];
+        }
+        auto is_cumulative = std::isnan(initial);
+        if(!is_cumulative)
+          *metric = initial;
+    }
     index++;
     if(index>=stop) {
-        nrows_metrics(2*stop);
-    }
-    for(Metric * metric: metrics) {
-        auto is_cumulative = std::isnan(metric->na);
-        for(int i=0; i<metric->size(); i++)
-            metric->set(i, is_cumulative ? metric->get(i, 1) : metric->na);
+      stop = 2*stop;
+      perfs_nrows(stop);
     }
   }
 
   List toR() {
     List result;
-    nrows_metrics(index+1);
-    for(int s=0; s<metrics.size(); s++) {
-        Metric *metric = metrics[s];
-        List df = metric->data;
-        df.attr("names") = symbols;
-        //df.attr("class") = "data.frame";
-        result[metric->name] = df;
-    }
-    result["datetime"] = date;
+    perfs_nrows(index);
+    perfs.attr("names") = CharacterVector::create("datetime", "symbol", "value");
+    result["perfs"] = perfs;
     return result;
+  }
+  
+  void perfs_nrows(size_t size) {
+    set_nrows<NumericVector, CharacterVector, NumericVector>(perfs, index);
   }
 };
 
