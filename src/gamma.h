@@ -27,7 +27,8 @@ struct GammaAlgo : public MarketAlgo,
   NumericVector spread;       // spread to maintain  
   //NumericVector offset;       // midspread directional offset
   BuySellVector gamma;        // qty to quote on buy/sell sides
-
+  BuySellVector limits;
+  
   /// state
   //BuySellVector qty;     // latest our bid & ask outstanding qty (not filled as far as we could know)
 
@@ -36,6 +37,8 @@ struct GammaAlgo : public MarketAlgo,
 
   GammaAlgo(DataFrame params, List config, std::string name="gammalgo")
     : MarketAlgo(params, config, name),
+      limits( optional<NumericVector>(params, "buy", +INFINITY),
+              optional<NumericVector>(params, "sell", -INFINITY)),
       gamma(required<NumericVector>(params, "gamma.buy"),
             required<NumericVector>(params, "gamma.sell")),
       spread(required<NumericVector>(params, "spread"))
@@ -122,10 +125,16 @@ struct GammaAlgo : public MarketAlgo,
   }
 
   // notify on quotes change
-  virtual void notify(SymbolId symbol, int side) {
+  virtual void notify(SymbolId s, int side) {
+    
+    if(pos[s]>=0 && quotes.buy[s]>limits.buy[s])
+      quotes.buy[s] = NAN;
+    if(pos[s]<=0 && quotes.sell[s]<limits.sell[s])
+      quotes.sell[s] = NAN;
+
     TOrderMessage e;
     e.rtime = e.ctime = dt;
-    e.symbol = symbol;
+    e.symbol = s;
     //e.set_side(side); TODO: set_side is sign of qty!
     e.price = quotes(side)[e.symbol];
     e.qty = gamma(side)[e.symbol]*side;
