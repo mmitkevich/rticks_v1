@@ -10,6 +10,7 @@ load_trade_schedule <- function(instrument_id,
                                      path="/usr/local/share/exante-stat-schedule-data/"
                                      #path="~/exante-stat-schedule-data/"
                                 ) {
+  cat("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path,"\n")
   exanteID <- paste0(instrument_id,".X0000^")
   mappingFile <- fromJSON(paste0(path,".mapping"))
   fileName <- mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))]
@@ -51,7 +52,7 @@ load_trade_schedule <- function(instrument_id,
 #'  
 #' @export
 clean.chunk <- function(chunk, 
-                        schedule, 
+                        schedules = NULL, 
                         cut_minutes = 0, 
                         negative_bidask = TRUE) {
   
@@ -60,17 +61,20 @@ clean.chunk <- function(chunk,
   start <- attributes(chunk)$start
   end <- attributes(chunk)$stop
   exante_ids <- unique(chunk$exante_id)
+
+  cat("clean.chunk ", paste(exante_ids), "start", as.character(start), "end", as.character(end),"\n")
   
-  schedule_list <- list()
-  instr_ids <- unique(parse_exante_id(exante_ids)$instrument_id)
-  for (i in 1:length(instr_ids)) {
-    schedule_list[[i]] <- load_trade_schedule(instr_ids[i], start, end, exclude = FALSE)
+  if(is.null(schedules)) {
+    schedule_list <- list()
+    instr_ids <- unique(parse_exante_id(exante_ids)$instrument_id)
+    for (i in 1:length(instr_ids)) {
+      schedule_list[[i]] <- load_trade_schedule(instr_ids[i], start, end, exclude = FALSE)
+    }
+    schedules <- unique(schedule_list)
   }
-  unique_schedule_list <- unique(schedule_list)
-  
-  for (w in 1:length(unique_schedule_list)) {
-    start <- unique_schedule_list[[w]]$start + minutes(cut_minutes)
-    end <- unique_schedule_list[[w]]$end - minutes(cut_minutes)
+  for (w in 1:length(schedules)) {
+    start <- schedules[[w]]$start + minutes(cut_minutes)
+    end <- schedules[[w]]$end - minutes(cut_minutes)
     unique_schedule_with_minutes <- data_frame(start, end)
     schedule_with_datetime <- unique_schedule_with_minutes %>% gather(p, datetime) %>% mutate(p = ifelse(p == "start", 1, -1)) 
     chunk_with_datetime <- data_frame(datetime = chunk$datetime, p = 0)

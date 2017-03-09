@@ -63,7 +63,7 @@ list_by <- function(df, id, .f=identity) {
 #'   dt("2016-01")
 #'   dt("2016-01-02")
 #' @export
-dt <- function(x) {
+dt <- function(x,y=NULL,z=NULL) {
   if(is.null(x))
     return(x)
   if(is.POSIXct(x))
@@ -72,10 +72,10 @@ dt <- function(x) {
   if(nchar(x)==2)
     x <- paste0("20", x)
   if(nchar(x)==4)
-    x <- paste0(x,"-01")
+    x <- paste0(x,"-", ifnull(y,"01",as.character(y)))
   if(nchar(x)==7)
-    x <- paste0(x,"-01")
-  as_datetime(x)
+    x <- paste0(x,"-", ifnull(z,"01",as.character(z)))
+  r<-as_datetime(x)
 }
 
 #' grouped df -> list conversion

@@ -39,7 +39,11 @@ query_candles.reuters <- function(instruments = NULL,
                                stop = lubridate::now(), 
                                where = NULL) {
   instruments <- query_instruments(instruments)
-  schedule <- schedule %>% ifnull(cached_attr(instruments, "schedule", instruments %>% roll_schedule(max_active_contract=max(active_contract), start=start, stop=stop)))
+  cat("query_candles.reuters", paste(instruments$instrument_id, as.character(active_contract)), "start", as.character(start), "stop", as.character(stop), "\n")
+  schedule <- schedule %>% 
+    ifnull(cached_attr(instruments, "schedule", 
+                       instruments %>% 
+                         roll_schedule(max_active_contract=max(active_contract), start=start, stop=stop)))
   schedule <- schedule %>% .filter_schedule(start=start, stop=stop)
   q <- structure(new.env(), class="reuters")
   with(q, {
@@ -86,9 +90,9 @@ fetch.reuters <- function(q) {
       filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
   if(nrow(symbols)==0) {
-    cat("\nroll schedule:\n")
+    cat("\nEMPTY roll schedule:\n")
     print(q$schedule)
-    stop(paste("no symbol for ac=", paste0(q$active_contract), "found in roll schedule","start",as.character(q$start),"stop",as.character(as_datetime(stop))))
+    stop(paste("no symbol for ac=", paste0(q$active_contract), "found in roll schedule","start",as.character(as_datetime(q$start)),"stop",as.character(as_datetime(stop))))
   }
   w <- c(
     "m.ric=s.ric",
@@ -103,19 +107,19 @@ fetch.reuters <- function(q) {
       fields = .reuters.fields.sql, 
       where = w, 
       order = "datetime")
-  browser()
-  df <- df %>% transmute(
-      exante_id = exante_id, 
-      datetime = as_datetime(datetime/1000), 
-      bid = close_bid, 
-      ask = close_ask, 
-      high = high_bid, 
-      low = low_ask) 
-  df <- df %>% to_virtual_id(symbols)
-#  browser()
-  df <- df  %>% # gather_("event", "value", .reuters.fields)  %>%
+  #browser()
+  if(nrow(df)>0) {
+    df <- df %>% transmute(
+        exante_id = exante_id, 
+        datetime = as_datetime(datetime/1000), 
+        bid = close_bid, 
+        ask = close_ask, 
+        high = high_bid, 
+        low = low_ask) 
+    df <- df %>% to_virtual_id(symbols)
+    df <- df  %>% # gather_("event", "value", .reuters.fields)  %>%
       arrange(datetime) # todo: match("event",c("h","l","b","a")) so h,l before b,a
-  
+  }  
   attr(df, "symbols") <- symbols
   attr(df, "instruments") <- q$instruments
   attr(df, "start") <- q$start
@@ -126,9 +130,12 @@ fetch.reuters <- function(q) {
   q$start <- stop
   
   #result<-structure(result, class="chunk")
-  if(getOption("debug",F))
-    print(attributes(df))
-  row.names(df) <- NULL
+  #row.names(df) <- NULL
+  if(getOption("debug",F)) {
+    print(df%>%head(2))
+    cat(".......\n")
+    print(df%>%tail(2))
+  }
   cat("...fetched ", nrow(df),"\n")
   return(df)
 }

@@ -10,11 +10,13 @@ roll_schedule <- function(instruments,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
-  #  cat("roll_schedule\n")
   #  print(instruments)
   # lazy instruments loading
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
     instruments <- instruments %>% query_instruments()
+  cat("roll_schedule",paste(instruments$instrument_id),
+      "active_contract",paste(active_contract), 
+      "max_active_contract",max_active_contract,"\n")
   # load symbols including those expiring 1 year after the end of backtesting period so all the patterns could be built
   if(is.null(symbols))
     symbols <- instruments %>% query_symbols(start = start, stop = NULL) #nnmap(stop, ~ . + years(1))

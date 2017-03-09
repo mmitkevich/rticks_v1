@@ -3,17 +3,17 @@
 #' @export
 
 query_candles <- function(instruments = NULL, 
+                          schedule = NULL,
                           active_contract = seq(1,3), 
                           start = NULL, 
                           stop = lubridate::now(), 
-                          schedule = NULL, 
                           provider = "reuters", ...) {
   query_fn <- get(paste0("query_candles.", provider))
   query_fn(instruments = instruments, 
+           schedule = schedule,
            active_contract = active_contract,
            start = start,
-           stop = stop,
-           schedule = schedule,...)
+           stop = stop,...)
 }
 
   
@@ -88,23 +88,26 @@ cache_path <- function(instrument_id, start, active_contract, cache_dir="~/rtick
 #' @examples
 #' query_candles_cache("VIX.CBOE", 1) 
 #' @export
-query_candles_cache <- function(instruments, start=NULL, active_contract=1, no_cache=F, no_clean=F, no_save=F) {
+query_candles_cache <- function(instruments, active_contract=1, start=NULL, stop=lubridate::now(), schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T)) {
   instruments <- query_instruments(instruments)
   cache_name <- paste(unique(instruments$instrument_id), sep="_")
   path <- cache_path(cache_name, start, active_contract)
-  if(no_cache || !file.exists(path)) {
-    cat("querying ", instrument_id, "\n")
-    q <- query_candles(instruments, start=start, active_contract = active_contract)
+  cat("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop),"\n")
+  if(config$no_cache || !file.exists(path)) {
+    q <- query_candles(instruments, active_contract = active_contract, start=start, stop=stop)
     data <- q %>% fetch_all()
     data_raw <- data
-    if(!no_save) {
+    if(!config$no_save) {
       cat("raw saved ", path, "\n")
       saveRDS(data, path)
     }
-    if(!no_clean) {
-      schedule <- load_trade_schedule(instrument_id = instrument_id, start = start, exclude = FALSE)
-      data<-data %>% map(~ clean.chunk(., schedule, cut_minutes=3, negative_bidask=T))
-      if(!no_save) {
+    if(!config$no_clean) {
+      # FIXME: load_trade_schedule will FAIL if nrow(instruments)>1
+      if(is.null(schedule)) {
+        schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
+      }
+      data<-data %>% map(~ clean.chunk(., schedules=list(schedule), cut_minutes=3, negative_bidask=T))
+      if(!config$no_save) {
         cat("cleaned saved ", path, "\n")
         saveRDS(data, path)
       }

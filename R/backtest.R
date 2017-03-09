@@ -23,23 +23,50 @@ backtest.chunk <- function(data, params, algo, config) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(data, params, algo, config=list(freq="days")) {
-  r <- list(perfs=NULL)
+backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(freq="days", no_cache=T, no_clean=T, no_save=T)) {
+  if(is.null(instruments)) {
+    instruments <- params$symbol
+  }
+  
+  instruments <- instruments %>% query_instruments()
+  
+  params <- as_data_frame(params) %>% left_join(instruments %>% transmute(symbol=instrument_id, mpi=mpi), by="symbol") %>% 
+    mutate(symbol=paste0(symbol,".",as.character(active_contract)))
+  
+  if(is.null(data)) {
+    schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
+    data <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
+                                                start=start, stop=stop, 
+                                                schedule=schedule,
+                                                config=config)
+                                                
+  }
+  
+  perfs <- NULL
+  pnl <- NULL
+  pos <- NULL
+  rpnl <- NULL
+  
   params = as_data_frame(params)
   params <- params %>% mutate(pnl=0, rpnl=0)
+  
+  cat("backtest algo", algo, "\nparams:\n")
+  print(as.data.frame(params))
   for(chunk in data) {
-    print(params)
+    #print(params)
     r1 <- chunk %>% backtest.chunk(params, algo=algo, config=config)
-    r$perfs <- bind_rows(r$perfs, r1$perfs)
+    perfs <- bind_rows(perfs, r1$perfs)
     #browser()
     params$pos  <- r1$pos
     params$pnl  <- r1$pnl
     params$rpnl <- r1$rpnl
-    r$pnl <- r1$pnl
-    r$rpnl <-r1$rpnl
-    r$pos <- r1$pos
+    pnl <- r1$pnl
+    rpnl <-r1$rpnl
+    pos <- r1$pos
   }
-  r
+  attr(perfs, "data") <- data
+  attr(perfs, "results") <- params %>% mutate(pnl=pnl, pos=pos, rpnl=rpnl)
+  perfs
 }
 
 #' plot backtest results

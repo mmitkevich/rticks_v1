@@ -11,7 +11,7 @@ schedule <- load_trade_schedule(instrument_id = "VIX.CBOE", start = startDateTim
 cut_minutes <- 3
 
 cleaned<-clean.chunk(chunk, 
-            schedule, 
+            schedules=list(schedule), 
             cut_minutes, 
             negative_bidask = TRUE)
 
