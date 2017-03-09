@@ -182,7 +182,6 @@ struct Metrics : public Algo,
       init_metric(&roundtrips, "roundtrips", 0);
       
       perfs_nrows(stop);  // datetime, symbol, value 
-      flush_perfs();
   }
 
   void init_metric(NumericVector* var, std::string name, double initial=NAN) {
@@ -201,6 +200,8 @@ struct Metrics : public Algo,
         next_flush_dt = e.rtime; // FIXME: convert to flush time
         next_flush_dt -= ((long)next_flush_dt) % SECONDS_PER_DAY;
         next_flush_dt = truncl(next_flush_dt);      // flush_dt = 00:00 UTC
+        flush_perfs();  // flush initial zeros
+        next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
     }
 
     int s = e.symbol;
