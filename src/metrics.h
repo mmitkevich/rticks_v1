@@ -150,10 +150,10 @@ struct Metrics : public Algo,
 
   CharacterVector symbols;
   std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
-  
+
   List perfs;
   List trades;
-  
+
   double next_flush_dt;
 
 
@@ -182,10 +182,10 @@ struct Metrics : public Algo,
       init_metric(&qty_buy, "qty.buy", 0);
       init_metric(&qty_sell, "qty.sell", 0);
       init_metric(&roundtrips, "roundtrips", 0);
-      
-      perfs_nrows(stop);  // datetime, symbol, value 
+
+      perfs_nrows(stop);  // datetime, symbol, value
   }
-  
+
   template<typename TMarket>
   void on_init(TMarket &market) {
     market.$execs >>= *this;
@@ -201,7 +201,7 @@ struct Metrics : public Algo,
     dlog<1>(e);
     set_flush_time();
   }
-  
+
   void set_flush_time() {
     if(std::isnan(next_flush_dt)) {
       next_flush_dt = datetime(); // FIXME: convert to flush time
@@ -211,7 +211,7 @@ struct Metrics : public Algo,
       next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
     }
   }
-  
+
   virtual void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
     dlog<3>(e);
@@ -220,8 +220,8 @@ struct Metrics : public Algo,
     //              << e
     //              << std::endl;
     //}
-    set_flush_time();
-    
+    //set_flush_time();
+
     int s = e.symbol;
 
     // update pos
@@ -243,14 +243,16 @@ struct Metrics : public Algo,
 
     if(is_zero(pos[s]))
       roundtrips[s] = roundtrips[s] + 1;
-  
+
     try_flush();
   }
-  
+
   void try_flush() {
-    while(dt >= next_flush_dt) {
-      flush_perfs();
-      next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+    if(!std::isnan(next_flush_dt)){
+        while(dt >= next_flush_dt) {
+          flush_perfs();
+          next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+        }
     }
   }
 
@@ -291,7 +293,7 @@ struct Metrics : public Algo,
     result.push_back(perfs, "perfs");
     return result;
   }
-  
+
   void perfs_nrows(size_t size) {
     set_nrows<NumericVector, CharacterVector, CharacterVector, NumericVector>(perfs, size);
   }

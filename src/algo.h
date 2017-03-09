@@ -110,7 +110,7 @@ template<typename TAlgo=Algo>
 struct Scheduler: public Algo, public IScheduler<TAlgo> {
     struct algo_less {
         bool operator()( const TAlgo* lhs, const TAlgo* rhs ) const {
-            return lhs->datetime() <= rhs->datetime();
+            return lhs->datetime() < rhs->datetime();
         }
     };
 
@@ -129,7 +129,7 @@ struct Scheduler: public Algo, public IScheduler<TAlgo> {
         if(!std::isnan(dt)) { // reschedule if needed
 
             algo->on_clock(dt); // update tartet time
-            auto jt = std::lower_bound(queue.begin(), queue.end(), algo, algo_less()); // who after us
+            auto jt = std::upper_bound(queue.begin(), queue.end(), algo, algo_less()); // who after us
             queue.insert(jt, algo); // stand before him
         }
     }
@@ -162,7 +162,7 @@ struct LatencyQueue : public Algo,
 
     LatencyQueue(DataFrame params, List config, TScheduler *scheduler, std::string name)
         : Algo(params, config, name),
-          latency(optional<NumericVector>(params, "latency", NumericVector(params.nrows(), 1e-1))),
+          latency(optional<NumericVector>(params, std::string("latency.")+name, NumericVector(params.nrows(), 0.0))),
           scheduler(scheduler) {
     }
 

@@ -20,10 +20,10 @@ struct GammaSimulator : public MarketAlgo,
   BuySellVector gamma;    // gamma
 
   // outputs
+  LatencyQueue<TSessionMessage> $session;
   LatencyQueue<TQuoteMessage> $quotes;
   LatencyQueue<TExecutionMessage> $execs;
   LatencyQueue<TOrderMessage> $orders;
-  LatencyQueue<TSessionMessage> $session;
   
   TScheduler scheduler;
   TMetrics metrics;
@@ -32,10 +32,10 @@ struct GammaSimulator : public MarketAlgo,
     : MarketAlgo(params, config, name),
       scheduler(params, config),
       metrics(params, config),
+      $session(params, config, &scheduler, "$sess  "),
       $quotes(params, config, &scheduler, "$quotes "),
       $execs(params, config, &scheduler,  "$execs  "),
-      $orders(params, config, &scheduler, "$orders "),
-      $session(params, config, &scheduler, "$sess  ")
+      $orders(params, config, &scheduler, "$orders ")
   {
       //quotes.buy = quotes.sell = NAN; // FIXME: this is wrong. quotes.buy and quotes.sell will be SHARED NumVector.
       // TODO: migrate to std::vector instead of NumericVector???
@@ -49,7 +49,7 @@ struct GammaSimulator : public MarketAlgo,
   
   virtual void on_next(TQuoteMessage e) {
     if(std::isnan(datetime())) {
-      on_session_start();
+      on_session_start(e.ctime);
     }
     on_clock(e.rtime);
     dlog<3>(e);
@@ -73,10 +73,10 @@ struct GammaSimulator : public MarketAlgo,
     on_simulate(e.symbol);
   }
 
-  virtual void on_session_start() {
+  virtual void on_session_start(double dtime) {
     TSessionMessage e;
-    e.ctime = e.rtime = dt;
-    $session.on_next(std::move(e));
+    e.ctime = e.rtime = dtime-1e-6; //FIXME: should be first message in order of sending without this hack
+    $session.on_next(e);
   }
   
   virtual void on_simulate(const SymbolId& s) {

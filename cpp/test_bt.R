@@ -7,9 +7,9 @@ myconfig = list(
   backtest = list(
     log_level=1, 
     freq="days",
-    no_cache = T,
+    no_cache = F,
     no_clean = F,
-    no_save = T
+    no_save = F
   ))
 
 algo <- "gamma"
