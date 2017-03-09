@@ -132,9 +132,11 @@ struct MetricsMap : public std::map<std::string, Metric> {
 };
 #endif
 
-template<typename TExecutionMessage=ExecutionMessage>
+template<typename TExecutionMessage=ExecutionMessage,
+         typename TSessionMessage=SessionMessage>
 struct Metrics : public Algo,
-        public IObserver<TExecutionMessage>
+        public IObserver<TExecutionMessage>,
+        public IObserver<TSessionMessage>
 {
   size_t index;
   size_t stop;
@@ -183,12 +185,34 @@ struct Metrics : public Algo,
       
       perfs_nrows(stop);  // datetime, symbol, value 
   }
+  
+  template<typename TMarket>
+  void on_init(TMarket &market) {
+    market.$execs >>= *this;
+    market.$session >>= *this;
+  }
 
   void init_metric(NumericVector* var, std::string name, double initial=NAN) {
       metrics.push_back(std::make_tuple(name, initial, var)); // save reference
   }
 
-  void on_next(TExecutionMessage e) {
+  virtual void on_next(TSessionMessage e) {
+    on_clock(e.rtime);
+    dlog<1>(e);
+    set_flush_time();
+  }
+  
+  void set_flush_time() {
+    if(std::isnan(next_flush_dt)) {
+      next_flush_dt = datetime(); // FIXME: convert to flush time
+      next_flush_dt -= ((long)next_flush_dt) % SECONDS_PER_DAY;
+      next_flush_dt = truncl(next_flush_dt);      // flush_dt = 00:00 UTC
+      flush_perfs();  // flush initial zeros
+      next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+    }
+  }
+  
+  virtual void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
     dlog<3>(e);
     //if(fabs(e.qty)>3) {
@@ -196,14 +220,8 @@ struct Metrics : public Algo,
     //              << e
     //              << std::endl;
     //}
-    if(std::isnan(next_flush_dt)) {
-        next_flush_dt = e.rtime; // FIXME: convert to flush time
-        next_flush_dt -= ((long)next_flush_dt) % SECONDS_PER_DAY;
-        next_flush_dt = truncl(next_flush_dt);      // flush_dt = 00:00 UTC
-        flush_perfs();  // flush initial zeros
-        next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
-    }
-
+    set_flush_time();
+    
     int s = e.symbol;
 
     // update pos
@@ -225,10 +243,14 @@ struct Metrics : public Algo,
 
     if(is_zero(pos[s]))
       roundtrips[s] = roundtrips[s] + 1;
-
+  
+    try_flush();
+  }
+  
+  void try_flush() {
     while(dt >= next_flush_dt) {
-        flush_perfs();
-        next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+      flush_perfs();
+      next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
     }
   }
 

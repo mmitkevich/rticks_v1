@@ -14,12 +14,13 @@ struct Message {
   double rtime;     // RECEIVED time
   SymbolId symbol;
   enum {
-    FROM_MARKET = 1,  // or from strategy ?
-    IS_BUY      = 2,
-    IS_SELL     = 4,
-    IS_CANCEL   = 8,
-    IS_FILL     = 16,
-    IS_PLACE    = 32,
+    MSGTYPE     = 0xFF,
+    FROM_MARKET = 2<<9,  // or from strategy ?
+    IS_BUY      = 2<<10,
+    IS_SELL     = 2<<11,
+    IS_CANCEL   = 2<<12,
+    IS_FILL     = 2<<13,
+    IS_PLACE    = 2<<14,
   };
 
   Message(double ctime = NAN, double rtime = NAN, SymbolId symbol = SymbolId(), unsigned long flags = 0) :
@@ -33,6 +34,10 @@ struct Message {
 #endif
   }
 
+  int msgtype() const {
+    return flags & MSGTYPE;
+  }
+  
   int flag(int mask=-1) const {
     return flags & mask;
   }
@@ -131,6 +136,11 @@ struct SymbolMessage : public Message {
 
   SymbolMessage()
     : mpi(NAN){ }
+};
+
+/// L1 bid/ask spread algorithm output
+struct SessionMessage : public Message {
+  SessionMessage() { }
 };
 
 /// L1 bid/ask spread algorithm output

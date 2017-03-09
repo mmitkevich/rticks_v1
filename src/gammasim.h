@@ -7,6 +7,7 @@ namespace Rcpp {
 template<typename TOrderMessage=OrderMessage,
          typename TQuoteMessage=QuoteMessage,
          typename TExecutionMessage=ExecutionMessage,
+         typename TSessionMessage=SessionMessage,
          typename TMetrics=Metrics<TExecutionMessage>,
          typename TScheduler=Scheduler<Algo> >
 struct GammaSimulator : public MarketAlgo,
@@ -22,6 +23,8 @@ struct GammaSimulator : public MarketAlgo,
   LatencyQueue<TQuoteMessage> $quotes;
   LatencyQueue<TExecutionMessage> $execs;
   LatencyQueue<TOrderMessage> $orders;
+  LatencyQueue<TSessionMessage> $session;
+  
   TScheduler scheduler;
   TMetrics metrics;
 
@@ -31,17 +34,23 @@ struct GammaSimulator : public MarketAlgo,
       metrics(params, config),
       $quotes(params, config, &scheduler, "$quotes "),
       $execs(params, config, &scheduler,  "$execs  "),
-      $orders(params, config, &scheduler, "$orders ")
+      $orders(params, config, &scheduler, "$orders "),
+      $session(params, config, &scheduler, "$sess  ")
   {
       //quotes.buy = quotes.sell = NAN; // FIXME: this is wrong. quotes.buy and quotes.sell will be SHARED NumVector.
       // TODO: migrate to std::vector instead of NumericVector???
       $orders >>= *this;
+      
       // wire up metrics
-      $execs >>= metrics;
+      metrics.on_init(*this);
+      
       //log_level = 1;
   }
-
+  
   virtual void on_next(TQuoteMessage e) {
+    if(std::isnan(datetime())) {
+      on_session_start();
+    }
     on_clock(e.rtime);
     dlog<3>(e);
     assert(e.flag(Message::FROM_MARKET));
@@ -64,6 +73,12 @@ struct GammaSimulator : public MarketAlgo,
     on_simulate(e.symbol);
   }
 
+  virtual void on_session_start() {
+    TSessionMessage e;
+    e.ctime = e.rtime = dt;
+    $session.on_next(std::move(e));
+  }
+  
   virtual void on_simulate(const SymbolId& s) {
     ExecutionMessage e;
     e.set_flag(ExecutionMessage::IS_FILL);

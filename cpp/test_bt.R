@@ -5,7 +5,7 @@ options(debug=T)
 
 myconfig = list(
   backtest = list(
-    log_level=0, 
+    log_level=1, 
     freq="days",
     no_cache = T,
     no_clean = F,
