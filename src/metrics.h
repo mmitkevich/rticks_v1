@@ -182,6 +182,7 @@ struct Metrics : public Algo,
       init_metric(&roundtrips, "roundtrips", 0);
       
       perfs_nrows(stop);  // datetime, symbol, value 
+      flush_perfs();
   }
 
   void init_metric(NumericVector* var, std::string name, double initial=NAN) {
@@ -258,12 +259,13 @@ struct Metrics : public Algo,
   List toR() {
     List result;
     perfs_nrows(index);
+    //if(index>0)
     perfs.attr("names") = CharacterVector::create("datetime", "symbol", "metric", "value");
     //perfs.attr("class") = "data.frame";
-    result["perfs"] = perfs;
-    result["pos"] = pos;
-    result["pnl"] = pnl;
-    result["rpnl"] = rpnl; 
+    result.push_back(pos,"pos");
+    result.push_back(pnl, "pnl");
+    result.push_back(rpnl,"rpnl");
+    result.push_back(perfs, "perfs");
     return result;
   }
   

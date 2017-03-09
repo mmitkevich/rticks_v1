@@ -6,6 +6,7 @@
 #' @export
 backtest.chunk <- function(data, params, algo, config) {
   cat("backtest.chunk", as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1)),"\n")
+  #browser()
   r <- bt_gamma(algo, data, params, config)
   d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
   #browser()

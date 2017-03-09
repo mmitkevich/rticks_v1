@@ -37,8 +37,8 @@ struct GammaAlgo : public MarketAlgo,
 
   GammaAlgo(DataFrame params, List config, std::string name="gammalgo")
     : MarketAlgo(params, config, name),
-      limits( optional<NumericVector>(params, "buy", +INFINITY),
-              optional<NumericVector>(params, "sell", -INFINITY)),
+      limits( required<NumericVector>(params, "buy"),
+              required<NumericVector>(params, "sell")),
       gamma(required<NumericVector>(params, "gamma.buy"),
             required<NumericVector>(params, "gamma.sell")),
       spread(required<NumericVector>(params, "spread"))
@@ -57,7 +57,8 @@ struct GammaAlgo : public MarketAlgo,
       $orders >>= ctx.$orders;
   }
 
-  double midprice(const BuySell &m, double mpi) {
+  double midprice(SymbolId s) {
+      auto m = market[s];
       if(m.count_buy() && m.count_sell())
         return 0.5 * (m.buy + m.sell);
       else
@@ -76,31 +77,47 @@ struct GammaAlgo : public MarketAlgo,
     auto side = e.side();
     // update cached market price
     market.update(s, e);
-    auto m = market[s];
-    auto pi = mpi[s];
     // restore our quotes if needed
     auto q = quotes[s];
     if(!q.count_buy() && !q.count_sell()) { // no buy & no sell
-        auto mid = midprice(m, pi);
+        auto mid = midprice(s);
         if(!std::isnan(mid)) {
-            quotes.buy[s] = round_price(s, mid - 0.5 * spread[s]);
-            xlog<1>("ALGO.BID", s, quotes[s], m);
-            notify(s, OrderSide::BUY);
-            quotes.sell[s] = round_price(s, mid + 0.5 * spread[s]);
-            xlog<1>("ALGO.ASK", s, quotes[s], m);
-            notify(s, OrderSide::SELL);
+            quote_buy(s, mid - 0.5 * spread[s]);
+            quote_sell(s, mid + 0.5 * spread[s]);
         }
     }else if(!q.count_buy()) {  // no buy
-        quotes.buy[s] = q.sell - spread[s];
-        xlog<1>("ALGO.BID", s, quotes[s], m);
-        notify(s, OrderSide::BUY);
+        quote_buy(s, q.sell - spread[s]);
     }else if(!q.count_sell()) { // no sell
-        quotes.sell[s] = q.buy + spread[s];
-        xlog<1>("ALGO.ASK", s, quotes[s], m);
-        notify(s, OrderSide::SELL);
+        quote_sell(s, q.buy + spread[s]);
     }
   }
-  
+
+  bool quote_buy(SymbolId s, double price, double fill_qty=NAN) {
+      price = round_price(s, price);
+      if(pos[s]>=0 && price>limits.buy[s])
+        price = NAN;
+      if(!is_equal(quotes.buy[s], price)) {
+        quotes.buy[s] = price;
+        xlog<1>("ALGO.BID", s, quotes[s], market[s], pos[s], fill_qty);
+        notify(s, OrderSide::BUY);
+        return true;
+      }
+      return false;
+  }
+
+  bool quote_sell(SymbolId s, double price, double fill_qty=NAN) {
+      price = round_price(s, price);
+      if(pos[s]<=0 && price<limits.sell[s])
+        price = NAN;
+      if(!is_equal(quotes.sell[s],price)){
+        quotes.sell[s] = price;
+        xlog<1>("ALGO.ASK", s, quotes[s], market[s], pos[s]);
+        notify(s, OrderSide::SELL);
+        return true;
+      }
+      return false;
+  }
+
   virtual void on_next(ExecutionMessage e) {
     on_clock(e.rtime);
     dlog<3>(e);
@@ -112,26 +129,18 @@ struct GammaAlgo : public MarketAlgo,
     if(e.is_full_fill()) {      // full fill
         pos[s] += e.qty;        // track the position
         // move this side
-        quotes(side)[s] = e.price - mpi[s]*side;      // side>0 => we bought at buy => move down
-        //qty(side)[s] = gamma(side)[s];                // restore qty
-        xlog<1>(side>0?"ALG.XBID":"ALG.XASK", s, quotes[s], market[s], pos[s]);
-        notify(e.symbol, side);
-        // move opposite site
-        quotes(-side)[s] = e.price + spread[s]*side - mpi[s]*side;
-        //qty(-side)[s] = gamma(side)[s];               // restore qty
-        xlog<1>(-side>0?"ALG.XBID":"ALG.XASK", s, quotes[s], market[s], pos[s]);
-        notify(e.symbol, -side);
+        if(side>0) {
+            quote_buy(s, e.price-mpi[s],  e.qty);
+            quote_sell(s, e.price-mpi[s]+spread[s], e.qty);
+        } else {
+            quote_sell(s, e.price+mpi[s],  e.qty);
+            quote_buy(s, e.price+mpi[s]-spread[s], e.qty);
+        }
     }
   }
 
   // notify on quotes change
   virtual void notify(SymbolId s, int side) {
-    
-    if(pos[s]>=0 && quotes.buy[s]>limits.buy[s])
-      quotes.buy[s] = NAN;
-    if(pos[s]<=0 && quotes.sell[s]<limits.sell[s])
-      quotes.sell[s] = NAN;
-
     TOrderMessage e;
     e.rtime = e.ctime = dt;
     e.symbol = s;

@@ -81,8 +81,9 @@ struct GammaSimulator : public MarketAlgo,
       e.fill_price = 0.5*(m.buy+q.sell);
       e.qty = - (g.sell + truncl((m.buy-q.sell)/pi)*g.sell);
       // move up sell quote since it got filled
-      quotes.sell[s] += pi;
+      quotes.sell[s] = m.buy + pi;
       xlog<1>("SIM.SELL", s, quotes[s], m, e.fill_price, e.qty);
+      check(e);
       $execs.on_next(e);
     }
     if(!std::isnan(q.buy) && m.sell <= q.buy) {
@@ -91,12 +92,20 @@ struct GammaSimulator : public MarketAlgo,
       e.fill_price = 0.5*(m.sell+q.buy);
       e.qty =  (g.buy + truncl((q.buy-m.sell)/pi)*g.buy);
       // move down buy quote since it got filled
-      quotes.buy[s] -= pi;
+      quotes.buy[s] = m.sell -pi;
       xlog<1>("SIM.BUY ", s, quotes[s], m, e.fill_price, e.qty);
+      check(e);
       $execs.on_next(e);
     }
   }
 
+  void check(const ExecutionMessage &e) {
+      if(fabs(e.qty)>=2) {
+        auto s = e.symbol;
+        xlog<0>("BIG DEAL!", e.symbol, quotes[s], market[s], e.fill_price, e.qty);
+      }
+  }
+  
   void notify(double dt)  {
     scheduler.on_execute(dt);
   }

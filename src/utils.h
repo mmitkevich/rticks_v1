@@ -45,6 +45,10 @@ bool is_zero(double x)
   return std::abs(x) < std::numeric_limits<double>::epsilon();
 }
 
+bool is_equal(double x, double y) {
+    return is_zero(x-y) || std::isnan(x) && std::isnan(y);
+}
+
 template<typename T>
 T required(List list, std::string name, std::string where = "") {
   if(!list.containsElementNamed(name.c_str())) {

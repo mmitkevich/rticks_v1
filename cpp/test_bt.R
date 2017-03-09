@@ -3,7 +3,7 @@ library(ggplot2)
 
 options(debug=T)
 
-instrument_id <- "VIX.CBOE"
+instruments <- "VIX.CBOE"
 algo <- "gamma"
 
 start <- dt(2016)
@@ -13,10 +13,8 @@ active_contract <- 1
 no_cache <- F
 no_clean <- F
 
-config <- list(log_level=0)
-
 params <- list(
-  buy=c(1),
+  buy=c(20),
   sell=c(30),
   pos=c(0),
   mpi=c(0.05),
@@ -26,14 +24,14 @@ params <- list(
   symbol=c("VIX.CBOE.1")
 )
 
-instrums  <- query_instruments(instrument_id)
-data <- query_candles_cache(instrums, start, active_contract)
+instruments  <- query_instruments(instruments)
+data <- query_candles_cache(instruments, start, active_contract)
 
-r <- data %>% backtest(params, "gamma", config)
+r <- data %>% backtest(params, "gamma", config = list(log_level=3, freq="days"))
 
 print(r$pnl%>%head())
 
-r$perfs %>% plot_bt()
+#r$perfs %>% plot_bt()
 
 
 

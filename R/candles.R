@@ -110,6 +110,7 @@ query_candles_cache <- function(instruments, start=NULL, active_contract=1, no_c
       }
     }
   }else {
+    cat("reading ",path)
     data <- readRDS(path)
   }
   return(data)
