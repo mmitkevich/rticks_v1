@@ -225,7 +225,7 @@ struct Metrics : public Algo,
     if(is_zero(pos[s]))
       roundtrips[s] = roundtrips[s] + 1;
 
-    if(dt >= next_flush_dt) {
+    while(dt >= next_flush_dt) {
         flush_perfs();
         next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
     }
@@ -238,7 +238,7 @@ struct Metrics : public Algo,
     for(auto tup : metrics) {
         std::tie(name, initial, metric) = tup;
         for(int i=0; i < symbols.size(); i++) {
-          as<NumericVector>(perfs[0])[index] = datetime();
+          as<NumericVector>(perfs[0])[index] = next_flush_dt;
           as<CharacterVector>(perfs[1])[index] = (const char*)symbols[i];
           as<CharacterVector>(perfs[2])[index] = (const char*)name.c_str();
           as<NumericVector>(perfs[3])[index] = (*metric)[i];
