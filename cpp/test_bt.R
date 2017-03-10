@@ -18,16 +18,16 @@ algo <- "gamma"
 
 # 2016 whole year
 
-#start <- dt(2016)
-#stop  <- dt(2016,12,20)
+start <- dt(2016)
+stop  <- dt(2016,12,20)
 
 # single chunk
-start<-as_datetime("2016-07-20")
-stop<-as_datetime("2016-08-17")
+#start<-as_datetime("2016-07-20")
+#stop<-as_datetime("2016-08-17")
 
 params <- data_frame(
   # limits
-  buy           = 20,
+  buy           = 20.5,
   sell          = 1000000,
   # initial position
   pos           = 0,

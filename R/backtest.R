@@ -6,20 +6,29 @@
 #' @export
 backtest.chunk <- function(data, params, algo, config) {
   cat("backtest.chunk", as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1)),"\n")
-  print(config)
+  #print(as.data.frame(config))
   #browser()
   r <- bt_gamma(algo, data, params, config)
+  #browser()
+  if(length(r$perfs$datetime)==0) {
+    warning(paste("empty results",as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1))))
+    return (r);
+  }
   #browser()
   
   d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
   #browser()
-  d <- d %>% transmute(datetime=datetime, symbol=virtual_id, value=0.5*(bid+ask))
+  d <- d %>% transmute(datetime=datetime, symbol=virtual_id, price=0.5*(bid+ask))
   d <- d %>% arrange(symbol, datetime) %>% as_data_frame()
   d$datetime <- d$datetime %>% trunc(config$freq) %>% as_date()
-  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n()) %>% mutate(metric="price") #%>% filter(datetime>=min(r$datetime) & datetime<=max(r$datetime))
+  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n()) # %>% mutate(metric="price") #%>% filter(datetime>=min(r$datetime) & datetime<=max(r$datetime))
   r$perfs$datetime <- as_datetime(r$perfs$datetime) %>% trunc(config$freq) %>% as_date()
   r$perfs <- as_data_frame(r$perfs)
-  r$perfs <- r$perfs %>% bind_rows(d) %>% arrange(datetime)
+  #browser()
+  r$perfs <- r$perfs %>% spread(metric, value) %>% 
+    inner_join(d, by=c("datetime","symbol")) %>%
+    gather(metric, value, -datetime, -symbol) %>% 
+    arrange(datetime)
   return(r)
 }
 
