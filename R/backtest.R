@@ -6,14 +6,17 @@
 #' @export
 backtest.chunk <- function(data, params, algo, config) {
   cat("backtest.chunk", as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1)),"\n")
+  print(config)
   #browser()
   r <- bt_gamma(algo, data, params, config)
+  #browser()
+  
   d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
   #browser()
   d <- d %>% transmute(datetime=datetime, symbol=virtual_id, value=0.5*(bid+ask))
   d <- d %>% arrange(symbol, datetime) %>% as_data_frame()
   d$datetime <- d$datetime %>% trunc(config$freq) %>% as_date()
-  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n()) %>% mutate(metric="_price")
+  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n()) %>% mutate(metric="price") #%>% filter(datetime>=min(r$datetime) & datetime<=max(r$datetime))
   r$perfs$datetime <- as_datetime(r$perfs$datetime) %>% trunc(config$freq) %>% as_date()
   r$perfs <- as_data_frame(r$perfs)
   r$perfs <- r$perfs %>% bind_rows(d) %>% arrange(datetime)
@@ -27,7 +30,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
-  
+  cat("backtest","start",as.character(start),"stop",as.character(stop),"\n")  
   instruments <- instruments %>% query_instruments()
   
   params <- as_data_frame(params) %>% left_join(instruments %>% transmute(symbol=instrument_id, mpi=mpi), by="symbol") %>% 
@@ -43,36 +46,34 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   }
   
   perfs <- NULL
-  pnl <- NULL
-  pos <- NULL
-  rpnl <- NULL
-  
-  params = as_data_frame(params)
-  params <- params %>% mutate(pnl=0, rpnl=0)
-  
+  params <- params %>% mutate(pos=0, rpnl=0)
   cat("backtest algo", algo, "\nparams:\n")
   print(as.data.frame(params))
   for(chunk in data) {
-    #print(params)
-    r1 <- chunk %>% backtest.chunk(params, algo=algo, config=config)
-    perfs <- bind_rows(perfs, r1$perfs)
+    print(params)
+    # open positions in the chunk
+    ch = head(chunk,1)
+    cat("start price ",as.character(0.5*(ch$bid+ch$ask)), "pos",as.character(params$pos), "\n")
+    params$rpnl <- params$rpnl - params$pos*0.5*(ch$bid+ch$ask)
     #browser()
-    params$pos  <- r1$pos
-    params$pnl  <- r1$pnl
-    params$rpnl <- r1$rpnl
-    pnl <- r1$pnl
-    rpnl <-r1$rpnl
-    pos <- r1$pos
+    r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
+    perfs <- perfs %>% bind_rows(r$perfs)
+    #browser()
+    params$pos  <- r$pos
+    params$rpnl <- r$rpnl
+    ct = tail(chunk,1)
+    cat("end price ",as.character(0.5*(ct$bid+ct$ask)), "pos",as.character(params$pos),"\n")
+    params$rpnl <- params$rpnl + params$pos*0.5*(ct$bid+ct$ask)
   }
   attr(perfs, "data") <- data
-  attr(perfs, "results") <- params %>% mutate(pnl=pnl, pos=pos, rpnl=rpnl)
+  attr(perfs, "results") <- params
   perfs
 }
 
 #' plot backtest results
 #' 
 #' @export
-plot_bt <- function(perfs, metrics=c("_price","pnl","rpnl","pos")) {
+plot_bt <- function(perfs, metrics=c("price","pnl","rpnl","pos")) {
   df <- perfs %>%filter(metric %in% metrics)
   ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
     geom_line() + 

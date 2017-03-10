@@ -57,14 +57,6 @@ struct GammaAlgo : public MarketAlgo,
       $orders >>= ctx.$orders;
   }
 
-  double midprice(SymbolId s) {
-      auto m = market[s];
-      if(m.count_buy() && m.count_sell())
-        return 0.5 * (m.buy + m.sell);
-      else
-        assert(false);
-      return NAN;
-  }
 
   double round_price(SymbolId s, double price) {
       return roundl(price/mpi[s])*mpi[s];
@@ -80,7 +72,7 @@ struct GammaAlgo : public MarketAlgo,
     // restore our quotes if needed
     auto q = quotes[s];
     if(!q.count_buy() && !q.count_sell()) { // no buy & no sell
-        auto mid = midprice(s);
+        auto mid = market.midprice(s);
         if(!std::isnan(mid)) {
             quote_buy(s, mid - 0.5 * spread[s]);
             quote_sell(s, mid + 0.5 * spread[s]);

@@ -5,7 +5,7 @@ options(debug=T)
 
 myconfig = list(
   backtest = list(
-    log_level=1, 
+    log_level=3, 
     freq="days",
     no_cache = F,
     no_clean = F,
@@ -16,21 +16,21 @@ algo <- "gamma"
 
 # 2016 whole year
 
-#start <- dt(2016)
-#stop  <- dt(2016,12,20)
+start <- dt(2016)
+stop  <- dt(2016,12,20)
 
 # single chunk
-start<-as_datetime("2016-07-20")
-stop<-as_datetime("2016-08-17")
+#start<-as_datetime("2016-07-20")
+#stop<-as_datetime("2016-08-17")
 
 params <- data_frame(
   # limits
-  buy           = 20.5,
+  buy           = 20,
   sell          = 1000000,
   # initial position
   pos           = 0,
   # take profit
-  spread        = 0.25,
+  spread        = 1,
   # size to buy on each mpi
   gamma.buy     = 1,
   # size to sell on each mpi

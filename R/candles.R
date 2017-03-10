@@ -79,8 +79,11 @@ clean_mim.chunk <- function(chunk,
 #' cache_path
 #' 
 #' @export
-cache_path <- function(instrument_id, start, active_contract, cache_dir="~/rticks/tests/"){
-  paste0(cache_dir,instrument_id,".",as.character(active_contract),".rds")
+cache_path <- function(instrument_id, start,stop, active_contract, cache_dir="~/rticks/tests/"){
+  paste0(cache_dir,instrument_id, ".",as.character(active_contract),"-",
+         paste(as.character(as_date(start)), 
+               as.character(as_date(stop)),sep="--"),
+         ".rds")
 }
 
 #' query_candles_cache
@@ -91,7 +94,7 @@ cache_path <- function(instrument_id, start, active_contract, cache_dir="~/rtick
 query_candles_cache <- function(instruments, active_contract=1, start=NULL, stop=lubridate::now(), schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T)) {
   instruments <- query_instruments(instruments)
   cache_name <- paste(unique(instruments$instrument_id), sep="_")
-  path <- cache_path(cache_name, start, active_contract)
+  path <- cache_path(cache_name, start, stop, active_contract)
   cat("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop),"\n")
   if(config$no_cache || !file.exists(path)) {
     q <- query_candles(instruments, active_contract = active_contract, start=start, stop=stop)

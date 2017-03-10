@@ -336,6 +336,16 @@ struct BuySellVector : public vector_base<BuySell, BuySellVector> {
     return BuySell(buy[index], sell[index]);
   }
 
+  double midprice(SymbolId s) {
+    auto m = (*this)[s];
+    if(m.count_buy() && m.count_sell())
+      return 0.5 * (m.buy + m.sell);
+    else
+      assert(false);
+    return NAN;
+  }
+  
+  
   template<typename TMessage>
   void update(int index, const TMessage &e) {
     if(e.side()>0)
