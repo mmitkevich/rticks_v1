@@ -2,6 +2,8 @@
 #ifndef GAMMASIM_H
 #define GAMMASIM_H
 
+#include "utils.h"
+
 namespace Rcpp {
 
 template<typename TOrderMessage=OrderMessage,
@@ -79,6 +81,10 @@ struct GammaSimulator : public MarketAlgo,
     $session.on_next(e);
   }
   
+  bool should_fill(double overlap) {
+    return overlap >= - eps();  // equal with rounding error or greater
+  }
+  
   virtual void on_simulate(const SymbolId& s) {
     ExecutionMessage e;
     e.set_flag(ExecutionMessage::IS_FILL);
@@ -90,7 +96,7 @@ struct GammaSimulator : public MarketAlgo,
     auto pi = mpi[s];
     auto g = gamma[s];
     assert(!std::isnan(pi));
-    if(!std::isnan(q.sell) && m.buy >= q.sell) {
+    if(!std::isnan(q.sell) && should_fill(m.buy-q.sell)) {
       // simulate the sells
       e.price = m.buy;
       e.fill_price = 0.5*(m.buy+q.sell);
@@ -101,7 +107,7 @@ struct GammaSimulator : public MarketAlgo,
       check(e);
       $execs.on_next(e);
     }
-    if(!std::isnan(q.buy) && m.sell <= q.buy) {
+    if(!std::isnan(q.buy) && should_fill(-(m.sell-q.buy))) {
       // simulate the buys
       e.price = m.sell;
       e.fill_price = 0.5*(m.sell+q.buy);

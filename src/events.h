@@ -110,18 +110,8 @@ struct MarketAlgo : public Algo {
     template<int level>
     void xlog(std::string what, SymbolId sym, const BuySell &q, const BuySell &m, double fill_price=NAN, double fill_qty=NAN) {
         if(log_level>=level) {
-            std::cout << std::left << std::setfill(' ')
-                      << std::setw(16)
-                      << std::fixed
-                      << std::setprecision(2)
-                      << Datetime(dt) << " | " << what << " | "<<sym.id<<"="<<sym.index<<" | "<< "M=" << m.buy << ", " <<m.sell
-                      << " | Q=" << q.buy << ", "<< q.sell;
-            if(!std::isnan(fill_price)) {
-                std::cout <<" | "<< fill_price;
-            }
-            if(!std::isnan(fill_qty))
-                std::cout << " | " << fill_qty;
-           std::cout << std::endl << std::flush;
+            logger->info("{} | {} | {}={} | M={}, {} | Q={}, {} | {} | {}",
+                         Datetime(dt), what, sym.id, sym.index, m.buy, m.sell, q.buy, q.sell, fill_price, fill_qty);
         }
     }
 

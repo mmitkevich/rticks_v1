@@ -52,18 +52,22 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   for(chunk in data) {
     print(params)
     # open positions in the chunk
-    ch = head(chunk,1)
-    cat("start price ",as.character(0.5*(ch$bid+ch$ask)), "pos",as.character(params$pos), "\n")
-    params$rpnl <- params$rpnl - params$pos*0.5*(ch$bid+ch$ask)
-    #browser()
-    r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
-    perfs <- perfs %>% bind_rows(r$perfs)
-    #browser()
-    params$pos  <- r$pos
-    params$rpnl <- r$rpnl
-    ct = tail(chunk,1)
-    cat("end price ",as.character(0.5*(ct$bid+ct$ask)), "pos",as.character(params$pos),"\n")
-    params$rpnl <- params$rpnl + params$pos*0.5*(ct$bid+ct$ask)
+    if(nrow(chunk)==0) {
+      cat("skipped empty chunk", as.character(chunk$start),"\n")
+    }else {
+      ch = head(chunk,1)
+      cat("start price ",as.character(0.5*(ch$bid+ch$ask)), "pos",as.character(params$pos), "\n")
+      params$rpnl <- params$rpnl - params$pos*0.5*(ch$bid+ch$ask)
+      #browser()
+      r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
+      perfs <- perfs %>% bind_rows(r$perfs)
+      #browser()
+      params$pos  <- r$pos
+      params$rpnl <- r$rpnl
+      ct = tail(chunk,1)
+      cat("end price ",as.character(0.5*(ct$bid+ct$ask)), "pos",as.character(params$pos),"\n")
+      params$rpnl <- params$rpnl + params$pos*0.5*(ct$bid+ct$ask)
+    }
   }
   attr(perfs, "data") <- data
   attr(perfs, "results") <- params
