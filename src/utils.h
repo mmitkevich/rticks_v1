@@ -2,9 +2,13 @@
 #define __R_UTILS_H__
 
 #include "cxx14.h"
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 #include <Rcpp.h>
 
 namespace Rcpp {
+
+extern std::shared_ptr<spdlog::logger> logger;
 
 template<size_t i, typename TVector, typename...Ts>
 void _set_nrows(List& data, List &newdata, size_t nrows)
@@ -40,9 +44,11 @@ TVector get(List config, const char* name, TVector def) {
 }
 
 
+double eps() { return std::numeric_limits<double>::epsilon(); }
+
 bool is_zero(double x)
 {
-  return std::abs(x) < std::numeric_limits<double>::epsilon();
+  return std::abs(x) < eps();
 }
 
 bool is_equal(double x, double y) {

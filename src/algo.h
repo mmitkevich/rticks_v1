@@ -96,12 +96,7 @@ struct Algo : public IAlgo {
       verify(e);
       assert(!std::isnan(datetime()));
       if(log_level>=level) {
-          std::cout << std::left << std::setfill(' ')
-                    << std::setw(16)
-                    << std::fixed
-                    << std::setprecision(2)
-                    << Datetime(e.rtime) << " | " << name << " | " << e << std::endl;
-          std::cout << std::flush;
+          logger->debug("{} | {} | {}\n", Datetime(e.rtime), name, e);
       }
 
   }

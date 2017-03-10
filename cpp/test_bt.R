@@ -5,7 +5,9 @@ options(debug=T)
 
 myconfig = list(
   backtest = list(
-    log_level=1,
+    log_level=3,
+    log_stdout=0,
+    log_path="rticks.log",
     freq="days",
     no_cache = F,
     no_clean = F,
