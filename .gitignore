@@ -10,3 +10,5 @@ src/*.dll
 man
 .vscode
 .idea
+*.log
+*.rds
