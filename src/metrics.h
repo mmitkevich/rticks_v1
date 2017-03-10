@@ -124,7 +124,7 @@ struct Metrics : public Algo,
 
   void try_flush() {
     if(!std::isnan(next_flush_dt)){
-        while(dt >= next_flush_dt) {
+        while(dt >= next_flush_dt-eps()) {
           flush_perfs();
           next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
         }
@@ -133,6 +133,8 @@ struct Metrics : public Algo,
 
   void flush_perfs() {
    
+    logger->info("flush_perfs {}", dt);
+
     for(int s=0;s<symbols.size();s++) {
         pos_l[s] = std::min<double>(pos_l[s], pos[s]);
         pos_h[s] = std::max<double>(pos_h[s], pos[s]);
