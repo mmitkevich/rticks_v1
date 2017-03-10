@@ -47,15 +47,15 @@ struct Metrics : public Algo,
   {
       // initialize metrics
       init_metric(&pnl, "pnl");
-      init_metric(&pnl_h, "pnl.high", -INFINITY);
-      init_metric(&pnl_l, "pnl.low",  +INFINITY);
       init_metric(&rpnl, "rpnl");
       init_metric(&pos, "pos");
+      init_metric(&pnl_h, "pnl.high", -INFINITY);
+      init_metric(&pnl_l, "pnl.low",  +INFINITY);
       init_metric(&pos_h, "pos.high", -INFINITY);
       init_metric(&pos_l, "pos.low",  +INFINITY);
-      init_metric(&qty_buy, "qty.buy");
-      init_metric(&qty_sell, "qty.sell");
-      init_metric(&roundtrips, "roundtrips");
+      init_metric(&qty_buy, "qty.buy", 0.0);
+      init_metric(&qty_sell, "qty.sell", 0.0);
+      init_metric(&roundtrips, "roundtrips", 0.0);
 
       perfs_nrows(stop);  // datetime, symbol, value
   }
@@ -72,7 +72,7 @@ struct Metrics : public Algo,
 
   virtual void on_next(TSessionMessage e) {
     on_clock(e.rtime);
-    dlog<1>(e);
+    //dlog<1>(e);
     set_flush_time();
   }
 
@@ -88,7 +88,7 @@ struct Metrics : public Algo,
 
   virtual void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
-    dlog<3>(e);
+    //dlog<3>(e);
     //if(fabs(e.qty)>3) {
     //    xlog<1>() << "LARGE TRADE "
     //              << e

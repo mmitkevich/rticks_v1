@@ -104,7 +104,8 @@ struct MarketAlgo : public Algo {
           quotes(params.nrows()),
           pos(optional<NumericVector>(params, "pos", 0)),
           mpi(required<NumericVector>(params, "mpi"))
-    { }
+    {
+    }
 
     template<int level>
     void xlog(std::string what, SymbolId sym, const BuySell &q, const BuySell &m, double fill_price=NAN, double fill_qty=NAN) {
@@ -120,7 +121,7 @@ struct MarketAlgo : public Algo {
             }
             if(!std::isnan(fill_qty))
                 std::cout << " | " << fill_qty;
-           std::cout << std::endl;
+           std::cout << std::endl << std::flush;
         }
     }
 

@@ -101,8 +101,9 @@ struct Algo : public IAlgo {
                     << std::fixed
                     << std::setprecision(2)
                     << Datetime(e.rtime) << " | " << name << " | " << e << std::endl;
+          std::cout << std::flush;
       }
-      //std::cout << std::flush;
+
   }
 };
 

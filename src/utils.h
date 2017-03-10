@@ -50,29 +50,29 @@ bool is_equal(double x, double y) {
 }
 
 template<typename T>
-T required(List list, std::string name, std::string where = "") {
+T required(List list, std::string name, std::string where = "", bool no_clone=false) {
   if(!list.containsElementNamed(name.c_str())) {
     std::stringstream ss;
     ss << "required "<<where<<"$"<<name<<"\n";
     Rcpp::stop(ss.str());
   }
-  return as<T>(list[name]);
+  return no_clone ? as<T>(list[name]) : clone(as<T>(list[name]));
 }
 
 template<typename TVector>
-TVector optional(List list, std::string name, TVector def=TVector()) {
+TVector optional(List list, std::string name, TVector def=TVector(), bool no_clone=false) {
   if(!list.containsElementNamed(name.c_str())) {
     return def;
   }
-  return as<TVector>(list[name]);
+  return no_clone ? as<TVector>(list[name]) : clone(as<TVector>(list[name]));
 }
 
 template<typename TValue, typename TVector>
-TVector optional(DataFrame list, std::string name, TValue def=TValue()) {
+TVector optional(DataFrame list, std::string name, TValue def=TValue(), bool no_clone=false) {
   if(!list.containsElementNamed(name.c_str())) {
     return TVector(list.nrows(), def);
   }
-  return as<TVector>(list[name]);
+  return no_clone ? as<TVector>(list[name]) : clone(as<TVector>(list[name]));
 }
 
 
