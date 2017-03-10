@@ -33,7 +33,9 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   cat("backtest","start",as.character(start),"stop",as.character(stop),"\n")  
   instruments <- instruments %>% query_instruments()
   
-  params <- as_data_frame(params) %>% left_join(instruments %>% transmute(symbol=instrument_id, mpi=mpi), by="symbol") %>% 
+  params <- as_data_frame(params) %>% 
+    left_join(
+      instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier), by="symbol") %>% 
     mutate(symbol=paste0(symbol,".",as.character(active_contract)))
   
   if(is.null(data)) {
@@ -46,7 +48,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   }
   
   perfs <- NULL
-  params <- params %>% mutate(pos=0, rpnl=0)
+  params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
   cat("backtest algo", algo, "\nparams:\n")
   print(as.data.frame(params))
   for(chunk in data) {
@@ -57,20 +59,22 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     }else {
       ch = head(chunk,1)
       cat("start price ",as.character(0.5*(ch$bid+ch$ask)), "pos",as.character(params$pos), "\n")
-      params$rpnl <- params$rpnl - params$pos*0.5*(ch$bid+ch$ask)
+      params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)
       #browser()
       r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
       perfs <- perfs %>% bind_rows(r$perfs)
       #browser()
       params$pos  <- r$pos
-      params$rpnl <- r$rpnl
+      params$cash <- r$cash
+      params$qty_buy <- r$qty_buy
+      params$qty_sell <- r$qty_sell
       ct = tail(chunk,1)
       cat("end price ",as.character(0.5*(ct$bid+ct$ask)), "pos",as.character(params$pos),"\n")
-      params$rpnl <- params$rpnl + params$pos*0.5*(ct$bid+ct$ask)
+      params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)
     }
   }
   attr(perfs, "data") <- data
-  attr(perfs, "results") <- params
+  attr(perfs, "params") <- params
   perfs
 }
 

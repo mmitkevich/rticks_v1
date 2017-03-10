@@ -44,12 +44,28 @@ params <- data_frame(
 )
 config <- myconfig$backtest
 perfs <- params %>% backtest(algo, start=start, stop=stop, config=config)
-results <- attr(perfs,"results")
+res <- attr(perfs,"params")
 cat("\npnl:\n")
-print(results$pnl)
+print(res$pnl)
 cat("\npos:\n")
-print(results$pos)
+print(res$pos)
 cat("\nperfs:\n")
 print(perfs)
 
+gamma_metrics <- function(perfs) {
+  params = attr(perfs, "params")
+  
+  qtys <- perfs %>% spread(metric, value) %>%  
+    select(datetime, symbol,  qty_buy, qty_sell) %>% 
+    as_data_frame()
+  
+  qtys <- qtys %>% transmute(datetime=datetime, 
+                             symbol=symbol, 
+                             metric="rpnl", 
+                             value=pmin(qty_buy, qty_sell)) %>% 
+    left_join(params%>%transmute(symbol, spread, multiplier), by="symbol") %>% 
+    mutate(value=value*spread*multiplier)
+  bind_rows(perfs, qtys) %>% arrange(datetime)
+}
+perfs <- gamma_metrics(perfs)
 perfs %>% plot_bt()

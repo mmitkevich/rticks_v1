@@ -49,11 +49,11 @@ TValue config(Rcpp::List config, const char* name, TValue def) {
   return  config.containsElementNamed(name) ? (TValue) Rcpp::as<TVector>(config[name])[0] : def;
 }
 
-
-template <typename T>
-bool is_zero(T x)
+inline double epsilon() { return std::numeric_limits<double>::epsilon(); }
+  
+bool is_zero(double x)
 {
-  return std::abs(x) < std::numeric_limits<T>::epsilon();
+  return std::abs(x) < epsilon();
 }
 
 } //namespace

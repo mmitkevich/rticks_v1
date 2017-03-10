@@ -17,10 +17,11 @@ struct Metrics : public Algo,
 
   NumericVector date;
   NumericVector pnl, pnl_h, pnl_l;  // by symbol
-  NumericVector rpnl;
+  NumericVector cash;
   NumericVector pos, pos_h, pos_l;
   NumericVector qty_buy, qty_sell;
-  NumericVector roundtrips;
+  NumericVector multiplier;
+  //NumericVector roundtrips;
 
   CharacterVector symbols;
   std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
@@ -36,27 +37,27 @@ struct Metrics : public Algo,
       symbols(required<CharacterVector>(params, "symbol")),
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
+      multiplier(required<NumericVector>(params, "multiplier")),
       pos(optional<NumericVector>(params, "pos", 0.0)),
-      rpnl(optional<NumericVector>(params, "rpnl", 0.0)), // cash that was paid for the pos (or average price of pos)
+      cash(optional<NumericVector>(params, "cash", 0.0)), // cash that was paid for the pos (or average price of pos)
       pos_h(params.nrows()),
       pos_l(params.nrows()),
       pnl_h(params.nrows()),
       pnl_l(params.nrows()),
-      qty_buy(params.nrows()),
-      qty_sell(params.nrows())
+      qty_buy(optional<NumericVector>(params, "qty_buy", 0.0)),
+      qty_sell(optional<NumericVector>(params, "qty_sell", 0.0))
   {
       // initialize metrics
       init_metric(&pnl, "pnl");
-      init_metric(&rpnl, "rpnl");
+      init_metric(&cash, "cash");
       init_metric(&pos, "pos");
-      init_metric(&pnl_h, "pnl.high", -INFINITY);
-      init_metric(&pnl_l, "pnl.low",  +INFINITY);
-      init_metric(&pos_h, "pos.high", -INFINITY);
-      init_metric(&pos_l, "pos.low",  +INFINITY);
-      init_metric(&qty_buy, "qty.buy", 0.0);
-      init_metric(&qty_sell, "qty.sell", 0.0);
-      init_metric(&roundtrips, "roundtrips", 0.0);
-
+      init_metric(&pnl_h, "pnl_high", -INFINITY);
+      init_metric(&pnl_l, "pnl_low",  +INFINITY);
+      init_metric(&pos_h, "pos_high", -INFINITY);
+      init_metric(&pos_l, "pos_low",  +INFINITY);
+      init_metric(&qty_buy, "qty_buy");
+      init_metric(&qty_sell, "qty_sell");
+      //init_metric(&roundtrips, "roundtrips", 0.0);
       perfs_nrows(stop);  // datetime, symbol, value
   }
 
@@ -107,16 +108,16 @@ struct Metrics : public Algo,
     (e.qty > 0 ? qty_buy : qty_sell)[s] += fabs(e.qty);
 
     // update free cash
-    rpnl[s] = rpnl[s] - e.qty * e.price;
-    assert(!std::isnan(rpnl[s]));
+    cash[s] = cash[s] - e.qty * e.price * multiplier[s];
+    assert(!std::isnan(cash[s]));
 
-    pnl[s] = rpnl[s] + pos[s] * e.price;
+    pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
     assert(!std::isnan(pnl[s]));
     pnl_l[s] = std::min<double>(pnl_l[s], pos[s]);
     pnl_h[s] = std::max<double>(pnl_h[s], pos[s]);
 
-    if(is_zero(pos[s]))
-      roundtrips[s] = roundtrips[s] + 1;
+    //if(is_zero(pos[s]))
+    //  roundtrips[s] = roundtrips[s] + 1;
 
     try_flush();
   }
@@ -171,8 +172,10 @@ struct Metrics : public Algo,
     //perfs.attr("class") = "data.frame";
     result.push_back(pos,"pos");
     result.push_back(pnl, "pnl");
-    result.push_back(rpnl,"rpnl");
+    result.push_back(cash,"cash");
     result.push_back(perfs, "perfs");
+    result.push_back(qty_buy, "qty_buy");
+    result.push_back(qty_sell, "qty_sell");
     return result;
   }
 
