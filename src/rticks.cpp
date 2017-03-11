@@ -32,9 +32,9 @@ void init_logger(List config) {
         if(optional<NumericVector>(config, "log_stdout", 0)[0]>0)
             sinks.push_back(std::make_shared<spdlog::sinks::stdout_sink_st>());
         std::string path = (const char*)optional<CharacterVector>(config, "log_path", "rticks.log")[0];
+        //unlink(path.c_str());
         //sinks.push_back(std::make_shared<spdlog::sinks::daily_file_sink_st>(path, 23, 59));
         sinks.push_back(std::make_shared<spdlog::sinks::simple_file_sink_st>(path));
-        unlink(path.c_str());
         std::cout << "dticks running in " <<cwd() <<", logging into " << path << std::endl << std::flush;
         ::logger =  std::make_shared<spdlog::logger>("rticks", begin(sinks), end(sinks));
         ::logger->set_pattern("%v");
@@ -66,6 +66,7 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
     bt.process(data);
     result = bt.market.metrics.toR();
   }
+  logger->flush();
   return result;
 }
 

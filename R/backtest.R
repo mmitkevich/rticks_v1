@@ -39,7 +39,11 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
+
   cat("backtest","start",as.character(start),"stop",as.character(stop),"\n")  
+  cat("logging into ",config$log_path)
+  file.remove(config$log_path)
+  
   instruments <- instruments %>% query_instruments()
   
   params <- as_data_frame(params) %>% 
