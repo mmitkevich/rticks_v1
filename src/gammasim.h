@@ -30,6 +30,8 @@ struct GammaSimulator : public MarketAlgo,
   TScheduler scheduler;
   TMetrics metrics;
 
+  double check_big_qty;
+  
   GammaSimulator(DataFrame params, List config, std::string name="gammasim")
     : MarketAlgo(params, config, name),
       scheduler(params, config),
@@ -37,7 +39,8 @@ struct GammaSimulator : public MarketAlgo,
       $session(params, config, &scheduler, "$sess  "),
       $quotes(params, config, &scheduler, "$quotes "),
       $execs(params, config, &scheduler,  "$execs  "),
-      $orders(params, config, &scheduler, "$orders ")
+      $orders(params, config, &scheduler, "$orders "),
+      check_big_qty(optional<NumericVector>(config,"check_big_qty",1e6)[0])
   {
       //quotes.buy = quotes.sell = NAN; // FIXME: this is wrong. quotes.buy and quotes.sell will be SHARED NumVector.
       // TODO: migrate to std::vector instead of NumericVector???
@@ -100,7 +103,7 @@ struct GammaSimulator : public MarketAlgo,
       // simulate the sells
       e.price = m.buy;
       e.fill_price = 0.5*(m.buy+q.sell);
-      e.qty = - (g.sell + truncl((m.buy-q.sell)/pi)*g.sell);
+      e.qty = - (g.sell + roundl((m.buy-q.sell)/pi)*g.sell);
       // move up sell quote since it got filled
       quotes.sell[s] = m.buy + pi;
       xlog<1>("SIM.SELL", s, quotes[s], m, e.fill_price, e.qty);
@@ -111,7 +114,7 @@ struct GammaSimulator : public MarketAlgo,
       // simulate the buys
       e.price = m.sell;
       e.fill_price = 0.5*(m.sell+q.buy);
-      e.qty =  (g.buy + truncl((q.buy-m.sell)/pi)*g.buy);
+      e.qty =  (g.buy + roundl((q.buy-m.sell)/pi)*g.buy);
       // move down buy quote since it got filled
       quotes.buy[s] = m.sell -pi;
       xlog<1>("SIM.BUY ", s, quotes[s], m, e.fill_price, e.qty);
@@ -121,9 +124,9 @@ struct GammaSimulator : public MarketAlgo,
   }
 
   void check(const ExecutionMessage &e) {
-      if(fabs(e.qty)>=2) {
+      if(fabs(e.qty)>=check_big_qty) {
         auto s = e.symbol;
-        xlog<0>("BIG DEAL!", e.symbol, quotes[s], market[s], e.fill_price, e.qty);
+        xlog<0>("BIG.QTY!", e.symbol, quotes[s], market[s], e.fill_price, e.qty);
       }
   }
   
