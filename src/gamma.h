@@ -83,27 +83,40 @@ struct GammaAlgo : public MarketAlgo,
     }
   }
 
-  bool quote_buy(SymbolId s, double price, double fill_qty=NAN) {
+  bool quote_buy(SymbolId s, double price) {
       price = round_price(s, price);
-      if(pos[s]>=0 && price>limits.buy[s])
+      if(!std::isnan(limits.buy[s]) && pos[s]>=0 && price>limits.buy[s])
         price = NAN;
       if(!is_equal(quotes.buy[s], price)) {
         quotes.buy[s] = price;
-        xlog<1>("ALGO.BID", s, quotes[s], market[s], pos[s], fill_qty);
-        notify(s, OrderSide::BUY);
+        xlog<1>("ALGO.BID", s, quotes[s], market[s], pos[s], gamma.buy[s]);
+        TOrderMessage e;
+        e.rtime = e.ctime = dt;
+        e.symbol = s;
+        //e.set_side(side); TODO: set_side is sign of qty!
+        e.price = quotes.buy[e.symbol];
+        e.qty = gamma.buy[e.symbol];
+        //FIXME: gamma -> $gamma input stream
+        $orders.on_next(e);
         return true;
       }
       return false;
   }
 
-  bool quote_sell(SymbolId s, double price, double fill_qty=NAN) {
+  bool quote_sell(SymbolId s, double price) {
       price = round_price(s, price);
-      if(pos[s]<=0 && price<limits.sell[s])
+      if(!std::isnan(limits.sell[s]) && pos[s]<=0 && price<limits.sell[s])
         price = NAN;
       if(!is_equal(quotes.sell[s],price)){
         quotes.sell[s] = price;
-        xlog<1>("ALGO.ASK", s, quotes[s], market[s], pos[s]);
-        notify(s, OrderSide::SELL);
+        xlog<1>("ALGO.ASK", s, quotes[s], market[s], pos[s], gamma.sell[s]);
+        TOrderMessage e;
+        e.rtime = e.ctime = dt;
+        e.symbol = s;
+        //e.set_side(side); TODO: set_side is sign of qty!
+        e.price = quotes.sell[e.symbol];
+        e.qty = -gamma.sell[e.symbol];
+        $orders.on_next(e);
         return true;
       }
       return false;
@@ -121,24 +134,13 @@ struct GammaAlgo : public MarketAlgo,
         pos[s] += e.qty;        // track the position
         // move this side
         if(side>0) {
-            quote_buy(s, e.price-mpi[s],  e.qty);
-            quote_sell(s, e.price-mpi[s]+spread[s], e.qty);
+            quote_buy(s, e.price-mpi[s]);
+            quote_sell(s, e.price-mpi[s]+spread[s]);
         } else {
-            quote_sell(s, e.price+mpi[s],  e.qty);
-            quote_buy(s, e.price+mpi[s]-spread[s], e.qty);
+            quote_sell(s, e.price+mpi[s]);
+            quote_buy(s, e.price+mpi[s]-spread[s]);
         }
     }
-  }
-
-  // notify on quotes change
-  virtual void notify(SymbolId s, int side) {
-    TOrderMessage e;
-    e.rtime = e.ctime = dt;
-    e.symbol = s;
-    //e.set_side(side); TODO: set_side is sign of qty!
-    e.price = quotes(side)[e.symbol];
-    e.qty = gamma(side)[e.symbol]*side;
-    $orders.on_next(e);
   }
 };
 
