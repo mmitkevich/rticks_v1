@@ -252,9 +252,13 @@ std::ostream& operator<< (std::ostream &os, const GammaMessage &e) {
     return os;
 }
 
+//std::ostream& operator<< (std::ostream &os, const Datetime &dt) {
+//  os << dt.format();
+//  return os;
+//}
+
 void format_arg(fmt::BasicFormatter<char> &f, const char *&format_str, const Rcpp::Datetime &dt) {
-  Datetime x = dt;
-  f.writer().write("{:2d}-{:2d}-{:2d} {:2d}:{:2d}:{:2d}", x.getYear(),x.getMonth(),x.getDay(),x.getHours(),x.getMinutes(),x.getSeconds());
+  f.writer().write(dt.format());
 }
 
 }; //namespace Rcpp
