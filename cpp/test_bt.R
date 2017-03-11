@@ -5,8 +5,8 @@ options(debug=T)
 
 myconfig = list(
   backtest = list(
-    log_level=3,
-    log_stdout=0,
+    log_level=1,
+    log_stdout=1,
     log_path="rticks.log",
     freq="days",
     no_cache = F,
@@ -18,17 +18,17 @@ algo <- "gamma"
 
 # 2016 whole year
 
-start <- dt(2016)
+start <- dt(2014)
 stop  <- dt(2016,12,20)
 
 # single chunk
-#start<-as_datetime("2016-07-20")
-#stop<-as_datetime("2016-08-17")
+start<-as_datetime("2014-01-01")
+stop<-as_datetime("2014-06-17")
 
 params <- data_frame(
   # limits
-  buy           = 20.5,
-  sell          = 1000000,
+  buy           = 1e6,
+  sell          = 0,
   # initial position
   pos           = 0,
   # take profit
@@ -65,7 +65,7 @@ gamma_metrics <- function(perfs) {
                              value=pmin(qty_buy, qty_sell)) %>% 
     left_join(params%>%transmute(symbol, spread, multiplier), by="symbol") %>% 
     mutate(value=value*spread*multiplier)
-  bind_rows(perfs, qtys) %>% arrange(datetime)
+  bind_rows(perfs, qtys) %>% arrange(datetime) %>% mutate(datetime=as_date(datetime))
 }
 perfs <- gamma_metrics(perfs)
 perfs %>% plot_bt()

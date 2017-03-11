@@ -28,7 +28,6 @@ struct GammaAlgo : public MarketAlgo,
   //NumericVector offset;       // midspread directional offset
   BuySellVector gamma;        // qty to quote on buy/sell sides
   BuySellVector limits;
-  
   /// state
   //BuySellVector qty;     // latest our bid & ask outstanding qty (not filled as far as we could know)
 

@@ -133,7 +133,7 @@ struct Metrics : public Algo,
 
   void flush_perfs() {
    
-    logger->info("flush_perfs {}", dt);
+    logger->debug("rticks::Metrics::flush_perfs {}", Datetime(dt));
 
     for(int s=0;s<symbols.size();s++) {
         pos_l[s] = std::min<double>(pos_l[s], pos[s]);

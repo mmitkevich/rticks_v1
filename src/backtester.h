@@ -60,7 +60,9 @@ struct Backtester : public Algo
     highs = optional<NumericVector>(data, "high");
     lows = optional<NumericVector>(data, "low");
     virtual_symbol = required<CharacterVector>(data, "virtual_id");
-
+    
+    logger->debug("rticks::Backtester::process {}", Datetime(datetimes[0]));
+    
     index = 0;
     stop = data.nrows();
     double close_dt = datetimes[0];
