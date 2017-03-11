@@ -6,12 +6,13 @@ options(debug=T)
 myconfig = list(
   backtest = list(
     log_level=1,
-    log_stdout=1,
+    log_stdout=0,
     log_path="rticks.log",
     freq="days",
     no_cache = F,
     no_clean = F,
-    no_save = F
+    no_save = F,
+    check_big_qty=2
   ))
 
 algo <- "gamma"
@@ -23,12 +24,12 @@ stop  <- dt(2016,12,20)
 
 # single chunk
 start<-as_datetime("2014-01-01")
-stop<-as_datetime("2014-06-17")
+stop<-as_datetime("2016-12-20")
 
 params <- data_frame(
   # limits
-  buy           = 1e6,
-  sell          = 0,
+  buy           = 20.5,
+  sell          = 1e7,
   # initial position
   pos           = 0,
   # take profit
