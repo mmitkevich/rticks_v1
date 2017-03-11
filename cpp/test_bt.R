@@ -19,11 +19,8 @@ algo <- "gamma"
 
 # 2016 whole year
 
-start <- dt(2014)
-stop  <- dt(2016,12,20)
-
 # single chunk
-start<-as_datetime("2014-01-01")
+start<-as_datetime("2016-01-01")
 stop<-as_datetime("2016-12-20")
 
 params <- data_frame(
@@ -68,5 +65,7 @@ gamma_metrics <- function(perfs) {
     mutate(value=value*spread*multiplier)
   bind_rows(perfs, qtys) %>% arrange(datetime) %>% mutate(datetime=as_date(datetime))
 }
+
 perfs <- gamma_metrics(perfs)
+
 perfs %>% plot_bt()
