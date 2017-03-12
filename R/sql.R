@@ -26,7 +26,7 @@ sql.select <- function(from, fields=NULL, where=NULL, order=NULL, limit=NULL, co
   order <- ifelse(is.null(order), "", paste("ORDER BY", order))
   sql <- paste("SELECT", paste.list(fields, sep=","), "FROM", from, where, order, limit)
   if(getOption("debug",F))
-    cat("SQL: ", sql, "\n")
+    ilog("SQL: ", sql, "\n")
   result <- dbGetQuery(con, sql) %>% as_data_frame
   if(!have.con)
     dbDisconnect(con)

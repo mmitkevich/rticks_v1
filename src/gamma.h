@@ -63,7 +63,7 @@ struct GammaAlgo : public MarketAlgo,
 
   virtual void on_next(QuoteMessage e) {
     on_clock(e.rtime);
-    dlog<3>(e);
+    dlog<trace>(e);
     auto s = e.symbol;
     auto side = e.side();
     // update cached market price
@@ -89,7 +89,7 @@ struct GammaAlgo : public MarketAlgo,
         price = NAN;
       if(!is_equal(quotes.buy[s], price)) {
         quotes.buy[s] = price;
-        xlog<1>("ALGO.BID", s, quotes[s], market[s], pos[s], gamma.buy[s]);
+        xlog<info>("ALGO.BID", s, quotes[s], market[s], pos[s], gamma.buy[s]);
         TOrderMessage e;
         e.rtime = e.ctime = dt;
         e.symbol = s;
@@ -109,7 +109,7 @@ struct GammaAlgo : public MarketAlgo,
         price = NAN;
       if(!is_equal(quotes.sell[s],price)){
         quotes.sell[s] = price;
-        xlog<1>("ALGO.ASK", s, quotes[s], market[s], pos[s], gamma.sell[s]);
+        xlog<info>("ALGO.ASK", s, quotes[s], market[s], pos[s], gamma.sell[s]);
         TOrderMessage e;
         e.rtime = e.ctime = dt;
         e.symbol = s;
@@ -124,7 +124,7 @@ struct GammaAlgo : public MarketAlgo,
 
   virtual void on_next(ExecutionMessage e) {
     on_clock(e.rtime);
-    dlog<3>(e);
+    dlog<trace>(e);
     auto side = e.side();
     auto s = e.symbol;
 

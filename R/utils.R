@@ -99,3 +99,29 @@ na_replace <- function(x, default = 0) {
   x[is.na(x)] <- default
   return(x)
 }
+
+#' LOG levels
+#' 
+#' @export
+LOG = list(TRACE=0, DEBUG=1, INFO=2, WARN=3, ERROR=4, CRITICAL=5, OFF=6)
+
+#' dlog
+#' 
+#' @export
+dlog <- function(...) {
+  spd_log(LOG$DEBUG, as.character(c(...)))
+}
+
+#' ilog
+#' 
+#' @export
+ilog <- function(...) {
+  spd_log(LOG$INFO, as.character(c(...)))
+}
+
+#' wlog
+#' 
+#' @export
+wlog <- function(...) {
+  spd_log(LOG$WARN, as.character(c(...)))
+}

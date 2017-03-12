@@ -95,13 +95,13 @@ query_candles_cache <- function(instruments, active_contract=1, start=NULL, stop
   instruments <- query_instruments(instruments)
   cache_name <- paste(unique(instruments$instrument_id), sep="_")
   path <- cache_path(cache_name, start, stop, active_contract)
-  cat("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop),"\n")
+  ilog("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop))
   if(config$no_cache || !file.exists(path)) {
     q <- query_candles(instruments, active_contract = active_contract, start=start, stop=stop)
     data <- q %>% fetch_all()
     data_raw <- data
     if(!config$no_save) {
-      cat("raw saved ", path, "\n")
+      ilog("raw saved ", path)
       saveRDS(data, path)
     }
     if(!config$no_clean) {
@@ -111,12 +111,12 @@ query_candles_cache <- function(instruments, active_contract=1, start=NULL, stop
       }
       data<-data %>% map(~ clean.chunk(., schedules=list(schedule), cut_minutes=3, negative_bidask=T))
       if(!config$no_save) {
-        cat("cleaned saved ", path, "\n")
+        ilog("cleaned saved ", path)
         saveRDS(data, path)
       }
     }
   }else {
-    cat("reading ",path)
+    ilog("reading ",path)
     data <- readRDS(path)
   }
   return(data)

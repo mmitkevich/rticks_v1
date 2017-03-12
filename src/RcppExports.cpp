@@ -5,6 +5,36 @@
 
 using namespace Rcpp;
 
+// flush_spd_log
+void flush_spd_log();
+RcppExport SEXP rticks_flush_spd_log() {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    flush_spd_log();
+    return R_NilValue;
+END_RCPP
+}
+// init_spd_log
+void init_spd_log(List config);
+RcppExport SEXP rticks_init_spd_log(SEXP configSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type config(configSEXP);
+    init_spd_log(config);
+    return R_NilValue;
+END_RCPP
+}
+// spd_log
+void spd_log(IntegerVector lvl, CharacterVector s);
+RcppExport SEXP rticks_spd_log(SEXP lvlSEXP, SEXP sSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type lvl(lvlSEXP);
+    Rcpp::traits::input_parameter< CharacterVector >::type s(sSEXP);
+    spd_log(lvl, s);
+    return R_NilValue;
+END_RCPP
+}
 // bt_gamma
 List bt_gamma(CharacterVector clazz, List data, List params, List config);
 RcppExport SEXP rticks_bt_gamma(SEXP clazzSEXP, SEXP dataSEXP, SEXP paramsSEXP, SEXP configSEXP) {

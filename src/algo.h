@@ -65,7 +65,8 @@ struct Algo : public IAlgo {
         dt(NAN),
         name(name)
   {
-    log_level = truncl(optional<NumericVector>(config, "log_level", 0)[0]);
+    log_level = truncl(optional<IntegerVector>(config, "log_level", 0)[0]);
+    //std::cout << name <<" log_level" << log_level<<std::endl;
   }
 
   int size() {
@@ -91,12 +92,24 @@ struct Algo : public IAlgo {
       dt = dtime;
   }
 
+  enum {
+    trace = spdlog::level::trace,
+    debug = spdlog::level::debug,
+    info = spdlog::level::info,
+    warn = spdlog::level::warn,
+    error = spdlog::level::critical
+  };
+  
   template<int level, typename TMessage>
   void dlog(const TMessage &e) {
       verify(e);
       assert(!std::isnan(datetime()));
-      if(log_level>=level) {
-          logger->debug("{} | {} | {}\n", Datetime(e.rtime), name, e);
+      
+      if(level>=log_level) {
+        if(logger)
+          logger->log(spdlog::level::info, "{} | {} | {}\n", Datetime(e.rtime), name, e);//(spdlog::level::level_enum)level //FIXME
+        //else
+        //  std::cout << format("{} | {} | {}\n", Datetime(e.rtime), name, e)<<"\n";
       }
 
   }
@@ -182,7 +195,7 @@ struct LatencyQueue : public Algo,
             auto e = std::move(queue.front());
             queue.pop();
             on_clock(e.symbol);
-            dlog<4>(e);
+            dlog<trace>(e);
             notify(std::move(e));
         }
     }

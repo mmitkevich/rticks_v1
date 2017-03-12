@@ -57,10 +57,10 @@ struct GammaSimulator : public MarketAlgo,
       on_session_start(e.ctime);
     }
     on_clock(e.rtime);
-    dlog<3>(e);
+    dlog<trace>(e);
     assert(e.flag(Message::FROM_MARKET));
     market.update(e.symbol, e);
-    xlog<2>("SIM.QUOT", e.symbol, quotes[e.symbol], market[e.symbol]);
+    xlog<debug>("SIM.QUOT", e.symbol, quotes[e.symbol], market[e.symbol]);
     on_simulate(e.symbol);
     // forward to algorithms
     $quotes.on_next(std::move(e));
@@ -69,12 +69,12 @@ struct GammaSimulator : public MarketAlgo,
   // quotes from the gamma strategy  -  receive the gamma
   virtual void on_next(TOrderMessage e) {
     on_clock(e.rtime);
-    dlog<3>(e);
+    dlog<trace>(e);
     assert(!std::isnan(e.price));
     assert(!std::isnan(e.qty));
     gamma(e.side())[e.symbol] = fabs(e.qty);
     quotes(e.side())[e.symbol] = e.price;
-    xlog<1>("SIM.ORDR", e.symbol, quotes[e.symbol], market[e.symbol]);
+    xlog<info>("SIM.ORDR", e.symbol, quotes[e.symbol], market[e.symbol]);
     on_simulate(e.symbol);
   }
 
@@ -106,7 +106,7 @@ struct GammaSimulator : public MarketAlgo,
       e.qty = - (g.sell + roundl((m.buy-q.sell)/pi)*g.sell);
       // move up sell quote since it got filled
       quotes.sell[s] = m.buy + pi;
-      xlog<1>("SIM.SELL", s, quotes[s], m, e.fill_price, e.qty);
+      xlog<info>("SIM.SELL", s, quotes[s], m, e.fill_price, e.qty);
       check(e);
       $execs.on_next(e);
     }
@@ -117,7 +117,7 @@ struct GammaSimulator : public MarketAlgo,
       e.qty =  (g.buy + roundl((q.buy-m.sell)/pi)*g.buy);
       // move down buy quote since it got filled
       quotes.buy[s] = m.sell -pi;
-      xlog<1>("SIM.BUY ", s, quotes[s], m, e.fill_price, e.qty);
+      xlog<info>("SIM.BUY ", s, quotes[s], m, e.fill_price, e.qty);
       check(e);
       $execs.on_next(e);
     }
@@ -126,7 +126,7 @@ struct GammaSimulator : public MarketAlgo,
   void check(const ExecutionMessage &e) {
       if(fabs(e.qty)>=check_big_qty) {
         auto s = e.symbol;
-        xlog<0>("BIG.QTY!", e.symbol, quotes[s], market[s], e.fill_price, e.qty);
+        xlog<warn>("BIG.QTY!", e.symbol, quotes[s], market[s], e.fill_price, e.qty);
       }
   }
   

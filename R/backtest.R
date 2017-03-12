@@ -5,12 +5,20 @@
 #' 
 #' @export
 backtest.chunk <- function(data, params, algo, config) {
-  cat("backtest.chunk", as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1)),"\n")
+  price <- 0.5*(head(data$bid,1)+head(data$ask,1))
+  end_price <- 0.5*(tail(data$bid,1)+tail(data$ask,1))
+  wlog("backtest.chunk >", data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
+       "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"),
+       "price",price,
+       "pos",params$pos,
+       "cash",params$cash,
+       "equity",params$pos*price*params$multiplier+params$cash)
   #print(as.data.frame(config))
   #browser()
   r <- bt_gamma(algo, data, params, config)
   #browser()
   if(length(r$perfs$datetime)==0) {
+    wlog("backtest.chunk < empty results")
     warning(paste("empty results",as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1))))
     return (r);
   }
@@ -29,6 +37,16 @@ backtest.chunk <- function(data, params, algo, config) {
     inner_join(d, by=c("datetime","symbol")) %>%
     gather(metric, value, -datetime, -symbol) %>% 
     arrange(datetime)
+  r$perfs$datetime <- as_date(r$perfs$datetime)
+  
+  end_price <- 0.5*(tail(data$bid,1)+tail(data$ask,1))
+  wlog("backtest.chunk <", data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
+       "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"),
+       "end_price",end_price,
+       "end_pos",r$pos,
+       "cash",r$cash,
+       "equity",r$pos*end_price*params$multiplier+r$cash)
+  
   return(r)
 }
 
@@ -40,9 +58,9 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     instruments <- params$symbol
   }
 
-  cat("backtest","start",as.character(start),"stop",as.character(stop),"\n")  
-  cat("logging into ",config$log_path)
-  file.remove(config$log_path)
+  ilog("backtest","start",as.character(start),"stop",as.character(stop),"\n")  
+  ilog("logging into ",config$log_path)
+  #file.remove(config$log_path)
   
   instruments <- instruments %>% query_instruments()
   
@@ -62,17 +80,15 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   
   perfs <- NULL
   params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
-  cat("backtest algo", algo, "\nparams:\n")
-  print(as.data.frame(params))
+  ilog("backtest algo", algo)
   for(chunk in data) {
-    print(params)
+    #dlog(0, as.yaml(params))
     # open positions in the chunk
     if(nrow(chunk)==0) {
-      cat("skipped empty chunk", as.character(chunk$start),"\n")
+      ilog("skipped empty chunk", as.character(chunk$start),"\n")
     }else {
       ch = head(chunk,1)
-      cat("start price ",as.character(0.5*(ch$bid+ch$ask)), "pos",as.character(params$pos), "\n")
-      params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)
+      params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
       #browser()
       r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
       perfs <- perfs %>% bind_rows(r$perfs)
@@ -82,12 +98,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       params$qty_buy <- r$qty_buy
       params$qty_sell <- r$qty_sell
       ct = tail(chunk,1)
-      cat("end price ",as.character(0.5*(ct$bid+ct$ask)), "pos",as.character(params$pos),"\n")
-      params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)
+      params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)*params$multiplier # close the position
+      params$pos <- config$roll_position(params$pos) # calc new pos
     }
   }
+  flush_spd_log()
   attr(perfs, "data") <- data
   attr(perfs, "params") <- params
+  perfs$datetime <- as_date(perfs$datetime)
   perfs
 }
 
@@ -100,3 +118,22 @@ plot_bt <- function(perfs, metrics=c("price","pnl","rpnl","pos")) {
     geom_line() + 
     facet_grid(metric ~ ., scales = "free_y")
 } 
+
+#' add metrics
+#' 
+#' @export
+gamma_metrics <- function(perfs) {
+  params = attr(perfs, "params")
+  
+  qtys <- perfs %>% spread(metric, value) %>%  
+    select(datetime, symbol,  qty_buy, qty_sell) %>% 
+    as_data_frame()
+  
+  qtys <- qtys %>% transmute(datetime=datetime, 
+                             symbol=symbol, 
+                             metric="rpnl", 
+                             value=pmin(qty_buy, qty_sell)) %>% 
+    left_join(params%>%transmute(symbol, spread, multiplier), by="symbol") %>% 
+    mutate(value=value*spread*multiplier)
+  bind_rows(perfs, qtys) %>% arrange(datetime) %>% mutate(datetime=as_date(datetime))
+}

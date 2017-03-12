@@ -2,6 +2,8 @@
 #define __R_UTILS_H__
 
 #include "cxx14.h"
+#define SPDLOG_TRACE_ON
+#define SPDLOG_DEBUG_ON
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 #include <Rcpp.h>

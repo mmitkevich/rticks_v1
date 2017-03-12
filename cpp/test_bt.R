@@ -5,28 +5,31 @@ options(debug=T)
 
 myconfig = list(
   backtest = list(
-    log_level=1,
-    log_stdout=0,
+    log_level=LOG$INFO,
+    log_stdout=LOG$WARN,
     log_path="rticks.log",
     freq="days",
     no_cache = F,
     no_clean = F,
     no_save = F,
-    check_big_qty=2
+    check_big_qty = 3,
+    roll_position = function(pos) 0
   ))
+
+init_spd_log(myconfig$backtest)
 
 algo <- "gamma"
 
 # 2016 whole year
 
 # single chunk
-start<-as_datetime("2016-01-01")
-stop<-as_datetime("2016-12-20")
+start<-as_datetime("2015-01-01")
+stop<-as_datetime("2017-03-17")
 
 params <- data_frame(
   # limits
   buy           = 20.5,
-  sell          = 1e7,
+  sell          = +Inf,
   # initial position
   pos           = 0,
   # take profit
@@ -40,32 +43,19 @@ params <- data_frame(
   # which month
   active_contract = 6
 )
-config <- myconfig$backtest
-perfs <- params %>% backtest(algo, start=start, stop=stop, config=config)
-res <- attr(perfs,"params")
-cat("\npnl:\n")
-print(res$pnl)
-cat("\npos:\n")
-print(res$pos)
-cat("\nperfs:\n")
-print(perfs)
 
-gamma_metrics <- function(perfs) {
-  params = attr(perfs, "params")
-  
-  qtys <- perfs %>% spread(metric, value) %>%  
-    select(datetime, symbol,  qty_buy, qty_sell) %>% 
-    as_data_frame()
-  
-  qtys <- qtys %>% transmute(datetime=datetime, 
-                             symbol=symbol, 
-                             metric="rpnl", 
-                             value=pmin(qty_buy, qty_sell)) %>% 
-    left_join(params%>%transmute(symbol, spread, multiplier), by="symbol") %>% 
-    mutate(value=value*spread*multiplier)
-  bind_rows(perfs, qtys) %>% arrange(datetime) %>% mutate(datetime=as_date(datetime))
-}
+perfs <- params %>% backtest(algo, start=start, stop=stop, config=myconfig$backtest)
+
+res <- attr(perfs,"params")
 
 perfs <- gamma_metrics(perfs)
 
+print(tail(perfs %>% spread(metric,value)))
+
 perfs %>% plot_bt()
+
+plot_price_pos <- function(perfs) {
+  perfs %>% spread(metric,value) %>% select(pos, price) %>% ggplot(aes(x=price,y=pos)) + geom_point()
+}
+
+#perfs %>% plot_price_pos()

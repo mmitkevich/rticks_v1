@@ -39,7 +39,7 @@ query_candles.reuters <- function(instruments = NULL,
                                stop = lubridate::now(), 
                                where = NULL) {
   instruments <- query_instruments(instruments)
-  cat("query_candles.reuters", paste(instruments$instrument_id, as.character(active_contract)), "start", as.character(start), "stop", as.character(stop), "\n")
+  ilog("query_candles.reuters", paste(instruments$instrument_id, as.character(active_contract)), "start", as.character(start), "stop", as.character(stop))
   schedule <- schedule %>% 
     ifnull(cached_attr(instruments, "schedule", 
                        instruments %>% 
@@ -83,14 +83,14 @@ fetch.reuters <- function(q) {
     return(NULL)
   tl = timeline(q$schedule, start=q$start)
   stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
-  cat("fetch.reuters ", as.character(q$start),"..", as.character(as_datetime(stop)),"....")
+  ilog("fetch.reuters ", as.character(q$start),"..", as.character(as_datetime(stop)))
   symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
     group_by(exante_id) %>%      # for each contract's group
       arrange(datetime) %>%      # sort by datetime
       filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
   if(nrow(symbols)==0) {
-    cat("\nEMPTY roll schedule:\n")
+    ilog("\nEMPTY roll schedule:\n")
     print(q$schedule)
     stop(paste("no symbol for ac=", paste0(q$active_contract), "found in roll schedule","start",as.character(as_datetime(q$start)),"stop",as.character(as_datetime(stop))))
   }
@@ -136,7 +136,7 @@ fetch.reuters <- function(q) {
     cat(".......\n")
     print(df%>%tail(2))
   }
-  cat("...fetched ", nrow(df),"\n")
+  ilog("...fetched ", nrow(df))
   return(df)
 }
 
