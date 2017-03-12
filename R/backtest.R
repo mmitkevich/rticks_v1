@@ -28,7 +28,7 @@ backtest.chunk <- function(data, params, algo, config) {
   #browser()
   d <- d %>% transmute(datetime=datetime, symbol=virtual_id, price=0.5*(bid+ask))
   d <- d %>% arrange(symbol, datetime) %>% as_data_frame()
-  d$datetime <- d$datetime %>% trunc(config$freq) %>% as_date()
+  d$datetime <- as_datetime(d$datetime) %>% trunc(config$freq) %>% as_date()
   d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n()) # %>% mutate(metric="price") #%>% filter(datetime>=min(r$datetime) & datetime<=max(r$datetime))
   r$perfs$datetime <- as_datetime(r$perfs$datetime) %>% trunc(config$freq) %>% as_date()
   r$perfs <- as_data_frame(r$perfs)
@@ -125,15 +125,11 @@ plot_bt <- function(perfs, metrics=c("price","pnl","rpnl","pos")) {
 gamma_metrics <- function(perfs) {
   params = attr(perfs, "params")
   
-  qtys <- perfs %>% spread(metric, value) %>%  
-    select(datetime, symbol,  qty_buy, qty_sell) %>% 
-    as_data_frame()
+  qtys <- perfs %>% spread(metric, value) %>% as_data_frame()
   
-  qtys <- qtys %>% transmute(datetime=datetime, 
-                             symbol=symbol, 
-                             metric="rpnl", 
-                             value=pmin(qty_buy, qty_sell)) %>% 
-    left_join(params%>%transmute(symbol, spread, multiplier), by="symbol") %>% 
-    mutate(value=value*spread*multiplier)
-  bind_rows(perfs, qtys) %>% arrange(datetime) %>% mutate(datetime=as_date(datetime))
+  qtys <- qtys %>% inner_join(params %>% select(symbol, spread, multiplier), by="symbol")
+  qtys <- qtys %>% mutate(rpnl=pmin(qty_buy, qty_sell)*spread*multiplier) %>% select(-spread,-multiplier)
+  qtys<- qtys %>% gather(metric, value, -datetime, -symbol)
+  attr(qtys, "params") <- params
+  qtys
 }
