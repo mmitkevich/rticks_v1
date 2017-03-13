@@ -36,9 +36,9 @@ params <- data_frame(
 )
 
 perfs <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
-#print(attr(perfs,"params"))
+results<-attr(perfs,"params")
 
-perfs <- perfs %>% metrics.gamma(perfs, params) # calculate additional metrics
+perfs <- perfs %>% metrics.gamma(results) # calculate additional metrics
 
 print(tail(perfs %>% spread(metric,value))) # print some perfs
 

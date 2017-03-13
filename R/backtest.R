@@ -122,8 +122,8 @@ plot_bt <- function(perfs, metrics=c("price","pnl","rpnl","pos")) {
 #' add metrics
 #' 
 #' @export
-gamma_metrics <- function(perfs) {
-  params = attr(perfs, "params")
+metrics.gamma <- function(perfs, params) {
+  #params = attr(perfs, "params")
   
   qtys <- perfs %>% spread(metric, value) %>% as_data_frame()
   
