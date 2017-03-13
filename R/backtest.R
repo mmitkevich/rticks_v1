@@ -99,7 +99,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       params$qty_sell <- r$qty_sell
       ct = tail(chunk,1)
       params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)*params$multiplier # close the position
-      params$pos <- config$roll_position(params$pos) # calc new pos
+      params$pos <- ifelse(config$roll_position, params$pos, 0) # calc new pos
     }
   }
   flush_spd_log()
