@@ -44,3 +44,6 @@ print(tail(perfs %>% spread(metric,value))) # print some perfs
 
 perfs %>% plot_bt()
 
+dir.create("~/rticks_bt", showWarnings=F)
+
+write.csv(perfs %>% spread(metric, value), file=paste0("~/rticks_bt/",params$symbol))
