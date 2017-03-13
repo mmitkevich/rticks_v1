@@ -4,77 +4,43 @@ library(grid)
 
 options(debug=T)
 
-myconfig = list(
-  backtest = list(
-    log_level=LOG$INFO,
-    log_stdout=LOG$WARN,
-    log_path="rticks.log",
-    freq="days",
-    no_cache = F,
-    no_clean = F,
-    no_save = F,
-    check_big_qty = 3,
-    roll_position = T
-  ))
+cfg <- config(backtest) %>% modifyList(list(
+# no_cache = F,
+  roll_position = F # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
+  
+))
 
-init_spd_log(myconfig$backtest)
+# init logging, see ~/rticks.log
+init_spd_log(cfg)
 
-algo <- "gamma"
-
-# 2016 whole year
-
-# single chunk
-start<-as_datetime("2014-01-01")
-stop<-as_datetime("2017-03-17")
+# period of backtest
+start <- as_datetime("2016-01-01")
+stop <- as_datetime("2017-03-03")
 
 params <- data_frame(
   # limits
-  buy           = 20.5,
-  sell          = +Inf,
-  # initial position
-  pos           = 0,
-  # take profit
-  spread        = 0.25,
-  # size to buy on each mpi
-  gamma.buy     = 1,
-  # size to sell on each mpi
-  gamma.sell    = 1,
-  # exante prefix
-  symbol=         "VIX.CBOE",
-  # which month
-  active_contract = 6
+  buy           = 20.5, # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  sell          = +Inf, # sell when price>=sell only
+
+  pos           = 0,     # initial position
+  
+  
+  spread        = 0.25,  # take profit
+  
+  gamma.buy     = 1,       # size to buy on each mpi
+  gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
+
+  symbol=         "VIX.CBOE",   # exante prefix of contract series
+
+  active_contract = 6             # which month to trade
 )
 
-perfs <- params %>% backtest(algo, start=start, stop=stop, config=myconfig$backtest)
+perfs <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
+#print(attr(perfs,"params"))
 
-res <- attr(perfs,"params")
+perfs <- perfs %>% metrics.gamma(perfs, params) # calculate additional metrics
 
-perfs <- gamma_metrics(perfs)
-
-print(tail(perfs %>% spread(metric,value)))
-
-#perfs %>% plot_bt()
-
-plot_price_pos <- function(perfs) {
-  perfs %>% spread(metric,value) %>% select(pos, price) %>% ggplot(aes(x=price,y=pos)) + geom_point()
-}
-
-
-plot_bt1 <- function(perfs, metrics=c("price","pnl","rpnl","pos")) {
-  df <- perfs %>% spread(metric,value) %>% arrange(datetime) %>%  filter(!is.na(price))
-
-  pnl <- ggplotGrob(ggplot(df, aes(x=datetime, y=pnl, colour=symbol)) + geom_line())
-#    theme_minimal() +
-#    theme(axis.title.x = element_blank()))
-  
-  rpnl <- ggplotGrob(ggplot(df, aes(x=datetime, y=rpnl, colour=symbol)) + geom_line())
-#    theme_minimal() +
-#    theme(axis.title.x = element_blank()))
-  
-  grid.newpage()
-  grid.draw(rbind(pnl, rpnl,size="last"))
-}
+print(tail(perfs %>% spread(metric,value))) # print some perfs
 
 perfs %>% plot_bt()
 
-#perfs %>% plot_price_pos()
