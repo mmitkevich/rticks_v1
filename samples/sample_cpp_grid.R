@@ -14,7 +14,7 @@ myconfig = list(
     no_clean = F,
     no_save = F,
     check_big_qty = 3,
-    roll_position = function(pos) 0
+    roll_position = T
   ))
 
 init_spd_log(myconfig$backtest)
@@ -24,7 +24,7 @@ algo <- "gamma"
 # 2016 whole year
 
 # single chunk
-start<-as_datetime("2015-01-01")
+start<-as_datetime("2014-01-01")
 stop<-as_datetime("2017-03-17")
 
 params <- data_frame(
