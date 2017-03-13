@@ -1,0 +1,45 @@
+urls:
+  symbolDb: "http://symboldb.prod.ghcg.com/symboldb/api/v1/symbols?symbol_id="
+  symbolDbDomain: "symboldb.prod.ghcg.com"
+  tickDb: "http://tickdb.prod.ghcg.com:8080/quote/json?symbol_ids="
+  tickDbDomain: "tickdb.prod.ghcg.com"
+  tickDbHist: "http://tickdb.prod.ghcg.com:8585/quote_aggregator_cache/history/quote/json?symbol_id="
+  qring: "http://qring.prod.ghcg.com/quote_api/v1/history/quote_at?symbol_id="
+  qringDomain: "qring.prod.ghcg.com"
+  tradeDb: "http://tradedb.prod.ghcg.com/api/v1.0/accounts/"
+  tradeDbDomain: "tradedb.prod.ghcg.com"
+  backoffice: "http://backoffice.demo.ghcg.com/api/v2.0/accounts/"
+  backofficeDomainDEMO: "backoffice.demo.ghcg.com"
+  backofficeDomainProd: "backoffice.prod.ghcg.com"
+  backofficeRiskArrays: "http://backoffice.prod.ghcg.com/api/v2.0/riskarrays?symbolId="
+  zeus: "http://rfr.prod.ghcg.com/rates/USD"
+
+db:
+  dbDriver: "PostgreSQL"
+  dbname: "quant"
+  host: "quant1.prod.ghcg.com"
+  port: 5432
+  user: "mim"
+  password: "d#)x{>S{]_,4]c"
+
+path:
+  instrumentDatafolderPath: "~/Instrument_Data/"
+  #sourcefolderPath: "~/r-tools/sources_for_markdown/"
+  sourcefolderPath: "~/r-tools/spread_counter_toolkit/sources/"
+  resultfolderPath: "~/Results/" 
+  rCommonsSourcesPath: "~/r-commons/exante_api.R"
+  ramDiscPath: "~/Temp_Results/"
+  expirationDatesFilePath: "~/ExpirationDates.csv"
+
+backtest:
+  log_path: "rticks.log"
+  freq: "days"
+  no_cache: false
+  no_clean: false
+  no_save: false
+  check_big_qty: 3
+# 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
+  log_level: 2
+  log_stdout: 3
+#  
+  roll_position: true
