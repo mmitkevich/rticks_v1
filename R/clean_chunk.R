@@ -13,7 +13,7 @@ load_trade_schedule <- function(instrument_id,
   ilog("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path)
   exanteID <- paste0(instrument_id,".X0000^")
   mappingFile <- fromJSON(paste0(path,".mapping"))
-  fileName <- mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))]
+  fileName <- head(mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))],1)
   fullFileName <- paste0(path, fileName, ".json")
   rawHistoricalSchedule <- fromJSON(fullFileName)
   startDateTime <- ifnull(start, as_datetime(min(rawHistoricalSchedule$intervals$start)))
