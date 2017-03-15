@@ -63,7 +63,8 @@ clean.chunk <- function(chunk,
   exante_ids <- unique(chunk$exante_id)
 
   ilog("clean.chunk ", paste(exante_ids), "start", as.character(start), "end", as.character(end),"\n")
-  
+  if(nrow(chunk)==0)
+    return(chunk)
   if(is.null(schedules)) {
     schedule_list <- list()
     instr_ids <- unique(parse_exante_id(exante_ids)$instrument_id)
