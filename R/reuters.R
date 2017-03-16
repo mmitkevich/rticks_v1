@@ -98,7 +98,7 @@ fetch.reuters <- function(q) {
     "m.ric=s.ric",
     "m.datetime BETWEEN s.fut_first_trade_dt AND s.last_tradeable_dt",
     paste("s.exante_id","IN","(",paste.list(paste0("'", symbols$exante_id, "'"),sep=","),")"),
-    paste("m.datetime", "BETWEEN", 1000*as.numeric(q$start), "AND", 1000*as.numeric(stop)),
+    paste("m.datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)),
     q$where
   ) %>% reduce(sql.and)
   df <- 
