@@ -75,6 +75,12 @@ struct Backtester : public Algo
           s << "datetimes not sorted " << dt << ", " << close_dt <<", index=" << index;
           Rcpp::stop(s.str());
       }
+      if(bids[index]>=asks[index]-eps()) {
+        std::stringstream s;
+        s << "bid="<<bids[index]<<" >= ask="<<asks[index]<<" " << dt << ", " << close_dt <<", index=" << index;
+        Rcpp::stop(s.str());
+      }
+      
       // buffer events
       QuoteMessage e;
       e.set_flag(Message::FROM_MARKET);
