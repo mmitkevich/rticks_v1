@@ -42,7 +42,8 @@ log_perfs <- function(name, data, r, params, price) {
        "qty_buy", r$qty_buy,
        "qty_sell", r$qty_sell,
        "pnl",r$pos*price*params$multiplier+r$cash,
-       "exante_id", head(data$exante_id,1))
+       "exante_id", head(data$exante_id,1),
+       "virtual_id", head(data$virtual_id,1))
 }
 #' backtest list of chunks
 #' 
