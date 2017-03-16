@@ -81,23 +81,37 @@ struct Backtester : public Algo
         Rcpp::stop(s.str());
       }
       
-      // buffer events
-      QuoteMessage e;
-      e.set_flag(Message::FROM_MARKET);
-      e.set_side(OrderSide::BUY);
-      e.symbol = to_symbol_id(virtual_symbol[index]);
-      e.ctime = e.rtime = open_dt;
-      e.price = bids[index];
-      e.qty = +INFINITY;
-      if(e.price!=0)
-        market.on_next(e);  // send bid
-
-      e.set_side(OrderSide::SELL);
-      e.price = asks[index];
-      e.qty = -INFINITY;
-      if(e.price!=0)
-        market.on_next(e);  // send ask
-
+      auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
+      if(s.index>=0) {
+        // buffer events
+        QuoteMessage bid;
+        bid.set_flag(Message::FROM_MARKET);
+        bid.set_side(OrderSide::BUY);
+        bid.symbol = s;
+        bid.ctime = bid.rtime = open_dt;
+        bid.price = bids[index];
+        bid.qty = +INFINITY;
+        
+        QuoteMessage ask;
+        ask.set_flag(Message::FROM_MARKET);
+        ask.set_side(OrderSide::SELL);
+        ask.symbol = s;
+        bid.ctime = bid.rtime = open_dt;
+        ask.price = asks[index];
+        ask.qty = -INFINITY;
+        
+        if(index>0 && bid.price>=asks[index-1]-eps()) {
+          // this is more realistic sequence
+          bid.ctime = bid.rtime = open_dt+1e-6;
+          market.on_next(ask);
+          market.on_next(bid);
+        }else {
+          ask.ctime = ask.rtime = open_dt+1e-6;
+          market.on_next(bid);  // send bid
+          market.on_next(ask);  // send ask
+        }
+      }
+      
       market.notify(close_dt); // flush them
 
       open_dt = close_dt;
