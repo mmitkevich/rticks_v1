@@ -54,7 +54,8 @@ load_trade_schedule <- function(instrument_id,
 clean.chunk <- function(chunk, 
                         schedules = NULL, 
                         cut_minutes = 0, 
-                        negative_bidask = TRUE) {
+                        negative_bidask = TRUE,
+                        zero_prices = TRUE) {
   
   ########################################################################################################################
   # SCHEDULE
@@ -91,6 +92,9 @@ clean.chunk <- function(chunk,
   # NEGATIVE BID-ASK SPREAD
   if (negative_bidask == TRUE) {
     chunk <- chunk %>% filter(ask > bid)
+  }
+  if(zero_prices==TRUE){
+    chunk <- chunk %>% filter(ask!=0 & bid!=0)
   }
   ########################################################################################################################
   return(chunk)
