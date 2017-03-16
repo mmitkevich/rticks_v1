@@ -5,8 +5,8 @@ library(grid)
 options(debug=T)
 
 cfg <- config(backtest) %>% modifyList(list(
-  no_cache = F, # всегда из базы
-  no_save = F, # не писать кэш на диск
+  no_cache = T, # всегда из базы
+  no_save = T, # не писать кэш на диск
   roll_position = T # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   
 ))
@@ -15,7 +15,7 @@ cfg <- config(backtest) %>% modifyList(list(
 init_spd_log(cfg)
 
 # period of backtest
-start <- as_datetime("2016-01-01")
+start <- as_datetime("2015-01-01")
 stop  <- as_datetime("2017-03-03")
 
 params <- data_frame(
