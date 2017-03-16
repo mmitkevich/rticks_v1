@@ -35,15 +35,21 @@ ifply <- function(.x, .f, .p=function()T,...) {
 query_candles.reuters <- function(instruments = NULL, 
                                   schedule = NULL,
                                active_contract = seq(1,3),
+                               custom_roll = NULL,
                                start = NULL, 
                                stop = lubridate::now(), 
                                where = NULL) {
-  instruments <- query_instruments(instruments)
+  if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
+    instruments <- query_instruments(instruments)
   ilog("query_candles.reuters", paste(instruments$instrument_id, as.character(active_contract)), "start", as.character(start), "stop", as.character(stop))
   schedule <- schedule %>% 
     ifnull(cached_attr(instruments, "schedule", 
                        instruments %>% 
-                         roll_schedule(max_active_contract=max(active_contract), start=start, stop=stop)))
+                         roll_schedule(max_active_contract=max(active_contract), custom_roll=custom_roll, start=start, stop=stop)))
+  if(getOption("debug",F)){
+    wlog("SCHEDULE")
+    print(schedule)
+  }
   schedule <- schedule %>% .filter_schedule(start=start, stop=stop)
   q <- structure(new.env(), class="reuters")
   with(q, {
@@ -83,12 +89,15 @@ fetch.reuters <- function(q) {
     return(NULL)
   tl = timeline(q$schedule, start=q$start)
   stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
-  ilog("fetch.reuters ", as.character(q$start),"..", as.character(as_datetime(stop)))
+
   symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
     group_by(exante_id) %>%      # for each contract's group
       arrange(datetime) %>%      # sort by datetime
       filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
+  
+  wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
+  
   if(nrow(symbols)==0) {
     ilog("\nEMPTY roll schedule:\n")
     print(q$schedule)
@@ -131,12 +140,7 @@ fetch.reuters <- function(q) {
   
   #result<-structure(result, class="chunk")
   #row.names(df) <- NULL
-  if(getOption("debug",F)) {
-    print(df%>%head(2))
-    cat(".......\n")
-    print(df%>%tail(2))
-  }
-  ilog("...fetched ", nrow(df))
+  wlog("fetch.reuters out", nrow(df),  "rows", as.character(head(df$datetime,1)), "..", as.character(tail(df$datetime,1)), "exante_id", head(df$exante_id,1), "virtual_id", head(df$virtual_id,1))
   return(df)
 }
 

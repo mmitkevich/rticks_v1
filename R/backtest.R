@@ -10,7 +10,8 @@ backtest.chunk <- function(data, params, algo, config) {
   r <- bt_gamma(algo, data, params, config)
   
   if(length(r$perfs$datetime)==0) {
-    wlog("backtest.chunk EMPTY PERFS")
+    wlog("backtest.chunk out empty perfs!", nrow(r$perfs$datetime), "rows", data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
+         "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"))
     warning(paste("**** EMPTY PERFS ****",as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1))))
     return (r);
   }
@@ -33,19 +34,20 @@ backtest.chunk <- function(data, params, algo, config) {
 }
 
 log_perfs <- function(name, data, r, params, price) {
-  wlog(data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
+  wlog(name, data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
        "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"),
        "price", price,
        "pos", r$pos,
        "cash", r$cash,
        "qty_buy", r$qty_buy,
        "qty_sell", r$qty_sell,
-       "pnl",r$pos*price*params$multiplier+r$cash)
+       "pnl",r$pos*price*params$multiplier+r$cash,
+       "exante_id", head(data$exante_id,1))
 }
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(freq="days", no_cache=T, no_clean=T, no_save=T)) {
+backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(freq="days", no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
@@ -62,6 +64,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
     data <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
+                                                roll_pattern=params$roll_pattern[1],
                                                 start=start, stop=stop, 
                                                 schedule=schedule,
                                                 config=config)
@@ -74,7 +77,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
-      wlog("skipped empty chunk", as.character(chunk$start),"\n")
+      wlog("backtest empty chunk ", as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     }else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
