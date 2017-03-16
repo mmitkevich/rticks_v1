@@ -111,7 +111,7 @@ fetch.reuters <- function(q) {
   if(nrow(df)>0) {
     df <- df %>% transmute(
         exante_id = exante_id, 
-        datetime = as_datetime(datetime/1000), 
+        datetime = as_datetime(datetime/1000+59),  # actual time is close_time FIXME  
         bid = close_bid, 
         ask = close_ask, 
         high = high_bid, 
