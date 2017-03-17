@@ -28,6 +28,8 @@ struct GammaAlgo : public MarketAlgo,
   //NumericVector offset;       // midspread directional offset
   BuySellVector gamma;        // qty to quote on buy/sell sides
   BuySellVector limits;
+  BuySellVector stops;
+  
   /// state
   //BuySellVector qty;     // latest our bid & ask outstanding qty (not filled as far as we could know)
 
@@ -36,8 +38,10 @@ struct GammaAlgo : public MarketAlgo,
 
   GammaAlgo(DataFrame params, List config, std::string name="gammalgo")
     : MarketAlgo(params, config, name),
-      limits( required<NumericVector>(params, "buy"),
-              required<NumericVector>(params, "sell")),
+      limits( required<NumericVector>(params, "limit.buy"),
+              required<NumericVector>(params, "limit.sell")),
+      stops( required<NumericVector>(params, "stop.buy"),
+              required<NumericVector>(params, "stop.sell")),
       gamma(required<NumericVector>(params, "gamma.buy"),
             required<NumericVector>(params, "gamma.sell")),
       spread(required<NumericVector>(params, "spread"))
@@ -85,8 +89,11 @@ struct GammaAlgo : public MarketAlgo,
 
   bool quote_buy(SymbolId s, double price) {
       price = round_price(s, price);
-      if(!std::isnan(limits.buy[s]) && pos[s]>=0 && price>limits.buy[s])
+      if(!std::isnan(limits.buy[s]) && pos[s]>=0 && price>limits.buy[s])  // no buying above limit
         price = NAN;
+      if(!std::isnan(stops.buy[s]) && pos[s]>=0 && price<stops.buy[s])  // no buying below stop
+        price = NAN;
+      
       if(!is_equal(quotes.buy[s], price)) {
         quotes.buy[s] = price;
         xlog<info>("ALGO.BID", s, quotes[s], market[s], pos[s], gamma.buy[s]);
@@ -105,8 +112,11 @@ struct GammaAlgo : public MarketAlgo,
 
   bool quote_sell(SymbolId s, double price) {
       price = round_price(s, price);
-      if(!std::isnan(limits.sell[s]) && pos[s]<=0 && price<limits.sell[s])
+      if(!std::isnan(limits.sell[s]) && pos[s]<=0 && price<limits.sell[s])  // no selling below limit
         price = NAN;
+      if(!std::isnan(stops.sell[s]) && pos[s]<=0 && price>stops.sell[s])  // no selling above stop
+        price = NAN;
+      
       if(!is_equal(quotes.sell[s],price)){
         quotes.sell[s] = price;
         xlog<info>("ALGO.ASK", s, quotes[s], market[s], pos[s], gamma.sell[s]);

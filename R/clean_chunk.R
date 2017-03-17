@@ -13,7 +13,7 @@ load_trade_schedule <- function(instrument_id,
   ilog("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path)
   exanteID <- paste0(instrument_id,".X0000^")
   mappingFile <- fromJSON(paste0(path,".mapping"))
-  fileName <- mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))]
+  fileName <- head(mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))],1)
   fullFileName <- paste0(path, fileName, ".json")
   rawHistoricalSchedule <- fromJSON(fullFileName)
   startDateTime <- ifnull(start, as_datetime(min(rawHistoricalSchedule$intervals$start)))
@@ -54,7 +54,8 @@ load_trade_schedule <- function(instrument_id,
 clean.chunk <- function(chunk, 
                         schedules = NULL, 
                         cut_minutes = 0, 
-                        negative_bidask = TRUE) {
+                        negative_bidask = TRUE,
+                        zero_prices = TRUE) {
   
   ########################################################################################################################
   # SCHEDULE
@@ -63,7 +64,8 @@ clean.chunk <- function(chunk,
   exante_ids <- unique(chunk$exante_id)
 
   ilog("clean.chunk ", paste(exante_ids), "start", as.character(start), "end", as.character(end),"\n")
-  
+  if(nrow(chunk)==0)
+    return(chunk)
   if(is.null(schedules)) {
     schedule_list <- list()
     instr_ids <- unique(parse_exante_id(exante_ids)$instrument_id)
@@ -90,6 +92,9 @@ clean.chunk <- function(chunk,
   # NEGATIVE BID-ASK SPREAD
   if (negative_bidask == TRUE) {
     chunk <- chunk %>% filter(ask > bid)
+  }
+  if(zero_prices==TRUE){
+    chunk <- chunk %>% filter(ask!=0 & bid!=0)
   }
   ########################################################################################################################
   return(chunk)

@@ -171,7 +171,7 @@ struct LatencyQueue : public Algo,
 
     LatencyQueue(DataFrame params, List config, TScheduler *scheduler, std::string name)
         : Algo(params, config, name),
-          latency(optional<NumericVector>(params, std::string("latency.")+name, NumericVector(params.nrows(), 0.0))),
+          latency(optional<NumericVector>(params, std::string("latency.")+name, NumericVector(params.nrows(), 1e-6))),
           scheduler(scheduler) {
     }
 

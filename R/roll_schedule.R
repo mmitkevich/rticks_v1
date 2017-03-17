@@ -1,4 +1,21 @@
 
+#' specify roll day of month and shift roll some months ahead of expiration
+#' 
+#' @examples
+#' roll_day(day_of_month=2, months_ahead=2)
+#'  will shift roll from expiration day 2016-03-17 to 2016-01-02 which is 2 months ahead and is 2nd of the month
+#'   
+#' @export
+roll_day <- function(day_of_month=NA, months_ahead=NA) {
+  function(dt) {
+    if(!is.na(day_of_month)) 
+      dt <- ifelse(day_of_month <= day(dt), dt - days(day(dt)) + days(day_of_month), dt-days(day(dt))+days(day_of_month)-months(1))
+    if(!is.na(months_ahead))
+      dt <- dt - months(months_ahead)
+    as_datetime(dt)
+  }
+}
+
 #' roll_schedule
 #' 
 #' @export
@@ -6,6 +23,7 @@ roll_schedule <- function(instruments,
                           symbols = NULL,
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
                           max_active_contract = 12,
+                          custom_roll = NULL, # ~ . - days(day(.)) - months(2)
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",
@@ -33,8 +51,11 @@ roll_schedule <- function(instruments,
     # get symbols for the instrument, conforming to active_contract pattern
     sym <- symbols %>% select_(.dots=fields) %>%
       filter(instrument_id==ins$instrument_id) %>%
-      filter(month %in% roll_pattern) %>%
-      arrange(fut_notice_first)
+      filter(month %in% roll_pattern)
+    if(!is.null(custom_roll)) {
+      sym$fut_notice_first <- as_function(custom_roll)(sym$fut_notice_first)
+    }
+    sym <- sym %>% arrange(fut_notice_first)
     
     #      print(sym)
     #      cat("----")
