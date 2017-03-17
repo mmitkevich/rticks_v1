@@ -7,10 +7,12 @@ namespace Rcpp {
 const int SECONDS_PER_DAY = 24*60*60;
 
 template<typename TExecutionMessage=ExecutionMessage,
-         typename TSessionMessage=SessionMessage>
+         typename TSessionMessage=SessionMessage,
+         typename TQuoteMessage=QuoteMessage>
 struct Metrics : public Algo,
         public IObserver<TExecutionMessage>,
-        public IObserver<TSessionMessage>
+        public IObserver<TSessionMessage>,
+        public IObserver<TQuoteMessage>
 {
   size_t index;
   size_t stop;
@@ -64,6 +66,7 @@ struct Metrics : public Algo,
   template<typename TMarket>
   void on_init(TMarket &market) {
     market.$execs >>= *this;
+    market.$quotes >>= *this;
     market.$session >>= *this;
   }
 
@@ -87,6 +90,18 @@ struct Metrics : public Algo,
     }
   }
 
+  virtual void on_next(TQuoteMessage e) {
+    on_clock(e.rtime);
+    
+    int s = e.symbol;
+    pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
+    assert(!std::isnan(pnl[s]));
+    pnl_l[s] = std::min<double>(pnl_l[s], pos[s]);
+    pnl_h[s] = std::max<double>(pnl_h[s], pos[s]);
+    
+    try_flush();   
+  }
+  
   virtual void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
     //dlog<3>(e);
