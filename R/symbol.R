@@ -49,7 +49,9 @@ parse_exante_id <- function(id, instruments=NULL) {
   instruments$month2 <- match(instruments$month2, contract_month_letter)
   instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), as.numeric(substr(future_part,2,5)))
   instruments$instrument_id <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
-                                      paste0(instruments$ticker, ".", instruments$exchange, ".", substr(future_part, 0, 2), (as.numeric(instruments$year2) - as.numeric(instruments$year))*12 + (as.numeric(instruments$month2) - as.numeric(instruments$month)), "M"),
+                                      ifelse(is.na(instruments$month) == T & is.na(instruments$month2) == T,
+                                             as.character(instruments$exante_id),
+                                             paste0(instruments$ticker, ".", instruments$exchange, ".", substr(future_part, 0, 2), (as.numeric(instruments$year2) - as.numeric(instruments$year))*12 + (as.numeric(instruments$month2) - as.numeric(instruments$month)), "M")),
                                       ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange)))
   
   option_part <- q %>% map(~ .x[4])
@@ -160,7 +162,7 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 query_instruments <- function(instruments = NULL, 
                              fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
                              json_cols = c("active_contract"), ...) {
-  instruments <- parse_symbols(instruments, nm = "instrument_id")
+  instruments <- parse_symbols(instruments) # TODO: WHY nm = "instrument_id"
   r <- query_quant_data(instruments$instrument_id, "quant_data.instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
   # FIXME: patch exante_id == instrument_id so every symbol df has some exante_id column
   r$exante_id <- r[["instrument_id"]]

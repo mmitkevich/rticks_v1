@@ -15,7 +15,9 @@ parse_exante_id <- function(id, instruments=NULL) {
   instruments$month2 <- match(instruments$month2, contract_month_letter)
   instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), as.numeric(substr(future_part,2,5)))
   instruments$instrument_id <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
-                                      paste0(instruments$ticker, ".", instruments$exchange, ".", substr(future_part, 0, 2), (as.numeric(instruments$year2) - as.numeric(instruments$year))*12 + (as.numeric(instruments$month2) - as.numeric(instruments$month)), "M"),
+                                      ifelse(is.na(instruments$month) == T & is.na(instruments$month2) == T,
+                                             instruments$exante_id,
+                                             paste0(instruments$ticker, ".", instruments$exchange, ".", substr(future_part, 0, 2), (as.numeric(instruments$year2) - as.numeric(instruments$year))*12 + (as.numeric(instruments$month2) - as.numeric(instruments$month)), "M")),
                                       ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange)))
   
   option_part <- q %>% map(~ .x[4])
@@ -29,7 +31,9 @@ parse_exante_id <- function(id, instruments=NULL) {
 }
 
 
-id <- c("GE.CME.CS/H2019-H2020", "VIX.CBOE.RS/F2015-G2015", "GE.CME.K2015", "ZB.CBOT.Z2012")
+id <- c("GE.CME.CS/H2019-H2020", "VIX.CBOE.RS/F2015-G2015", "GE.CME.K2015", "ZB.CBOT.Z2012", "ZB.CBOT", "ZB.CBOT.CS12M", "ZB.CBOT.RS12M","ZB.CBOT.K2015.C2000_5", "ZB.CBOT.CS12W")
+
+# ZB.CBOT, ZB, ZB.CBOT.CS12M, ZB.CBOT.RS12M, ZB.CBOT.CS12W, ZB.CBOT.K2015.C2000_5
 id <- c("GE.CME.K2015", "ZB.CBOT.Z2012")
 
 res <- parse_exante_id(id)

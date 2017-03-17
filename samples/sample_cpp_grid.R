@@ -20,8 +20,8 @@ stop  <- as_datetime("2017-03-03")
 
 params <- data_frame(
   # limits
-  limit.buy     = 165,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-  stop.buy      = 145,    # FIXME: no buy lower than 18
+  limit.buy     = NA,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  stop.buy      = NA,    # FIXME: no buy lower than 18
   
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = NA,    # FIXME: no sell above 19
@@ -33,7 +33,7 @@ params <- data_frame(
   gamma.buy     = 1,       # size to buy on each mpi
   gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
   
-  symbol        = "ZB.CBOT",   # exante prefix of contract series
+  symbol        = "GE.CME.CS12M",   # exante prefix of contract series
   
   roll_pattern  = list(list(6, 12)),
   
