@@ -38,7 +38,6 @@ parse_exante_id <- function(id, instruments=NULL) {
   q <- strsplit(id, "\\.")
   instruments$ticker <- q %>% map_chr(~ .x[1])
   instruments$exchange <- q %>% map_chr(~ .x[2])
-  instruments$instrument_id <- ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange))
   future_part <- q %>% map_chr(~ .x[3])
   #print(future_part)
   instruments$month <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), substr(future_part, 4, 4), substr(future_part, 1, 1))
@@ -48,7 +47,10 @@ parse_exante_id <- function(id, instruments=NULL) {
   # month2 and year2 only for standalone spreads
   instruments$month2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), substr(future_part, 10, 10), NA)
   instruments$month2 <- match(instruments$month2, contract_month_letter)
-  instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), NA)
+  instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), as.numeric(substr(future_part,2,5)))
+  instruments$instrument_id <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
+                                      paste0(instruments$ticker, ".", instruments$exchange, ".", substr(future_part, 0, 2), (as.numeric(instruments$year2) - as.numeric(instruments$year))*12 + (as.numeric(instruments$month2) - as.numeric(instruments$month)), "M"),
+                                      ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange)))
   
   option_part <- q %>% map(~ .x[4])
   option_type <- substr(option_part,1,1)
