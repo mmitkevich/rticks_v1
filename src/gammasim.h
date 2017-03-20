@@ -20,7 +20,8 @@ struct GammaSimulator : public MarketAlgo,
   typedef TOrderMessage order_message_type;
 
   BuySellVector gamma;    // gamma
-
+  BuySellVector stops;
+  
   // outputs
   LatencyQueue<TSessionMessage> $session;
   LatencyQueue<TQuoteMessage> $quotes;
@@ -36,6 +37,7 @@ struct GammaSimulator : public MarketAlgo,
     : MarketAlgo(params, config, name),
       scheduler(params, config),
       metrics(params, config),
+      stops(params.nrow()),
       $session(params, config, &scheduler, "$sess  "),
       $quotes(params, config, &scheduler, "$quotes "),
       $execs(params, config, &scheduler,  "$execs  "),
@@ -53,15 +55,17 @@ struct GammaSimulator : public MarketAlgo,
   }
   
   virtual void on_next(TQuoteMessage e) {
-    if(std::isnan(datetime())) {
+    bool is_session_start = std::isnan(datetime());
+    on_clock(e.rtime);
+    
+    if(is_session_start) {
        on_session_start(e.rtime);
     }
-    on_clock(e.rtime);
-
-    dlog<info>(e);
+    auto s = e.symbol;
+    dlog<debug>(e);
     assert(e.flag(Message::FROM_MARKET));
-    market.update(e.symbol, e);
-    xlog<debug>("SIM.QUOT", e.symbol, quotes[e.symbol], market[e.symbol]);
+    market.update(s, e);
+    xlog<debug>("SIM.QUOT", s, quotes[s], market[s], pos[s]);
     on_simulate(e.symbol);
     // forward to algorithms
     $quotes.on_next(std::move(e));
@@ -70,12 +74,13 @@ struct GammaSimulator : public MarketAlgo,
   // quotes from the gamma strategy  -  receive the gamma
   virtual void on_next(TOrderMessage e) {
     on_clock(e.rtime);
-    dlog<info>(e);
+    dlog<debug>(e);
     assert(!std::isnan(e.price));
     assert(!std::isnan(e.qty));
     gamma(e.side())[e.symbol] = fabs(e.qty);
+    stops(e.side())[e.symbol] = e.stop_price;
     quotes(e.side())[e.symbol] = e.price;
-    xlog<info>("SIM.ORDR", e.symbol, quotes[e.symbol], market[e.symbol]);
+    xlog<info>("SIM.ORDR", e.symbol, quotes[e.symbol], market[e.symbol], pos[e.symbol], e.stop_price);
     on_simulate(e.symbol);
   }
 
@@ -84,7 +89,7 @@ struct GammaSimulator : public MarketAlgo,
         throw std::runtime_error("on_session_start(NAN)");
     }
     TSessionMessage e;
-    e.ctime = e.rtime = dtime-1e-6; //FIXME: should be first message in order of sending without this hack
+    //e.ctime = e.rtime = dtime-1e-6; //FIXME: should be first message in order of sending without this hack
     $session.on_next(e);
   }
   
@@ -105,23 +110,44 @@ struct GammaSimulator : public MarketAlgo,
     assert(!std::isnan(pi));
     if(!std::isnan(q.sell) && should_fill(m.buy-q.sell)) {
       // simulate the sells
+      auto stop = m.buy;
+      if(!std::isnan(stops.sell[s]))
+        stop = std::min(stop, stops.sell[s]);
+      
       e.price = m.buy;
-      e.fill_price = 0.5*(m.buy+q.sell);
-      e.qty = - (g.sell + roundl((m.buy-q.sell)/pi)*g.sell);
+      e.fill_price = 0.5*(stop+q.sell);
+      e.qty = - (g.sell + roundl((stop-q.sell)/pi)*g.sell);
+      pos[s] +=e.qty;
+      xlog<info>("SIM.SELL", s, quotes[s], m, pos[s], stop, e.qty);
       // move up sell quote since it got filled
       quotes.sell[s] = m.buy + pi;
-      xlog<info>("SIM.SELL", s, quotes[s], m, e.fill_price, e.qty);
+      if(!std::isnan(stops.sell[s]) && quotes.sell[s]>stops.sell[s]+eps()) {
+        quotes.sell[s] = NAN;
+        stops.sell[s] = NAN;
+      }
       check(e);
       $execs.on_next(e);
     }
     if(!std::isnan(q.buy) && should_fill(-(m.sell-q.buy))) {
       // simulate the buys
+      auto stop = m.sell;
+      if(!std::isnan(stops.buy[s]))
+        stop = std::max(stop, stops.buy[s]);
+      
       e.price = m.sell;
-      e.fill_price = 0.5*(m.sell+q.buy);
-      e.qty =  (g.buy + roundl((q.buy-m.sell)/pi)*g.buy);
+      e.fill_price = 0.5*(stop+q.buy);
+      e.qty =  (g.buy + roundl((q.buy-stop)/pi)*g.buy);
+      pos[s] +=e.qty;
+      
+      xlog<info>("SIM.BUY ", s, quotes[s], m, pos[s], stop, e.qty);
+
       // move down buy quote since it got filled
-      quotes.buy[s] = m.sell -pi;
-      xlog<info>("SIM.BUY ", s, quotes[s], m, e.fill_price, e.qty);
+      quotes.buy[s] = m.sell - pi;
+      
+      if(!std::isnan(stops.buy[s]) && quotes.buy[s]<stops.buy[s]-eps()) {
+        quotes.buy[s] = NAN;
+        stops.buy[s] = NAN;
+      }
       check(e);
       $execs.on_next(e);
     }
@@ -130,7 +156,7 @@ struct GammaSimulator : public MarketAlgo,
   void check(const ExecutionMessage &e) {
       if(fabs(e.qty)>=check_big_qty) {
         auto s = e.symbol;
-        xlog<warn>("BIG.QTY!", e.symbol, quotes[s], market[s], e.fill_price, e.qty);
+        xlog<warn>("BIG.QTY!", e.symbol, quotes[s], market[s], pos[s], e.fill_price, e.qty);
       }
   }
   
