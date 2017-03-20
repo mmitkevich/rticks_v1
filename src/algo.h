@@ -65,8 +65,8 @@ struct Algo : public IAlgo {
         dt(NAN),
         name(name)
   {
-    log_level = truncl(optional<IntegerVector>(config, "log_level", 0)[0]);
-    //std::cout << name <<" log_level" << log_level<<std::endl;
+    log_level = truncl(optional<IntegerVector>(config, "log_level", spdlog::level::info)[0]);
+    std::cout << name <<" log_level=" << log_level << std::endl;
   }
 
   int size() {
