@@ -105,14 +105,36 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
 #' 
 #' @export
 plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl","pos")) {
-  df <- perfs %>%filter(metric %in% metrics)
+  df <- data_frame()
+  for(m in metrics) {
+    ml = paste(m, "low", sep="_")
+    mh = paste(m, "high", sep="_")
+    d <- perfs %>%filter(metric==m | metric==mh | metric==ml) %>% 
+      spread(metric, value) %>% mutate(metric=m) %>% rename_(.dots=list(close=m))
+    if(has_name(d, ml))
+      d <- d%>%rename_(.dots=list(low=ml))
+    else
+      d <- d%>%mutate(low=close)
+    if(has_name(d, mh)) {
+      d <- d%>%rename_(.dots=list(high=mh))
+    }
+    else
+      d <- d%>%mutate(high=close)
+    df <- bind_rows(df, d)
+  }
   df <- ifnull(start, df, df%>%filter(datetime>=start))
   df <- ifnull(stop, df, df%>%filter(datetime<stop))
-  ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
-    geom_line() + 
+  #ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
+  #  geom_line() + 
+  #  geom_linerange(aes(ymin=low, ymax=high)) +
+  ggplot(df, aes(x=datetime)) + 
+    geom_segment(aes(y=close,yend=close, xend=datetime+0.68)) + 
+    geom_linerange(aes(ymin=low,ymax=high)) +
     facet_grid(metric ~ ., scales = "free_y")  + 
     scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  
+  #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
 } 
 
 #' add metrics
