@@ -118,7 +118,7 @@ struct Backtester : public Algo
         }
       }
       
-      market.notify(time2); // flush the time
+      market.notify(time2+1e-5); // flush the time
 
       close_dt = dt;
       index++;
