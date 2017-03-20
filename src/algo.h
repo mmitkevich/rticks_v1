@@ -55,7 +55,8 @@ struct Algo : public IAlgo {
   double dt;
   std::string name;
   int log_level;
-
+  bool log_flush_level;
+  
   Algo(
     DataFrame params, // (symbol, mpi, par1, par2,....)
     List config,
@@ -65,7 +66,8 @@ struct Algo : public IAlgo {
         dt(NAN),
         name(name)
   {
-    log_level = truncl(optional<IntegerVector>(config, "log_level", spdlog::level::info)[0]);
+    log_level = optional<IntegerVector>(config, "log_level", spdlog::level::info)[0];
+    log_flush_level  = optional<IntegerVector>(config, "log_flush_level", spdlog::level::warn)[0];
     std::cout << name <<" log_level=" << log_level << std::endl;
   }
 
@@ -118,8 +120,9 @@ struct Algo : public IAlgo {
         if(logger) {
           auto my_time = std::isnan(datetime()) ? std::string("NA") : Datetime(datetime()).format();
           auto time = std::isnan(e.rtime) ? std::string("NA"): Datetime(e.rtime).format();
-          logger->log(spdlog::level::info, "{} | {} | {} | {}\n", my_time, time, name, e);//(spdlog::level::level_enum)level //FIXME
-          logger->flush();
+          logger->log(spdlog::level::info, "{} | {} | {} | {}\n", my_time, name, time, e);//(spdlog::level::level_enum)level //FIXME
+          if(level>=log_flush_level)
+            logger->flush();
         }
         //else
         //std::cout << Datetime(e.rtime) << "|" << name << " | " << e <<std::endl<<std::flush;
