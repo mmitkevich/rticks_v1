@@ -5,7 +5,10 @@
 #'  
 #' @export
 trunc_freq <- function(dts,freq) {
-  trunc(dts/freq)*freq %>% as_datetime()
+  v <- as.numeric(dts)/as.numeric(freq)
+  vv <- trunc(v)*as.numeric(freq) 
+  vvv <- as_datetime(vv)
+  vvv
 }
 
 #' backtest chunk
@@ -27,20 +30,23 @@ backtest.chunk <- function(data, params, algo, config) {
   }
   
   d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
-  d <- d %>% transmute(datetime=datetime, symbol=virtual_id, price=0.5*(bid+ask))
+  d <- d %>% transmute(datetime=datetime, symbol=virtual_id, bid=bid, ask=ask)
   #d <- d %>% arrange(symbol, datetime) %>% as_data_frame()
   d$datetime <- d$datetime %>% trunc_freq(config$perfs_freq)
-  browser()
-  
-  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n())  %>% as_data_frame()
-  browser()
+  #browser()
+  d <- d %>% group_by(symbol, datetime) %>% summarise(
+    price = tail(0.5*(bid+ask),1),
+    price_high = max(bid),
+    price_low = min(ask)
+  ) %>% as_data_frame()
+  #browser()
   r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
   r$perfs <- as_data_frame(r$perfs)
   r$perfs <- r$perfs %>% spread(metric, value) %>% 
     inner_join(d, by=c("datetime","symbol")) %>%
     gather(metric, value, -datetime, -symbol) %>% 
     arrange(datetime)
-  r$perfs$datetime <- as_date(r$perfs$datetime)
+  r$perfs$datetime <- as_datetime(r$perfs$datetime)
   log_perfs("backtest.chunk out",data, r, params, 0.5*(tail(data$bid,1)+tail(data$ask,1)))  
   return(r)
 }
@@ -61,7 +67,7 @@ log_perfs <- function(name, data, r, params, price) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(perfs_freq=days(1), no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
+backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(perfs_freq=as.numeric(days(1)), no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
@@ -109,7 +115,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   flush_spd_log()
   attr(perfs, "data") <- data
   attr(perfs, "params") <- params
-  perfs$datetime <- as_date(perfs$datetime)
+  perfs$datetime <- as_datetime(perfs$datetime)
   perfs
 }
 
@@ -136,14 +142,17 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   }
   df <- ifnull(start, df, df%>%filter(datetime>=start))
   df <- ifnull(stop, df, df%>%filter(datetime<stop))
+  timeframe <- sort(unique(df$datetime))
+  timeframe <- timeframe[2]-timeframe[1]
   #ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
   #  geom_line() + 
   #  geom_linerange(aes(ymin=low, ymax=high)) +
-  ggplot(df, aes(x=datetime)) + 
-    geom_segment(aes(y=close,yend=close, xend=datetime+0.68)) + 
+  ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() +
+    geom_segment(aes(y=close,yend=close, xend=datetime+0.5*timeframe)) + 
     geom_linerange(aes(ymin=low,ymax=high)) +
     facet_grid(metric ~ ., scales = "free_y")  + 
-    scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
+    scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
+    scale_size_manual(values=0.5) + 
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
   
   #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
