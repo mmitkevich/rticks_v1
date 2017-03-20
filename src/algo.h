@@ -109,11 +109,14 @@ struct Algo : public IAlgo {
       verify(e);
       assert(!std::isnan(datetime()));
       if(level>=log_level) {
-        //if(logger)
-        //  logger->log(spdlog::level::info, "{} | {} | {}\n", Datetime(e.rtime), name, e);//(spdlog::level::level_enum)level //FIXME
+        if(logger) {
+          auto time = std::isnan(e.rtime) ? std::string("NA"): Datetime(e.rtime).format();
+          logger->log(spdlog::level::info, "{} | {} | {}\n", time, name, e);//(spdlog::level::level_enum)level //FIXME
+          logger->flush();
+        }
         //else
-        std::cout << Datetime(e.rtime) << "|" << name << " | " << e <<std::endl<<std::flush;
-        //logger->flush();
+        //std::cout << Datetime(e.rtime) << "|" << name << " | " << e <<std::endl<<std::flush;
+
       }
 
   }

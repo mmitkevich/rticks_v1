@@ -80,6 +80,9 @@ struct GammaSimulator : public MarketAlgo,
   }
 
   virtual void on_session_start(double dtime) {
+    if(std::isnan(dtime)) {
+        throw std::runtime_error("on_session_start(NAN)");
+    }
     TSessionMessage e;
     e.ctime = e.rtime = dtime-1e-6; //FIXME: should be first message in order of sending without this hack
     $session.on_next(e);
