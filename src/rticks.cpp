@@ -55,7 +55,7 @@ void init_spd_log(List config) {
         auto log_stdout = optional<IntegerVector>(config, "log_stdout", 0)[0];
         auto log_level = optional<IntegerVector>(config, "log_level", 0)[0];
         
-        //if(log_stdout!=spdlog::level::off) 
+        if(log_stdout!=spdlog::level::off)
           {
             auto stdout_sink = std::make_shared<spdlog::sinks::stdout_sink_st>();
             stdout_sink->set_level((spdlog::level::level_enum)log_stdout);
@@ -65,7 +65,7 @@ void init_spd_log(List config) {
         std::cout << " removing log "<<path<<std::endl;
         unlink(path.c_str());
         //sinks.push_back(std::make_shared<spdlog::sinks::daily_file_sink_st>(path, 23, 59));
-        //if(log_level!=spdlog::level::off) 
+        if(log_level!=spdlog::level::off)
         {   
           auto file_sink = std::make_shared<spdlog::sinks::simple_file_sink_st>(path);
           file_sink->set_level((spdlog::level::level_enum)log_level);
