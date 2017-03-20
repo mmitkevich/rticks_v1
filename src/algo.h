@@ -83,12 +83,16 @@ struct Algo : public IAlgo {
 
   template<typename TMessage>
   void verify(const TMessage &e) {
-      assert(!std::isnan(e.rtime));
-      assert(!std::isnan(e.ctime));
+      if(std::isnan(e.rtime) || std::isnan(e.ctime)) {
+          throw std::runtime_error("NAN in rtime");
+      }
   }
 
   virtual void on_clock(double dtime) {
       assert(!std::isnan(dtime));
+      if(std::isnan(dtime)) {
+          throw new std::runtime_error("on_clock(NAN)");
+      }
       dt = dtime;
   }
 
@@ -104,12 +108,12 @@ struct Algo : public IAlgo {
   void dlog(const TMessage &e) {
       verify(e);
       assert(!std::isnan(datetime()));
-      
       if(level>=log_level) {
-        if(logger)
-          logger->log(spdlog::level::info, "{} | {} | {}\n", Datetime(e.rtime), name, e);//(spdlog::level::level_enum)level //FIXME
+        //if(logger)
+        //  logger->log(spdlog::level::info, "{} | {} | {}\n", Datetime(e.rtime), name, e);//(spdlog::level::level_enum)level //FIXME
         //else
-        //  std::cout << format("{} | {} | {}\n", Datetime(e.rtime), name, e)<<"\n";
+        std::cout << Datetime(e.rtime) << "|" << name << " | " << e <<std::endl<<std::flush;
+        //logger->flush();
       }
 
   }
@@ -135,6 +139,16 @@ struct Scheduler: public Algo, public IScheduler<TAlgo> {
         if(it!=queue.end()) {
             queue.erase(it);    // remove first
         }
+        if(log_level<=info) {
+            std::cout << "on_schedule "<< algo->name;
+            if(std::isnan(dt)){
+                std::cout << " NAN";
+            }else {
+                std::cout << Datetime(dt);
+            }
+            std::cout << std::endl << std::flush;
+        }
+
         if(!std::isnan(dt)) { // reschedule if needed
 
             algo->on_clock(dt); // update tartet time
@@ -194,8 +208,8 @@ struct LatencyQueue : public Algo,
         if(!queue.empty()) {
             auto e = std::move(queue.front());
             queue.pop();
+            dlog<info>(e);
             on_clock(e.symbol);
-            dlog<trace>(e);
             notify(std::move(e));
         }
     }

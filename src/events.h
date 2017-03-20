@@ -110,12 +110,14 @@ struct MarketAlgo : public Algo {
     template<int level>
     void xlog(std::string what, SymbolId sym, const BuySell &q, const BuySell &m, double fill_price=NAN, double fill_qty=NAN) {
         if(level>=log_level) {
-            if(logger)
-              logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
-                         Datetime(dt), what, sym.id, sym.index, m.buy, m.sell, q.buy, q.sell, fill_price, fill_qty);
+            //if(logger)
+            //  logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+            //             Datetime(dt), what, sym.id, sym.index, m.buy, m.sell, q.buy, q.sell, fill_price, fill_qty);
             //else
-            //  std::cout << format("{} | {} | {}={} | M={}, {} | Q={}, {} | {} | {}",
-            //                      Datetime(dt), what, sym.id, sym.index, m.buy, m.sell, q.buy, q.sell, fill_price, fill_qty)<<"\n";
+              std::cout << Datetime(dt) << " | " << what << " | " << sym.id << " | " << sym.index <<
+                           " | " << m.buy << " " << m.sell <<
+                           " | " << q.buy << " " << q.sell <<
+                           fill_price << fill_qty << std::endl << std::flush;
         }
     }
 

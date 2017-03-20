@@ -36,6 +36,7 @@ backtest.chunk <- function(data, params, algo, config) {
 log_perfs <- function(name, data, r, params, price) {
   wlog(name, data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
        "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"),
+       "nrow", nrow(data),
        "price", price,
        "pos", r$pos,
        "cash", r$cash,
@@ -78,7 +79,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
-      wlog("backtest empty chunk ", as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
+      wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     }else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos

@@ -55,6 +55,9 @@ struct Backtester : public Algo
   void process(DataFrame data)    // datetime, symbol, bid, ask, high, low
   {
     datetimes = required<NumericVector>(data, "datetime");
+    if(datetimes.size()==0)
+        return;
+
     bids = required<NumericVector>(data, "bid");
     asks = required<NumericVector>(data, "ask");
     highs = optional<NumericVector>(data, "high");
@@ -65,9 +68,9 @@ struct Backtester : public Algo
     
     index = 0;
     stop = data.nrows();
-    double close_dt = datetimes[0];
-    double open_dt = datetimes[0];
-    dt = open_dt;
+    dt = datetimes[0];
+    double close_dt = dt;
+    int sent_events=0;
     while(index < stop) {
       dt = datetimes[index];
       if(dt<close_dt && !is_zero(dt-close_dt)) {
@@ -88,7 +91,7 @@ struct Backtester : public Algo
         bid.set_flag(Message::FROM_MARKET);
         bid.set_side(OrderSide::BUY);
         bid.symbol = s;
-        bid.ctime = bid.rtime = open_dt;
+        bid.ctime = bid.rtime = dt;
         bid.price = bids[index];
         bid.qty = +INFINITY;
         
@@ -96,25 +99,26 @@ struct Backtester : public Algo
         ask.set_flag(Message::FROM_MARKET);
         ask.set_side(OrderSide::SELL);
         ask.symbol = s;
-        bid.ctime = bid.rtime = open_dt;
+        ask.ctime = ask.rtime = dt;
         ask.price = asks[index];
         ask.qty = -INFINITY;
         
         if(index>0 && bid.price>=asks[index-1]-eps()) {
           // this is more realistic sequence
-          bid.ctime = bid.rtime = open_dt+1e-6;
+          bid.ctime = bid.rtime = close_dt+1e-6;
           market.on_next(ask);
           market.on_next(bid);
+          sent_events++;
         }else {
-          ask.ctime = ask.rtime = open_dt+1e-6;
+          ask.ctime = ask.rtime = close_dt+1e-6;
           market.on_next(bid);  // send bid
           market.on_next(ask);  // send ask
+          sent_events++;
         }
       }
       
-      market.notify(close_dt); // flush them
+      market.notify(close_dt+2e-6); // flush them
 
-      open_dt = close_dt;
       close_dt = dt;
       index++;
     }

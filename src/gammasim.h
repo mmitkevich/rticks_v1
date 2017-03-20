@@ -54,10 +54,11 @@ struct GammaSimulator : public MarketAlgo,
   
   virtual void on_next(TQuoteMessage e) {
     if(std::isnan(datetime())) {
-      on_session_start(e.ctime);
+       on_session_start(e.rtime);
     }
     on_clock(e.rtime);
-    dlog<trace>(e);
+
+    dlog<info>(e);
     assert(e.flag(Message::FROM_MARKET));
     market.update(e.symbol, e);
     xlog<debug>("SIM.QUOT", e.symbol, quotes[e.symbol], market[e.symbol]);
@@ -69,7 +70,7 @@ struct GammaSimulator : public MarketAlgo,
   // quotes from the gamma strategy  -  receive the gamma
   virtual void on_next(TOrderMessage e) {
     on_clock(e.rtime);
-    dlog<trace>(e);
+    dlog<info>(e);
     assert(!std::isnan(e.price));
     assert(!std::isnan(e.qty));
     gamma(e.side())[e.symbol] = fabs(e.qty);

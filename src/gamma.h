@@ -67,7 +67,7 @@ struct GammaAlgo : public MarketAlgo,
 
   virtual void on_next(QuoteMessage e) {
     on_clock(e.rtime);
-    dlog<trace>(e);
+    dlog<info>(e);
     auto s = e.symbol;
     auto side = e.side();
     // update cached market price
@@ -134,7 +134,7 @@ struct GammaAlgo : public MarketAlgo,
 
   virtual void on_next(ExecutionMessage e) {
     on_clock(e.rtime);
-    dlog<trace>(e);
+    dlog<info>(e);
     auto side = e.side();
     auto s = e.symbol;
 

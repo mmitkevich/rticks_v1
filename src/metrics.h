@@ -78,6 +78,7 @@ struct Metrics : public Algo,
     on_clock(e.rtime);
     //dlog<1>(e);
     set_flush_time();
+    try_flush();
   }
 
   void set_flush_time() {
@@ -92,6 +93,7 @@ struct Metrics : public Algo,
 
   virtual void on_next(TQuoteMessage e) {
     on_clock(e.rtime);
+    dlog<info>(e);
     
     int s = e.symbol;
     pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
@@ -103,6 +105,7 @@ struct Metrics : public Algo,
   }
   
   virtual void on_next(TExecutionMessage e) {
+    dlog<info>(e);
     on_clock(e.rtime);
     //dlog<3>(e);
     //if(fabs(e.qty)>3) {
