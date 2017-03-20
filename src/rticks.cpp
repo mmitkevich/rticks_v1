@@ -113,8 +113,8 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
   if(!logger)
     init_spd_log(config);
 
-  Rcout << "config=";
-  Rf_PrintValue(config);
+  //Rcout << "config=";
+  //Rf_PrintValue(config);
 
   if(clazz[0] == "gamma") {
     Backtester<GammaAlgo<>, GammaSimulator<>> bt(params, config);
