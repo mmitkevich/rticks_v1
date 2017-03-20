@@ -114,7 +114,8 @@ struct MarketAlgo : public Algo {
               auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
               logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | POS={} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
                          time, what, sym.id, sym.index, m.buy, m.sell, q.buy, q.sell, pos, fill_price, fill_qty);
-              logger->flush();
+              if(level>=log_flush_level)
+                logger->flush();
             }
             //else
             //  std::cout << Datetime(dt) << " | " << what << " | " << sym.id << " | " << sym.index <<
