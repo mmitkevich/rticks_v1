@@ -76,7 +76,7 @@ struct Metrics : public Algo,
 
   virtual void on_next(TSessionMessage e) {
     on_clock(e.rtime);
-    //dlog<1>(e);
+    dlog<debug>(e);
     set_flush_time();
     try_flush();
   }
@@ -93,20 +93,20 @@ struct Metrics : public Algo,
 
   virtual void on_next(TQuoteMessage e) {
     on_clock(e.rtime);
-    dlog<info>(e);
+    dlog<debug>(e);
     
     int s = e.symbol;
     pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
     assert(!std::isnan(pnl[s]));
-    pnl_l[s] = std::min<double>(pnl_l[s], pos[s]);
-    pnl_h[s] = std::max<double>(pnl_h[s], pos[s]);
+    pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
+    pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
     
     try_flush();   
   }
   
   virtual void on_next(TExecutionMessage e) {
-    dlog<info>(e);
     on_clock(e.rtime);
+    dlog<debug>(e);
     //dlog<3>(e);
     //if(fabs(e.qty)>3) {
     //    xlog<1>() << "LARGE TRADE "
@@ -131,8 +131,8 @@ struct Metrics : public Algo,
 
     pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
     assert(!std::isnan(pnl[s]));
-    pnl_l[s] = std::min<double>(pnl_l[s], pos[s]);
-    pnl_h[s] = std::max<double>(pnl_h[s], pos[s]);
+    pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
+    pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
 
     //if(is_zero(pos[s]))
     //  roundtrips[s] = roundtrips[s] + 1;
