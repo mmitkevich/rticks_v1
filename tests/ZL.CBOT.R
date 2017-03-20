@@ -44,7 +44,7 @@ params <- data_frame(
   
   symbol        = "ZL.CBOT",   # exante prefix of contract series
   
-  roll_pattern  = list(list(7, 12)),
+  #roll_pattern  = list(list(7, 12)),
   
   active_contract = 1             # which month to trade
 )
