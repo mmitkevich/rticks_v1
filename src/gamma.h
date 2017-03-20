@@ -67,7 +67,7 @@ struct GammaAlgo : public MarketAlgo,
 
   virtual void on_next(QuoteMessage e) {
     on_clock(e.rtime);
-    dlog<info>(e);
+    dlog<debug>(e);
     auto s = e.symbol;
     auto side = e.side();
     // update cached market price
@@ -94,7 +94,8 @@ struct GammaAlgo : public MarketAlgo,
       if(!std::isnan(stops.buy[s]) && pos[s]>=0 && price<stops.buy[s])  // no buying below stop
         price = NAN;
       
-      if(!is_equal(quotes.buy[s], price)) {
+      //if(!is_equal(quotes.buy[s], price)) 
+      {
         quotes.buy[s] = price;
         xlog<info>("ALGO.BID", s, quotes[s], market[s], pos[s], gamma.buy[s]);
         TOrderMessage e;
@@ -102,6 +103,14 @@ struct GammaAlgo : public MarketAlgo,
         e.symbol = s;
         //e.set_side(side); TODO: set_side is sign of qty!
         e.price = quotes.buy[e.symbol];
+        
+        if(pos[s]<-eps()) { // where we stop to buy if negative position?
+          e.stop_price = e.price-roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.)/gamma.buy[s])*mpi[s];
+          if(!std::isnan(stops.buy[s])) {
+            e.stop_price = std::max(e.stop_price, stops.buy[s]);
+          }
+        }
+        
         e.qty = gamma.buy[e.symbol];
         //FIXME: gamma -> $gamma input stream
         $orders.on_next(e);
@@ -117,7 +126,8 @@ struct GammaAlgo : public MarketAlgo,
       if(!std::isnan(stops.sell[s]) && pos[s]<=0 && price>stops.sell[s])  // no selling above stop
         price = NAN;
       
-      if(!is_equal(quotes.sell[s],price)){
+      //if(!is_equal(quotes.sell[s],price))
+      {
         quotes.sell[s] = price;
         xlog<info>("ALGO.ASK", s, quotes[s], market[s], pos[s], gamma.sell[s]);
         TOrderMessage e;
@@ -125,6 +135,14 @@ struct GammaAlgo : public MarketAlgo,
         e.symbol = s;
         //e.set_side(side); TODO: set_side is sign of qty!
         e.price = quotes.sell[e.symbol];
+        
+        if(pos[s]>eps()) {
+          e.stop_price = e.price+roundl(std::max<double>(pos[s]-gamma.sell[s], 0.)/gamma.sell[s])*mpi[s];
+          if(!std::isnan(stops.sell[s])) {
+            e.stop_price = std::min(e.stop_price, stops.sell[s]);
+          }
+        }
+        
         e.qty = -gamma.sell[e.symbol];
         $orders.on_next(e);
         return true;
@@ -134,7 +152,7 @@ struct GammaAlgo : public MarketAlgo,
 
   virtual void on_next(ExecutionMessage e) {
     on_clock(e.rtime);
-    dlog<info>(e);
+    dlog<debug>(e);
     auto side = e.side();
     auto s = e.symbol;
 
