@@ -130,11 +130,9 @@ query_candles_cache <- function(instruments, active_contract=1, roll_pattern=NUL
 #' chunk.resample
 #' 
 #' @export
-chunk.resample<-function (data, freq="days") {
+chunk.resample<-function (data, freq=days(1)) {
+  data$datetime <- trunc_freq(freq)
   data %>% 
-    transmute(
-      datetime=as_date(trunc(data$datetime, freq))
-    ) %>% 
     arrange(datetime) %>%
     group_by(datetime, symbol) %>%
     filter(row_number()==n()) %>% 

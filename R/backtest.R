@@ -1,3 +1,13 @@
+#' to frequency
+#' 
+#' @examples
+#'  to_freq() 
+#'  
+#' @export
+trunc_freq <- function(dts,freq) {
+  trunc(dts/freq)*freq %>% as_datetime()
+}
+
 #' backtest chunk
 #' 
 #' @examples 
@@ -19,10 +29,12 @@ backtest.chunk <- function(data, params, algo, config) {
   d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
   d <- d %>% transmute(datetime=datetime, symbol=virtual_id, price=0.5*(bid+ask))
   #d <- d %>% arrange(symbol, datetime) %>% as_data_frame()
-  d$datetime <- as_datetime(d$datetime) %>% trunc(config$freq) %>% as_date()
-  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n()) 
-
-  r$perfs$datetime <- as_datetime(r$perfs$datetime) %>% trunc(config$freq) %>% as_date()
+  d$datetime <- d$datetime %>% trunc_freq(config$perfs_freq)
+  browser()
+  
+  d <- d %>% group_by(symbol, datetime) %>% filter(row_number()==n())  %>% as_data_frame()
+  browser()
+  r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
   r$perfs <- as_data_frame(r$perfs)
   r$perfs <- r$perfs %>% spread(metric, value) %>% 
     inner_join(d, by=c("datetime","symbol")) %>%
@@ -49,7 +61,7 @@ log_perfs <- function(name, data, r, params, price) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(freq="days", no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
+backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(perfs_freq=days(1), no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
