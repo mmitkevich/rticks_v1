@@ -4,8 +4,6 @@
 
 namespace Rcpp {
 
-const int SECONDS_PER_DAY = 24*60*60;
-
 template<typename TExecutionMessage=ExecutionMessage,
          typename TSessionMessage=SessionMessage,
          typename TQuoteMessage=QuoteMessage>
@@ -32,13 +30,14 @@ struct Metrics : public Algo,
   List trades;
 
   double next_flush_dt;
-
+  long perfs_interval = 24*60*60;
 
   Metrics(DataFrame params, List config, std::string name="metrics")
     : Algo(params, config, name),
       symbols(required<CharacterVector>(params, "symbol")),
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
+      perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", 24*60*60)[0])),
       multiplier(required<NumericVector>(params, "multiplier")),
       pos(optional<NumericVector>(params, "pos", 0.0)),
       cash(optional<NumericVector>(params, "cash", 0.0)), // cash that was paid for the pos (or average price of pos)
@@ -61,6 +60,8 @@ struct Metrics : public Algo,
       init_metric(&qty_sell, "qty_sell");
       //init_metric(&roundtrips, "roundtrips", 0.0);
       perfs_nrows(stop);  // datetime, symbol, value
+      if(logger)
+        logger->warn("perfs_interval={}", perfs_interval);
   }
 
   template<typename TMarket>
@@ -84,10 +85,10 @@ struct Metrics : public Algo,
   void set_flush_time() {
     if(std::isnan(next_flush_dt)) {
       next_flush_dt = datetime(); // FIXME: convert to flush time
-      next_flush_dt -= ((long)next_flush_dt) % SECONDS_PER_DAY;
+      next_flush_dt -= ((long)next_flush_dt) % perfs_interval;
       next_flush_dt = truncl(next_flush_dt);      // flush_dt = 00:00 UTC
 //      flush_perfs();  // flush initial zeros
-      next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+      next_flush_dt = next_flush_dt + perfs_interval;
     }
   }
 
@@ -144,7 +145,7 @@ struct Metrics : public Algo,
     if(!std::isnan(next_flush_dt)){
         while(dt >= next_flush_dt-eps()) {
           flush_perfs();
-          next_flush_dt = next_flush_dt + SECONDS_PER_DAY;
+          next_flush_dt = next_flush_dt + perfs_interval;
         }
     }
   }
