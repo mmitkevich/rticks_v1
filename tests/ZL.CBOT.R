@@ -5,11 +5,14 @@ library(grid)
 options(debug=T)
 
 cfg <- config(backtest) %>% modifyList(list(
-  log_level=1,
-  log_stdout=1,
+  log_level=LOG$DEBUG,
+  log_stdout=LOG$WARN,
+  log_flush_level=LOG$WARN,
+  perfs_freq=as.numeric(hours(24)),
+  check_big_qty=10,
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
+  roll_position = T, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1) # months_ahead=0 at 1st of the month, at least 1 month ahead of expiration  
 ))
 
@@ -17,7 +20,7 @@ cfg <- config(backtest) %>% modifyList(list(
 init_spd_log(cfg)
 
 # period of backtest
-start <- as_datetime("2015-12-01")
+start <- as_datetime("2015-10-01")
 stop  <- as_datetime("2016-05-01")
 
 contracSpecMonth <- data.frame(Number = c( 1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12),
