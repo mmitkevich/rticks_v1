@@ -5,14 +5,14 @@ library(grid)
 options(debug=T)
 
 cfg <- config(backtest) %>% modifyList(list(
-  log_level=LOG$DEBUG,
+  log_level=LOG$OFF,
   log_stdout=LOG$WARN,
   log_flush_level=LOG$WARN,
   perfs_freq=as.numeric(hours(24)),
   check_big_qty=10,
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  roll_position = T, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
+  roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1) # months_ahead=0 at 1st of the month, at least 1 month ahead of expiration  
 ))
 
