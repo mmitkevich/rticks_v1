@@ -68,7 +68,7 @@ struct Algo : public IAlgo {
   {
     log_level = optional<IntegerVector>(config, "log_level", spdlog::level::info)[0];
     log_flush_level  = optional<IntegerVector>(config, "log_flush_level", spdlog::level::warn)[0];
-    std::cout << name <<" log_level=" << log_level << std::endl;
+    //std::cout << name <<" log_level=" << log_level << std::endl;
   }
 
   int size() {
