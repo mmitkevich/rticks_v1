@@ -85,6 +85,7 @@ struct Backtester : public Algo
       }
       
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
+      double time2 = dt + 1e-6;
       if(s.index>=0) {
         // buffer events
         QuoteMessage bid;
@@ -105,19 +106,19 @@ struct Backtester : public Algo
         
         if(index>0 && bid.price>=asks[index-1]-eps()) {
           // this is more realistic sequence
-          bid.ctime = bid.rtime = close_dt+1e-6;
           market.on_next(ask);
+          bid.ctime = bid.rtime = time2; // make bid later
           market.on_next(bid);
           sent_events++;
         }else {
-          ask.ctime = ask.rtime = close_dt+1e-6;
           market.on_next(bid);  // send bid
+          ask.ctime = ask.rtime = time2; // make ask later
           market.on_next(ask);  // send ask
           sent_events++;
         }
       }
       
-      market.notify(close_dt+2e-6); // flush them
+      market.notify(time2); // flush the time
 
       close_dt = dt;
       index++;
