@@ -89,6 +89,7 @@ struct GammaSimulator : public MarketAlgo,
         throw std::runtime_error("on_session_start(NAN)");
     }
     TSessionMessage e;
+    e.rtime = e.ctime = dtime;
     //e.ctime = e.rtime = dtime-1e-6; //FIXME: should be first message in order of sending without this hack
     $session.on_next(e);
   }
