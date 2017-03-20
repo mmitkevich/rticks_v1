@@ -104,11 +104,15 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
 #' plot backtest results
 #' 
 #' @export
-plot_bt <- function(perfs, metrics=c("price","pnl","rpnl","pos")) {
+plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl","pos")) {
   df <- perfs %>%filter(metric %in% metrics)
+  df <- ifnull(start, df, df%>%filter(datetime>=start))
+  df <- ifnull(stop, df, df%>%filter(datetime<stop))
   ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
     geom_line() + 
-    facet_grid(metric ~ ., scales = "free_y")
+    facet_grid(metric ~ ., scales = "free_y")  + 
+    scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
 } 
 
 #' add metrics
