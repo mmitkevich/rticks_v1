@@ -60,8 +60,13 @@ struct Metrics : public Algo,
       init_metric(&qty_sell, "qty_sell");
       //init_metric(&roundtrips, "roundtrips", 0.0);
       perfs_nrows(stop);  // datetime, symbol, value
-      if(logger)
-        logger->warn("perfs_interval={}", perfs_interval);
+      if(logger) {
+        logger->warn("perfs_freq={}", perfs_interval);
+        logger->flush();
+      }
+      if(perfs_interval<1){
+        throw std::runtime_error("config$perfs freq is invalid");
+      }
   }
 
   template<typename TMarket>
