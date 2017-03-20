@@ -72,6 +72,7 @@ struct GammaAlgo : public MarketAlgo,
     auto side = e.side();
     // update cached market price
     market.update(s, e);
+    auto m = market[s];
     // restore our quotes if needed
     auto q = quotes[s];
     if(!q.count_buy() && !q.count_sell()) { // no buy & no sell
@@ -81,8 +82,16 @@ struct GammaAlgo : public MarketAlgo,
             quote_sell(s, mid + 0.5 * spread[s]);
         }
     }else if(!q.count_buy()) {  // no buy
+        // check the sell - could be too far from market
+        if(q.sell-m.buy>spread[s]) {
+          quote_sell(s, m.buy+spread[s]);
+        }
         quote_buy(s, q.sell - spread[s]);
     }else if(!q.count_sell()) { // no sell
+        // check the buy - could be too far from market
+        if(m.sell-q.buy>spread[s]) {
+          quote_buy(s, m.sell-spread[s]);
+        }
         quote_sell(s, q.buy + spread[s]);
     }
   }
