@@ -40,14 +40,16 @@ parse_exante_id <- function(id, instruments=NULL) {
   instruments$exchange <- q %>% map_chr(~ .x[2])
   future_part <- q %>% map_chr(~ .x[3])
   #print(future_part)
-  instruments$month <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), substr(future_part, 4, 4), substr(future_part, 1, 1))
+  instruments$month <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
+                              ifelse(substr(future_part, 3, 3) == "/",substr(future_part, 4, 4),NA), 
+                              substr(future_part, 1, 1))
   instruments$month <- match(instruments$month, contract_month_letter)
   #ifelse(is.na(future_part), NA, which.max(contract_month_letter==substr(future_part,1,1)))
   instruments$year <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,5,8)), as.numeric(substr(future_part,2,5)))
   # month2 and year2 only for standalone spreads
   instruments$month2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), substr(future_part, 10, 10), NA)
   instruments$month2 <- match(instruments$month2, contract_month_letter)
-  instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), as.numeric(substr(future_part,2,5)))
+  instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), NA)
   instruments$instrument_id <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
                                       ifelse(is.na(instruments$month) == T & is.na(instruments$month2) == T,
                                              as.character(instruments$exante_id),
