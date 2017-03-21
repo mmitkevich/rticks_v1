@@ -64,10 +64,33 @@ log_perfs <- function(name, data, r, params, price) {
        "exante_id", head(data$exante_id,1),
        "virtual_id", head(data$virtual_id,1))
 }
+
+#' backtest default config
+#' 
+#' @export
+backtest_config_default = list(
+  perfs_freq=days(1), 
+  
+  no_cache=T, 
+  no_clean=F, 
+  no_save=T, 
+  
+  roll_position=T,
+  custom_roll=NULL,
+  
+  log_path = "rticks.log",
+  log_level = 3, #LOG$WARN,
+  log_stdout = 3#LOG$WARN
+)
+
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(perfs_freq=as.numeric(days(1)), no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
+backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+  
+  config <- backtest_config_default %>% modifyList(config) # merge with default config
+  config$perfs_freq <- as.numeric(config$perfs_freq)
+  
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
