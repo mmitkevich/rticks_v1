@@ -8,7 +8,7 @@ cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
   log_level = LOG$OFF,
-  log_stdout = LOG$WARN, 
+  log_stdout = LOG$INFO, 
   roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
   perfs_freq = as.numeric(days(1))
@@ -19,7 +19,7 @@ init_spd_log(cfg)
 
 # period of backtest
 start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2017-03-03")
+stop  <- as_datetime("2016-03-03")
 
 params <- data_frame(
   # limits

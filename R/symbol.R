@@ -105,14 +105,14 @@ query_symbols <- function(instruments = NULL,
                         start = NULL, 
                         stop = NULL, 
                         where = NULL, 
-                        f.prefix = T,
+                        f.prefix = F,
                         fields = list("exante_id", "first_notice_day"), 
                         fields.dt = list("first_notice_day", "first_trading_day", "expiry_date", "last_delivery_day", "last_delivery_day")) {
   # convert to data.frame
   instruments <- parse_symbols(instruments)
   # prepare WHERE
   w <- c(
-    instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "exante_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
+    instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "instrument_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
     start %>% nnmap( ~ paste("first_notice_day", ">=", trunc(as.numeric(.x)*1000))), # start date
     stop %>% nnmap( ~ paste("first_notice_day", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
