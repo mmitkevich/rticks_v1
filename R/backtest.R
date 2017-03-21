@@ -75,6 +75,10 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   ilog("backtest","start",as.character(start),"stop",as.character(stop), "logging into ",config$log_path)
 
   instruments <- instruments %>% query_instruments()
+  if(nrow(instruments)==0) {
+    wlog("instruments empty")
+    stop("instruments empty")
+  }
   
   params <- as_data_frame(params) %>% 
     left_join(
