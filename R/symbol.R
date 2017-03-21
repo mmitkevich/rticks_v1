@@ -83,7 +83,7 @@ parse_symbols <- function(instruments, nm="exante_id") {
 #'  > c("VIX.CBOE","PL.NYMEX") %>% query_symbols(start=now())
 #'  > query_symbols(start = now() + months(1))
 #'  > query_symbols("ZW", start=now())
-#'     exante_id ric fut_notice_first ticker exchange instrument_id month year instrument_class strike
+#'     exante_id ric first_notice_day ticker exchange instrument_id month year instrument_class strike
 #' ZW.CBOT.H2017 WH7       2017-02-28     ZW     CBOT       ZW.CBOT     3 2017                F     NA
 #' ZW.CBOT.K2017 WK7       2017-04-28     ZW     CBOT       ZW.CBOT     5 2017                F     NA
 #' ...
@@ -95,22 +95,22 @@ query_symbols <- function(instruments = NULL,
                         stop = NULL, 
                         where = NULL, 
                         f.prefix = T,
-                        fields = list("exante_id", "ric", "fut_notice_first"), 
-                        fields.dt = list("fut_notice_first", "fut_first_trade_dt", "last_tradeable_dt", "fut_dlv_dt_first", "fut_dlv_dt_last")) {
+                        fields = list("exante_id", "first_notice_day"), 
+                        fields.dt = list("first_notice_day", "first_trading_day", "expiry_date", "last_delivery_day", "last_delivery_day")) {
   # convert to data.frame
   instruments <- parse_symbols(instruments)
   # prepare WHERE
   w <- c(
     instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "exante_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
-    start %>% nnmap( ~ paste("fut_notice_first", ">=", trunc(as.numeric(.x)*1000))), # start date
-    stop %>% nnmap( ~ paste("fut_notice_first", "<", trunc(as.numeric(.x)*1000))), # stop date
+    start %>% nnmap( ~ paste("first_notice_day", ">=", trunc(as.numeric(.x)*1000))), # start date
+    stop %>% nnmap( ~ paste("first_notice_day", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
     ) %>% reduce(sql.and)
   # proceed with SQL
-  result <- sql.select("quant_data.symbols", 
+  result <- sql.select("quant_data.smart_symbols", 
              fields = fields,
              where = w,
-             order = "fut_notice_first")
+             order = "first_notice_day")
   # fix datetime columns
   if(nrow(result)>0 && !is.null(fields.dt)) {
     if(!is.null(fields))

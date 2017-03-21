@@ -127,7 +127,7 @@ roll_schedule_vgo <- function(instruments,
                                  stringsAsFactors = FALSE)
 
   data <- query_symbols(symbols, start = NULL) 
-  start <- ifnull(min(data$fut_notice_first, na.rm=T), dt(1900))
+  start <- ifnull(min(data$first_notice_day, na.rm=T), dt(1900))
   
   for (i in 1:length(symbols)) {
     # query_symbols(symbols[i], start = NULL) # MM: moved query out of cycle
@@ -137,20 +137,20 @@ roll_schedule_vgo <- function(instruments,
  
     comDF <- exanteIDDF
     if(!is.null(start))
-        comDF <-  comDF %>% filter(fut_notice_first >= start)
+        comDF <-  comDF %>% filter(first_notice_day >= start)
     if(!is.null(stop))
-        comDF <- comDF %>% filter(fut_notice_first <= stop)
+        comDF <- comDF %>% filter(first_notice_day <= stop)
     
     comDF <- comDF %>% 
         #filter(get_futures_contract_letter(exante_id) %in%  activeMonthLetterPattern) %>% 
          filter(month %in% activeMonthNumericPattern) %>%
-         arrange(fut_notice_first)
+         arrange(first_notice_day)
     
     for (z in 1:nrow(comDF)) {
       
       if (z == 1) {
         
-        datetime <- rep(comDF$fut_notice_first[z], max_active_contract)
+        datetime <- rep(comDF$first_notice_day[z], max_active_contract)
         actContrNumberDF1 <- .get_act_num_contract_after1(comDF$exante_id[z], activeMonthNumericPattern, max_active_contract)
         resSchedDF.0 <- cbind(rep(start, max_active_contract), actContrNumberDF1, rep(symbols[i], nrow(actContrNumberDF1)))
         colnames(resSchedDF.0) <- c("datetime", "exanteID", "activeContractNumber", "exanteIDpat")
@@ -162,7 +162,7 @@ roll_schedule_vgo <- function(instruments,
         
         if (comDF$exante_id[z] == actContrNumberDF1$exanteID[2]) {
           
-          datetime <- rep(comDF$fut_notice_first[z], max_active_contract + 1)
+          datetime <- rep(comDF$first_notice_day[z], max_active_contract + 1)
           actContrNumberDF1 <- .get_act_num_contract_after1(comDF$exante_id[z], activeMonthNumericPattern, max_active_contract)
           actContrNumberDF <- rbind(c(comDF$exante_id[z-1], 0), actContrNumberDF1)
           exanteIDpat <- rep(symbols[i], nrow(actContrNumberDF))
