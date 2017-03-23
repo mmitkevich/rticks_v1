@@ -39,7 +39,7 @@ params <- data_frame(
   
   # roll_pattern  = list(list(7, 12)),
   
-  active_contract = 1             # which month to trade
+  active_contract = 5             # which month to trade
 )
 
 perfs <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
