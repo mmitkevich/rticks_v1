@@ -10,11 +10,12 @@ load_trade_schedule <- function(instrument_id,
                                      path="/usr/local/share/exante-stat-schedule-data/"
                                      #path="~/exante-stat-schedule-data/"
                                 ) {
-  ilog("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path)
+  wlog("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path)
   exanteID <- paste0(instrument_id,".X0000^")
   mappingFile <- fromJSON(paste0(path,".mapping"))
   fileName <- head(mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))],1)
   fullFileName <- paste0(path, fileName, ".json")
+  wlog("load_trade_schedule from",fullFileName)
   rawHistoricalSchedule <- fromJSON(fullFileName)
   startDateTime <- ifnull(start, as_datetime(min(rawHistoricalSchedule$intervals$start)))
   endDateTime <-  ifnull(end, as_datetime(now()))
