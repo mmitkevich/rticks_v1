@@ -144,7 +144,7 @@ query_symbols <- function(instruments = NULL,
 #' @examples 
 #'   query_instruments("VIX")
 #' @export
-query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = T, ...) {
+query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = F, ...) {
   # TODO: as_tibble ?
   w <- .sql.match_id(x, name=nm, f.prefix=f.prefix)
   #result <- tryCatch(
