@@ -184,10 +184,11 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     }
   }
   flush_spd_log()
-  attr(perfs, "data") <- data
-  attr(perfs, "params") <- params
   perfs$datetime <- as_datetime(perfs$datetime)
-  perfs
+  q$perfs<-perfs
+  q$data<-data
+  q$params<-params
+  q
 }
 
 #' plot backtest results
