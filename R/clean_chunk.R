@@ -10,6 +10,7 @@ load_trade_schedule <- function(instrument_id,
                                      path="/usr/local/share/exante-stat-schedule-data/"
                                      #path="~/exante-stat-schedule-data/"
                                 ) {
+  stopifnot(nrow(instrument_id)==1)
   ilog("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path)
   q <- strsplit(instrument_id, "\\.")
   ticker <- q %>% map_chr(~ .x[1])

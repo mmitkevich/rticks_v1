@@ -1,7 +1,7 @@
 # input chunk should be already cleaned
-
+'
 ###################################################################################################################
-chunks <- query_candles(c("PL.NYMEX","GC.COMEX"), start = dt(2017), active_contrac = 3) %>% fetch_all()
+chunks <- query_candles(c("PL.NYMEX.1","GC.COMEX.1"), start = dt(2017), active_contract = 3) %>% fetch_all()
 chunk <- clean.chunk(chunks[[1]], 
                      schedules = NULL, 
                      cut_minutes = 0, 
@@ -10,22 +10,26 @@ chunk <- clean.chunk(chunks[[1]],
 weights <- list(PL.NYMEX = 2, GC.COMEX = -1)
 sythetic.chunk(chunk, weights)
 ###################################################################################################################
-chunks <- query_candles(c("FOAT.EUREX","FGBL.EUREX"), start = dt(2017), active_contrac = 3) %>% fetch_all()
+chunks <- query_candles(c("FOAT.EUREX.3","FGBL.EUREX.3"), start = dt(2017), active_contract = 3) %>% fetch_all()
 chunk <- clean.chunk(chunks[[1]], 
                      schedules = NULL, 
                      cut_minutes = 0, 
                      negative_bidask = TRUE,
                      zero_prices = TRUE)
-weights <- list(FOAT.EUREX = 2, FGBL.EUREX = -1)
-sythetic.chunk(chunk, weights)
+weights <- list(FOAT.EUREX.3 = 2, FGBL.EUREX.3 = -1)
+synthetic.chunk(chunk, weights)
 ###################################################################################################################
+'
 
-sythetic.chunk <- function(chunk, weights) {
+#' synthesize chunk by formula
+#' 
+#' @export
+synthetic.chunk <- function(chunk, weights) {
   quotes <- list()
   instruments <- names(weights)
   
   for (i in 1:length(instruments)) {
-    quotes[[i]] <- chunk %>% filter(instrument_id == instruments[i]) %>% select(datetime,bid,ask)
+    quotes[[i]] <- chunk %>% filter(virtual_id == instruments[i]) %>% select(datetime,bid,ask)
   }
   names(quotes) <- instruments
   
@@ -36,6 +40,13 @@ sythetic.chunk <- function(chunk, weights) {
   spread_bid <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$bid.y} else {merged_DF$ask.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$bid.x} else {merged_DF$ask.x})
   spread_ask <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$ask.y} else {merged_DF$bid.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$ask.x} else {merged_DF$bid.x})
   
-  spread.chunk <- data_frame(datetime = merged_DF$datetime, bid = spread_bid, ask = spread_ask)
+  spread.chunk <- data_frame(datetime = merged_DF$datetime, 
+                             bid = spread_bid, 
+                             ask = spread_ask, 
+                             high = bid, 
+                             low = ask, 
+                             virtual_id = paste.list(names(weights), sep = "-"),
+                             exante_id = virtual_id)
   return(spread.chunk)
 }
+

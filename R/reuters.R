@@ -49,6 +49,7 @@ query_candles.reuters <- function(instruments = NULL,
   if(getOption("debug",F)){
     wlog("SCHEDULE")
     print(schedule)
+    #browser()
   }
   schedule <- schedule %>% .filter_schedule(start=start, stop=stop)
   q <- structure(new.env(), class="reuters")
