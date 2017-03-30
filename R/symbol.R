@@ -38,17 +38,30 @@ parse_exante_id <- function(id, instruments=NULL) {
   q <- strsplit(id, "\\.")
   instruments$ticker <- q %>% map_chr(~ .x[1])
   instruments$exchange <- q %>% map_chr(~ .x[2])
-  instruments$instrument_id <- ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange))
   future_part <- q %>% map_chr(~ .x[3])
   #print(future_part)
-  instruments$month <- substr(future_part, 1, 1)
+  instruments$month <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
+                              ifelse(substr(future_part, 3, 3) == "/",substr(future_part, 4, 4),NA), 
+                              substr(future_part, 1, 1))
   instruments$month <- match(instruments$month, contract_month_letter)
   #ifelse(is.na(future_part), NA, which.max(contract_month_letter==substr(future_part,1,1)))
-  instruments$year <- as.numeric(substr(future_part,2,5))
+  instruments$year <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,5,8)), as.numeric(substr(future_part,2,5)))
+  # month2 and year2 only for standalone spreads
+  instruments$month2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), substr(future_part, 10, 10), NA)
+  instruments$month2 <- match(instruments$month2, contract_month_letter)
+  instruments$year2 <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,11,14)), NA)
+  instruments$instrument_id <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
+                                      ifelse(is.na(instruments$month) == T & is.na(instruments$month2) == T,
+                                             as.character(instruments$exante_id),
+                                             paste0(instruments$ticker, ".", instruments$exchange, ".", substr(future_part, 0, 2), (as.numeric(instruments$year2) - as.numeric(instruments$year))*12 + (as.numeric(instruments$month2) - as.numeric(instruments$month)), "M")),
+                                      ifelse(is.na(instruments$exchange), instruments$ticker, paste0(instruments$ticker,".",instruments$exchange)))
+  
   option_part <- q %>% map(~ .x[4])
   option_type <- substr(option_part,1,1)
-  instruments$instrument_class = ifelse(!is.na(option_type), option_type,
-                                        ifelse(!is.na(instruments$month), "F", "S"))
+  instruments$instrument_class = ifelse(substr(future_part, 0, 2) == "CS", "CS",
+                                        ifelse(substr(future_part, 0, 2) == "RS", "RS",
+                                               ifelse(!is.na(option_type), option_type,
+                                                      ifelse(!is.na(instruments$month), "F", "S"))))
   instruments$strike <- as.numeric(gsub("_","\\.",substr(option_part, 2, nchar(option_part))))
   instruments
 }
@@ -83,7 +96,7 @@ parse_symbols <- function(instruments, nm="exante_id") {
 #'  > c("VIX.CBOE","PL.NYMEX") %>% query_symbols(start=now())
 #'  > query_symbols(start = now() + months(1))
 #'  > query_symbols("ZW", start=now())
-#'     exante_id ric fut_notice_first ticker exchange instrument_id month year instrument_class strike
+#'     exante_id ric first_notice_day ticker exchange instrument_id month year instrument_class strike
 #' ZW.CBOT.H2017 WH7       2017-02-28     ZW     CBOT       ZW.CBOT     3 2017                F     NA
 #' ZW.CBOT.K2017 WK7       2017-04-28     ZW     CBOT       ZW.CBOT     5 2017                F     NA
 #' ...
@@ -94,23 +107,23 @@ query_symbols <- function(instruments = NULL,
                         start = NULL, 
                         stop = NULL, 
                         where = NULL, 
-                        f.prefix = T,
-                        fields = list("exante_id", "ric", "fut_notice_first"), 
-                        fields.dt = list("fut_notice_first", "fut_first_trade_dt", "last_tradeable_dt", "fut_dlv_dt_first", "fut_dlv_dt_last")) {
+                        f.prefix = F,
+                        fields = list("exante_id", "first_notice_day"), 
+                        fields.dt = list("first_notice_day", "first_trading_day", "expiry_date", "last_delivery_day", "last_delivery_day")) {
   # convert to data.frame
   instruments <- parse_symbols(instruments)
   # prepare WHERE
   w <- c(
-    instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "exante_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
-    start %>% nnmap( ~ paste("fut_notice_first", ">=", trunc(as.numeric(.x)*1000))), # start date
-    stop %>% nnmap( ~ paste("fut_notice_first", "<", trunc(as.numeric(.x)*1000))), # stop date
+    instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "instrument_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
+    start %>% nnmap( ~ paste("first_notice_day", ">=", trunc(as.numeric(.x)*1000))), # start date
+    stop %>% nnmap( ~ paste("first_notice_day", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
     ) %>% reduce(sql.and)
   # proceed with SQL
-  result <- sql.select("quant_data.symbols", 
+  result <- sql.select("quant_data.smart_symbols", 
              fields = fields,
              where = w,
-             order = "fut_notice_first")
+             order = "first_notice_day")
   # fix datetime columns
   if(nrow(result)>0 && !is.null(fields.dt)) {
     if(!is.null(fields))
@@ -131,14 +144,16 @@ query_symbols <- function(instruments = NULL,
 #' @examples 
 #'   query_instruments("VIX")
 #' @export
-query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = T, ...) {
+query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.prefix = F, ...) {
   # TODO: as_tibble ?
   w <- .sql.match_id(x, name=nm, f.prefix=f.prefix)
   #result <- tryCatch(
   result <- sql.select(table, fields = fields, where = w, ...)
-  #warning=function(w){})
-  for(col in json_cols) {
-    result[[col]] <- result[[col]] %>% map (fromJSON)
+  if(nrow(result)!=0){
+    #warning=function(w){})
+    for(col in json_cols) {
+      result[[col]] <- result[[col]] %>% map (fromJSON)
+    }
   }
   result
 }
@@ -151,7 +166,7 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 query_instruments <- function(instruments = NULL, 
                              fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
                              json_cols = c("active_contract"), ...) {
-  instruments <- parse_symbols(instruments, nm = "instrument_id")
+  instruments <- parse_symbols(instruments) # TODO: WHY nm = "instrument_id"
   r <- query_quant_data(instruments$instrument_id, "quant_data.instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
   # FIXME: patch exante_id == instrument_id so every symbol df has some exante_id column
   r$exante_id <- r[["instrument_id"]]

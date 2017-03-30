@@ -10,7 +10,7 @@ ifply <- function(.x, .f, .p=function()T,...) {
 .reuters.fields = c("high", "low", "bid", "ask")
 
 #' @export
-.reuters.fields.sql = c("s.exante_id", "m.datetime", "m.close_bid", "m.close_ask", "m.high_bid", "m.low_ask")
+.reuters.fields.sql = c("exante_id", "datetime", "close_bid", "close_ask", "high_bid", "low_ask")
 
 
 .filter_schedule <- function(schedule, start=NULL, stop=NULL) {
@@ -49,6 +49,7 @@ query_candles.reuters <- function(instruments = NULL,
   if(getOption("debug",F)){
     wlog("SCHEDULE")
     print(schedule)
+    #browser()
   }
   schedule <- schedule %>% .filter_schedule(start=start, stop=stop)
   q <- structure(new.env(), class="reuters")
@@ -104,15 +105,13 @@ fetch.reuters <- function(q) {
     stop(paste("no symbol for ac=", paste0(q$active_contract), "found in roll schedule","start",as.character(as_datetime(q$start)),"stop",as.character(as_datetime(stop))))
   }
   w <- c(
-    "m.ric=s.ric",
-    "m.datetime BETWEEN s.fut_first_trade_dt AND s.last_tradeable_dt",
-    paste("s.exante_id","IN","(",paste.list(paste0("'", symbols$exante_id, "'"),sep=","),")"),
-    paste("m.datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)),
+    paste("exante_id","IN","(",paste.list(paste0("'", symbols$exante_id, "'"),sep=","),")"),
+    paste("datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)),
     q$where
   ) %>% reduce(sql.and)
   df <- 
     sql.select(
-      "quant_data.symbols s, quant_data.minutes m", 
+      "quant_data.smart_minutes", 
       fields = .reuters.fields.sql, 
       where = w, 
       order = "datetime")

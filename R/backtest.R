@@ -96,34 +96,78 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   }
 
   ilog("backtest","start",as.character(start),"stop",as.character(stop), "logging into ",config$log_path)
-
+  
   instruments <- instruments %>% query_instruments()
+  if(nrow(instruments)==0) {
+    wlog("instruments empty")
+    stop("instruments empty")
+  }
   
-  params <- as_data_frame(params) %>% 
-    left_join(
-      instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier), by="symbol") %>% 
-    mutate(symbol=paste0(symbol,".",as.character(active_contract)))
-  
+  cat("ORIGINAL PARAMS\n")
+  print(params)
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
     data <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
                                                 roll_pattern=params$roll_pattern[1],
-                                                start=start, stop=stop, 
+                                                start=start, 
+                                                stop=stop, 
                                                 schedule=schedule,
                                                 config=config)
-                                                
+    
   }
   
+  if(nrow(params) > 1) {
+    sp <- T
+    
+    weights.spread <- params$weight %>% setNames(paste0(params$symbol,".", params$active_contract))
+    
+    params <- as_data_frame(params) %>% 
+      left_join(
+        instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier), by="symbol")
+    
+    params <- data_frame(limit.buy = params$limit.buy[1],
+                         stop.buy = params$stop.buy[1],
+                         limit.sell = params$limit.sell[1],
+                         stop.sell = params$stop.sell[1],
+                         spread = params$spread[1], 
+                         gamma.buy = params$gamma.buy[1],
+                         gamma.sell = params$gamma.sell[1],
+                         symbol = paste0(params$symbol[1], ".", params$active_contract[1],"-", params$symbol[2], ".", params$active_contract[2]),
+                         weight = NA,
+                         roll_pattern = NA,
+                         active_contract = NA,
+                         mpi = min(params$mpi),
+                         multiplier = max(params$multiplier),
+                         pos = 0,
+                         cash = 0,
+                         qty_buy = 0, 
+                         qty_sell = 0)
+  } else {
+    sp <- F
+    params <- as_data_frame(params) %>% 
+      left_join(
+        instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier), by="symbol") %>% 
+      mutate(symbol=paste0(symbol,".",as.character(active_contract)))
+  }
   perfs <- NULL
   params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
   ilog("backtest algo", algo)
+  
+  cat("SPREAD PARAMS\n")
+  print(params)
+  #browser()
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
       wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
-    }else {
+    } else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
+      #browser()
+      if (sp == TRUE) {
+        chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
+      }
+      #browser
       r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
       perfs <- perfs %>% bind_rows(r$perfs)
       params$pos  <- r$pos

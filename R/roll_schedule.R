@@ -27,7 +27,7 @@ roll_schedule <- function(instruments,
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",
-                          fields=c("instrument_id", "exante_id", "month", "year", "fut_notice_first")) {
+                          fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day")) {
   #  print(instruments)
   # lazy instruments loading
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
@@ -42,7 +42,7 @@ roll_schedule <- function(instruments,
   if(is.null(fields))
     fields <- names(r)
   if(is.null(start))
-    start <- min(symbols$fut_notice_first, na.rm=T)
+    start <- min(symbols$first_notice_day, na.rm=T)
   
   # go through instruments
   result <- instruments %>% by_row(function(ins) {
@@ -53,9 +53,9 @@ roll_schedule <- function(instruments,
       filter(instrument_id==ins$instrument_id) %>%
       filter(month %in% roll_pattern)
     if(!is.null(custom_roll)) {
-      sym$fut_notice_first <- as_function(custom_roll)(sym$fut_notice_first)
+      sym$first_notice_day <- as_function(custom_roll)(sym$first_notice_day)
     }
-    sym <- sym %>% arrange(fut_notice_first)
+    sym <- sym %>% arrange(first_notice_day)
     
     #      print(sym)
     #      cat("----")
@@ -64,7 +64,7 @@ roll_schedule <- function(instruments,
     # datetime for .a cloned row is lagging .a rows before its source
     rs <- seq(0, max_active_contract) %>% 
       map_df( function(.active_contract) {
-        sym %>% mutate(active_contract=.active_contract, datetime=lag(fut_notice_first, n=.active_contract))
+        sym %>% mutate(active_contract=.active_contract, datetime=lag(first_notice_day, n=.active_contract))
       }) %>% # and sort by datetime
       arrange(datetime)
     # take properly formed
