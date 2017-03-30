@@ -107,12 +107,13 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   print(params)
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
-    data <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
+    q <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
                                                 roll_pattern=params$roll_pattern[1],
                                                 start=start, 
                                                 stop=stop, 
                                                 schedule=schedule,
                                                 config=config)
+    data <- q$data
     
   }
   
@@ -156,6 +157,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   cat("SPREAD PARAMS\n")
   print(params)
   #browser()
+  active_contract_current <- 3
+  prev_chunk <- NULL
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -163,7 +166,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     } else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
-      #browser()
+      browser()
+      
       if (sp == TRUE) {
         chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
       }

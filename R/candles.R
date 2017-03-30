@@ -104,7 +104,7 @@ query_candles_cache <- function(instruments, active_contract=1, roll_pattern=NUL
   if(config$no_cache || !file.exists(path)) {
     q <- query_candles(instruments, active_contract = active_contract, start=start, stop=stop, custom_roll=config$custom_roll)
     data <- q %>% fetch_all()
-    data_raw <- data
+    data_raw <- q$data
     if(!config$no_save) {
       ilog("raw saved ", path)
       saveRDS(data, path)
@@ -114,7 +114,7 @@ query_candles_cache <- function(instruments, active_contract=1, roll_pattern=NUL
       if(is.null(schedule)) {
         schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
       }
-      data<-data %>% map(~ clean.chunk(., schedules=list(schedule), cut_minutes=3, negative_bidask=T))
+      data<-data %>% map(~ clean.chunk(., schedules=list(schedule), cut_minutes=0, negative_bidask=T))
       if(!config$no_save) {
         ilog("cleaned saved ", path)
         saveRDS(data, path)
@@ -124,7 +124,8 @@ query_candles_cache <- function(instruments, active_contract=1, roll_pattern=NUL
     ilog("reading ",path)
     data <- readRDS(path)
   }
-  return(data)
+  q$data <-data
+  return(q)
 }
 
 #' chunk.resample
