@@ -16,6 +16,17 @@ roll_day <- function(day_of_month=NA, months_ahead=NA) {
   }
 }
 
+#'  value_as_list
+#'  
+#' @export
+value_as_list <- function(value, keys, default){
+  defs <- as.list(keys) %>% map(~ ifelse(is.list(value), default, value)) %>% setNames(keys)
+  if(is.list(value))
+    defs%>%modifyList(value)
+  else
+    defs
+}
+
 #' roll_schedule
 #' 
 #' @export
@@ -23,11 +34,14 @@ roll_schedule <- function(instruments,
                           symbols = NULL,
                           active_contract = NULL, # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
                           max_active_contract = 12,
+                          min_active_contract = 1,
                           custom_roll = NULL, # ~ . - days(day(.)) - months(2)
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day")) {
+  max_active_contract <- max_active_contract %>% value_as_list(instruments$instrument_id, 12)
+  min_active_contract <- min_active_contract %>% value_as_list(instruments$instrument_id, 1)
   #  print(instruments)
   # lazy instruments loading
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
@@ -62,7 +76,7 @@ roll_schedule <- function(instruments,
     
     # for each active month .a in [0..max_active] create clones of each row
     # datetime for .a cloned row is lagging .a rows before its source
-    rs <- seq(0, max_active_contract) %>% 
+    rs <- seq(min_active_contract[[ins$instrument_id]]-1, max_active_contract[[ins$instrument_id]]) %>% 
       map_df( function(.active_contract) {
         sym %>% mutate(active_contract=.active_contract, datetime=lag(first_notice_day, n=.active_contract))
       }) %>% # and sort by datetime
@@ -88,6 +102,39 @@ roll_schedule <- function(instruments,
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id")
   result
 }
+
+#' custom logic keeping contract until it goes out of allowed active_contract indexes range 
+#'
+#'
+#' @export
+schedule.roll.logic <- function(sched, instruments, min_active_contract, max_active_contract) {
+  if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
+    instruments <- instruments %>% query_instruments()
+  
+  min_active_contract <- value_as_list(min_active_contract, instruments$instrument_id, 1)
+  max_active_contract <- value_as_list(max_active_contract, instruments$instrument_id, 12)
+  for (i in 1:nrow(instruments)) {
+    filt_inst_schedule <- sched %>% filter(instrument_id == instruments$instrument_id[i])
+    act_contracts = seq(max_active_contract[[i]], min_active_contract[[i]])
+    for (j in 1:length(unique(filt_inst_schedule$datetime))) {
+      contract <- unlist(act_contracts[i])[if (j %% length(act_contracts) == 0) {length(act_contracts)} 
+                                           else {j - (j %/% length(act_contracts)) * length(act_contracts)}]
+      line <- filt_inst_schedule %>% filter(datetime == unique(filt_inst_schedule$datetime)[j]) %>% filter(active_contract == contract)
+      if (j == 1) {
+        DF <- line
+      } else {
+        DF <- rbind(DF, line)
+      }
+    }
+    if (i == 1) {
+      DF_fin <- DF
+    } else {
+      DF_fin <- rbind(DF_fin, DF)
+    }
+  }
+  DF_fin %>% arrange(datetime)
+}
+
 
 #' unique datetimes
 #' 

@@ -34,7 +34,8 @@ ifply <- function(.x, .f, .p=function()T,...) {
 #' @export
 query_candles.reuters <- function(instruments = NULL, 
                                   schedule = NULL,
-                               active_contract = seq(1,3),
+                               active_contract = 1,
+                               min_active_contract = 1,
                                custom_roll = NULL,
                                start = NULL, 
                                stop = lubridate::now(), 
@@ -45,7 +46,12 @@ query_candles.reuters <- function(instruments = NULL,
   schedule <- schedule %>% 
     ifnull(cached_attr(instruments, "schedule", 
                        instruments %>% 
-                         roll_schedule(max_active_contract=max(active_contract), custom_roll=custom_roll, start=start, stop=stop)))
+                         roll_schedule(max_active_contract=active_contract, 
+                                       min_active_contract=min_active_contract, 
+                                       custom_roll=custom_roll, 
+                                       start=start, stop=stop) %>%
+                         schedule.roll.logic(instruments, max_active_contract=active_contract, min_active_contract=min_active_contract))
+                       )
   if(getOption("debug",F)){
     wlog("SCHEDULE")
     print(schedule)

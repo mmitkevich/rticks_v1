@@ -84,8 +84,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   print(params)
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
-    data <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
-                                                roll_pattern=params$roll_pattern[1],
+    data <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
+                                                min_active_contract =params$min_active_contract %>% setNames(params$symbol),                                                roll_pattern=params$roll_pattern[1],
                                                 start=start, 
                                                 stop=stop, 
                                                 schedule=schedule,
