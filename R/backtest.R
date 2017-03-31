@@ -243,3 +243,28 @@ metrics.gamma <- function(perfs, params) {
   attr(qtys, "params") <- params
   qtys
 }
+
+#' bt_report(r)
+#' 
+#' @export
+bt_report <- function(r) {
+  # view data
+  symbol <- paste0(paste.list(r$params$symbol,"-"))
+  r$data %>% bind_rows() %>% View(paste0("data$",symbol))
+  
+  metrics <- r$perfs %>% metrics.gamma(r$params) # calculate additional metrics
+  r$metrics <- metrics %>% spread(metric,value)
+  
+  # view perfs 
+  r$metrics %>% View(paste0("metrics$",symbol))
+  
+  # plot pnl
+  
+  # save results
+  dir.create("~/rticks_bt", showWarnings=F)
+  dt <- now() %>% strftime("%Y-%m-%d_%H-%M-%S")
+  fn <- paste0("~/rticks_bt/",symbol)
+  write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
+  write.csv(r$metrics, file=paste(fn, dt, "csv", sep="."))
+  metrics %>% plot_bt()
+}

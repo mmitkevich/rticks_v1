@@ -17,52 +17,55 @@ cfg <- config(backtest) %>% modifyList(list(
 # init logging, see rticks.log
 init_spd_log(cfg)
 
-# period of backtest
-start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2016-03-03")
+start <- as_datetime("2016-01-01")
+stop  <- as_datetime("2016-03-01")
 
 params <- data_frame(
   # limits
-  limit.buy     = 76,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-  stop.buy      = 50,    # FIXME: no buy lower than 18
+  
+  limit.buy     = -200,    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  stop.buy      = -360,    # FIXME: no buy lower than 18
   
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = NA,    # FIXME: no sell above 19
   
   pos           = 0,     # initial position
   
-  spread        = 0.8,  # take profit
+  spread        = 20,  # take profit
   
   gamma.buy     = 1,       # size to buy on each mpi
   gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
   
-  symbol        = "LH.CME",   # exante prefix of contract series
+  symbol        = "PL.NYMEX",   # exante prefix of contract series
+  weight  = 1,
+  roll_pattern  = list(list(4, 10)),
   
-  # roll_pattern  = list(list(7, 12)),
-  
-  active_contract = 5             # which month to trade
+  active_contract = 1#seq(2,3)            # which month to trade
 )
 
-report <- function(r) {
-  # view data
-  symbol <- paste0(paste.list(r$params$symbol,"-"))
-  r$data %>% bind_rows() %>% View(paste0("data$",symbol))
+params <- bind_rows(params, data_frame(
+  # limits
   
-  r$metrics <- r$perfs %>% metrics.gamma(r$params) # calculate additional metrics
-  # view perfs 
-  r$metrics %>% spread(metric,value) %>% View(paste0("metrics$",symbol))
+  limit.buy     = NA,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  stop.buy      = NA,    # FIXME: no buy lower than 18
   
-  # plot pnl
-
-  # save results
-  dir.create("~/rticks_bt", showWarnings=F)
-  dt <- now() %>% strftime("%Y-%m-%d_%H-%M-%S")
-  fn <- paste0("~/rticks_bt/",symbol)
-  write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
-  write.csv(r$metrics %>% spread(metric, value), file=paste(fn, dt, "csv", sep="."))
-  r$metrics %>% plot_bt()
-}
+  limit.sell    = +Inf,  # sell when price>=sell only
+  stop.sell     = NA,    # FIXME: no sell above 19
+  
+  pos           = 0,     # initial position
+  
+  spread        = 0.2,  # take profit
+  
+  gamma.buy     = 1,       # size to buy on each mpi
+  gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
+  
+  symbol        = "GC.COMEX",   # exante prefix of contract series
+  weight  = -1,
+  roll_pattern  = list(list(4, 10)),
+  
+  active_contract = 1#seq(2,3)             # which month to trade
+))
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
 
-#report(r)
+#bt_report(r)
