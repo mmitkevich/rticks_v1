@@ -158,7 +158,6 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   print(params)
   #browser()
   active_contract_current <- 3
-  prev_chunk <- NULL
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -166,7 +165,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     } else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
-      browser()
+      #browser()
       
       if (sp == TRUE) {
         chunk <- chunk %>% synthetic.chunk(weights=weights.spread)

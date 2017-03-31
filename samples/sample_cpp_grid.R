@@ -43,17 +43,26 @@ params <- data_frame(
   active_contract = 5             # which month to trade
 )
 
-perfs <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
-results <- attr(perfs,"params")
-data <- attr(perfs,"data")
+report <- function(r) {
+  # view data
+  symbol <- paste0(paste.list(r$params$symbol,"-"))
+  r$data %>% bind_rows() %>% View(paste0("data$",symbol))
+  
+  r$metrics <- r$perfs %>% metrics.gamma(r$params) # calculate additional metrics
+  # view perfs 
+  r$metrics %>% spread(metric,value) %>% View(paste0("metrics$",symbol))
+  
+  # plot pnl
 
-perfs <- perfs %>% metrics.gamma(results) # calculate additional metrics
+  # save results
+  dir.create("~/rticks_bt", showWarnings=F)
+  dt <- now() %>% strftime("%Y-%m-%d_%H-%M-%S")
+  fn <- paste0("~/rticks_bt/",symbol)
+  write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
+  write.csv(r$metrics %>% spread(metric, value), file=paste(fn, dt, "csv", sep="."))
+  r$metrics %>% plot_bt()
+}
 
+r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
 
-# view perfs 
-# perfs %>% spread(metric,value) %>% View()
-
-perfs %>% plot_bt()
-
-dir.create("~/rticks_bt", showWarnings=F)
-write.csv(perfs %>% spread(metric, value), file=paste0("~/rticks_bt/",params$symbol))
+#report(r)
