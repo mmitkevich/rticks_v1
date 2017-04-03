@@ -6,15 +6,25 @@ contracSpecMonth <- data.frame(Number = c( 1,  2,  3,  4,  5,  6,  7,  8,  9,  1
 
 roll_sched <- roll_schedule(instruments = c("GC.COMEX", "LH.CME"),
                             symbols = NULL,
-                            active_contract = list(GС.COMEX=c(2,8,10,12),LH.CME = c(4,6,10,12)), # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
-                            max_active_contract = 4,
-                            min_active_contract = 2,
+                            active_contract = list(GC.COMEX=c(2,8,10,12),LH.CME = c(4,6,10,12)), # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
+                            max_active_contract = list(GC.COMEX=4,LH.CME = 3),
+                            min_active_contract = list(GC.COMEX=2,LH.CME = 2),
                             custom_roll = NULL, # ~ . - days(day(.)) - months(2)
                             start = as_datetime("2015-01-01"),
                             stop = NULL,
                             nm = "instrument_id",
                             fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day"))
 
+roll_sched_LH <- roll_schedule(instruments = "LH.CME",
+                            symbols = NULL,
+                            active_contract = list(LH.CME = c(2,4,5,6,7,8,10,12)), # list(GOLD.FORTS=c(3,6,9,12), PL.NYMEX=c(3,7))
+                            max_active_contract = list(LH.CME = 5),
+                            min_active_contract = list(LH.CME = 3),
+                            custom_roll = NULL, # ~ . - days(day(.)) - months(2)
+                            start = as_datetime("2015-01-01"),
+                            stop = NULL,
+                            nm = "instrument_id",
+                            fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day"))
 
 roll_schedule <- function(instruments,
                           symbols = NULL,
@@ -87,29 +97,29 @@ roll_schedule <- function(instruments,
   #browser()
   result <- bind_rows(result$.out) %>% arrange(datetime)
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id")
-  browser()
-  result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
-  result2
+  return(result)
+  'result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  result2'
 }
 
 
 
 
-b <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
-
-
-
-
 instruments <- query_instruments(c("GC.COMEX", "LH.CME"))
+b <- schedule.roll.logic(roll_sched,instruments,min_active_contract,max_active_contract)
 
-b <- schedule.roll.logic(result, 
+
+
+
+
+b <- schedule.roll.logic(sched, 
                          instruments  = instruments, 
-                         min_active_contract = list(GС.COMEX=2,LH.CME = 2), 
-                         max_active_contract = list(GС.COMEX=4,LH.CME = 3))
+                         min_active_contract = list(GC.COMEX=2,LH.CME = 2), 
+                         max_active_contract = list(GC.COMEX=4,LH.CME = 3))
 
 
 #######################################
-sched <- result
+sched <- roll_sched
 
 #######################################
 value <- min_active_contract
