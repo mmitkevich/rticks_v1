@@ -19,8 +19,10 @@ trunc_freq <- function(dts,freq) {
 #' @export
 backtest.chunk <- function(data, params, algo, config) {
   log_perfs("backtest.chunk in", data, params, params, 0.5*(head(data$bid,1)+head(data$ask,1)))
-
+  
+  timer <- Sys.time()
   r <- bt_gamma(algo, data, params, config)
+  log_perf(timer, nrow(data), "data processing speed ")
   
   if(length(r$perfs$datetime)==0) {
     wlog("backtest.chunk out empty perfs!", nrow(r$perfs$datetime), "rows", data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
@@ -83,10 +85,19 @@ backtest_config_default = list(
   log_stdout = 3#LOG$WARN
 )
 
+#' log_perf
+#' 
+#' @export
+log_perf <- function(timer, nrows, what="speed") {
+  dur <- Sys.time()-timer
+  wlog(what, round(nrows/as.numeric(dur)), "op/s, nrows=", nrows, ", time spent", dur)
+}
+
 #' backtest list of chunks
 #' 
 #' @export
 backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+  timer <- Sys.time()
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
   config$perfs_freq <- as.numeric(config$perfs_freq)
@@ -95,7 +106,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     instruments <- params$symbol
   }
 
-  ilog("backtest","start",as.character(start),"stop",as.character(stop), "logging into ",config$log_path)
+  wlog("backtest","start",as.character(start),"stop",as.character(stop), "logging into ",config$log_path)
   
   instruments <- instruments %>% query_instruments()
   if(nrow(instruments)==0) {
@@ -103,8 +114,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     stop("instruments empty")
   }
   
-  cat("ORIGINAL PARAMS\n")
-  print(params)
+  #cat("ORIGINAL PARAMS\n")
+  #print(params)
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
     q <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
@@ -151,12 +162,10 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   }
   perfs <- NULL
   params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
-  ilog("backtest algo", algo)
-  
-  cat("SPREAD PARAMS\n")
-  print(params)
-  #browser()
-  active_contract_current <- 3
+
+  nrows <- data %>% map_dbl(nrow) %>% sum()
+  log_perf(timer, nrows, "data loading speed ")
+  timer <- Sys.time()
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -179,8 +188,11 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       ct = tail(chunk,1)
       params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)*params$multiplier # close the position
       params$pos <- ifelse(config$roll_position, params$pos, 0) # calc new pos
+
     }
+    
   }
+  log_perf(timer, nrows, "average data processing speed")
   flush_spd_log()
   perfs$datetime <- as_datetime(perfs$datetime)
   q$perfs<-perfs
