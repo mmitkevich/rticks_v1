@@ -117,15 +117,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     data <- q$data
     
   }
-  browser()
+
+  more_params <- instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier, commission=commission)
   if(nrow(params) > 1) {
     sp <- T
     
     weights.spread <- params$weight %>% setNames(paste0(params$symbol,".", params$active_contract))
     
-    params <- as_data_frame(params) %>% 
-      left_join(
-        instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier), by="symbol")
+    params <- as_data_frame(params) %>% left_join(more_params, by="symbol")
     
     params <- data_frame(limit.buy = params$limit.buy[1],
                          stop.buy = params$stop.buy[1],
@@ -140,6 +139,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
                          active_contract = NA,
                          mpi = min(params$mpi),
                          multiplier = max(params$multiplier),
+                         commission = sum(params$commission),
                          pos = 0,
                          cash = 0,
                          qty_buy = 0, 
@@ -147,8 +147,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   } else {
     sp <- F
     params <- as_data_frame(params) %>% 
-      left_join(
-        instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier), by="symbol") %>% 
+      left_join(more_params, by="symbol") %>% 
       mutate(symbol=paste0(symbol,".",as.character(active_contract)))
   }
   perfs <- NULL
@@ -159,7 +158,6 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   print(params)
   #browser()
   active_contract_current <- 3
-  prev_chunk <- NULL
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -167,7 +165,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     } else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
-      browser()
+      #browser()
       
       if (sp == TRUE) {
         chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
@@ -231,17 +229,38 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
 } 
 
-#' add metrics
+
+
+#' bt_report(r)
 #' 
 #' @export
-metrics.gamma <- function(perfs, params) {
-  #params = attr(perfs, "params")
+bt_reports <- function(r) {
+  # view data
+  symbol <- paste0(paste.list(r$params$symbol,"-"))
+
+  metrics <- metrics.gamma(r) # calculate additional metrics
+  r$metrics <- metrics %>% spread(metric,value)
   
-  qtys <- perfs %>% spread(metric, value) %>% as_data_frame()
+  # plot pnl
   
-  qtys <- qtys %>% inner_join(params %>% select(symbol, spread, multiplier), by="symbol")
-  qtys <- qtys %>% mutate(rpnl=pmin(qty_buy, qty_sell)*spread*multiplier) %>% select(-spread,-multiplier)
-  qtys<- qtys %>% gather(metric, value, -datetime, -symbol)
-  attr(qtys, "params") <- params
-  qtys
+  # save results
+  dir.create("~/rticks_bt", showWarnings=F)
+  dt <- now() %>% strftime("%Y-%m-%d_%H-%M-%S")
+  fn <- paste0("~/rticks_bt/",symbol)
+  write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
+  write.csv(r$metrics, file=paste(fn, dt, "csv", sep="."))
+  metrics %>% plot_bt()
+}
+
+#' 
+#' 
+#' @export
+bt_view<-function(r, start=NULL, stop=NULL) {
+  data <- r$data %>% bind_rows()
+  if(!is.null(start))
+    data<-data %>% filter(datetime>=as_datetime(start))
+  if(!is.null(stop))
+    data<-data %>% filter(datetime<=as_datetime(stop))
+  data %>% View()
+  r$metrics %>% View()  
 }

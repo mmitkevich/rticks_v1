@@ -164,7 +164,7 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 #' @export
 
 query_instruments <- function(instruments = NULL, 
-                             fields = c("instrument_id", "currency", "mpi", "comission_fixed", "multiplier", "active_contract"), 
+                             fields = c("instrument_id", "currency", "mpi", "commission", "multiplier", "active_contract"), 
                              json_cols = c("active_contract"), ...) {
   instruments <- parse_symbols(instruments) # TODO: WHY nm = "instrument_id"
   r <- query_quant_data(instruments$instrument_id, "quant_data.instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
