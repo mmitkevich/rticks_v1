@@ -7,7 +7,7 @@ options(debug=T)
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  log_level = LOG$OFF,
+  log_level = LOG$DEBUG,
   log_stdout = LOG$WARN, 
   roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
@@ -68,4 +68,4 @@ params <- bind_rows(params, data_frame(
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
 r %>% bt_reports()
-# bt_view_metrics(r, start="2015-09-23", stop="2015-09-25")
+# bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")

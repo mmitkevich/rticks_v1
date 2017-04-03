@@ -251,15 +251,14 @@ bt_reports <- function(r) {
   metrics %>% plot_bt()
 }
 
-#' 
+#' view metrics
 #' 
 #' @export
-bt_view<-function(r, start=NULL, stop=NULL) {
-  data <- r$data %>% bind_rows()
+bt_view_metrics<-function(r, start=NULL, stop=NULL) {
+  metrics <- r$metrics
   if(!is.null(start))
-    data<-data %>% filter(datetime>=as_datetime(start))
+    metrics<-metrics %>% filter(datetime>=as_datetime(start))
   if(!is.null(stop))
-    data<-data %>% filter(datetime<=as_datetime(stop))
-  data %>% View()
-  r$metrics %>% View()  
+    metrics<-metrics %>% filter(datetime<=as_datetime(stop))
+  metrics %>% View()
 }
