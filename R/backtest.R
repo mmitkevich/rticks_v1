@@ -64,10 +64,33 @@ log_perfs <- function(name, data, r, params, price) {
        "exante_id", head(data$exante_id,1),
        "virtual_id", head(data$virtual_id,1))
 }
+
+#' backtest default config
+#' 
+#' @export
+backtest_config_default = list(
+  perfs_freq=days(1), 
+  
+  no_cache=T, 
+  no_clean=F, 
+  no_save=T, 
+  
+  roll_position=T,
+  custom_roll=NULL,
+  
+  log_path = "rticks.log",
+  log_level = 3, #LOG$WARN,
+  log_stdout = 3#LOG$WARN
+)
+
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=list(perfs_freq=as.numeric(days(1)), no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
+backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+  
+  config <- backtest_config_default %>% modifyList(config) # merge with default config
+  config$perfs_freq <- as.numeric(config$perfs_freq)
+  
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
@@ -84,15 +107,17 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   print(params)
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
-    data <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
-                                                min_active_contract =params$min_active_contract %>% setNames(params$symbol),                                                roll_pattern=params$roll_pattern[1],
+    q <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
+                                             min_active_contract =params$min_active_contract %>% setNames(params$symbol),
+                                                roll_pattern=params$roll_pattern[1],
                                                 start=start, 
                                                 stop=stop, 
                                                 schedule=schedule,
                                                 config=config)
+    data <- q$data
     
   }
-  
+  browser()
   if(nrow(params) > 1) {
     sp <- T
     
@@ -133,6 +158,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   cat("SPREAD PARAMS\n")
   print(params)
   #browser()
+  active_contract_current <- 3
+  prev_chunk <- NULL
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -140,7 +167,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     } else {
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
-      #browser()
+      browser()
+      
       if (sp == TRUE) {
         chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
       }
@@ -157,10 +185,11 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     }
   }
   flush_spd_log()
-  attr(perfs, "data") <- data
-  attr(perfs, "params") <- params
   perfs$datetime <- as_datetime(perfs$datetime)
-  perfs
+  q$perfs<-perfs
+  q$data<-data
+  q$params<-params
+  q
 }
 
 #' plot backtest results

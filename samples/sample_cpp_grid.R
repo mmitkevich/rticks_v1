@@ -23,25 +23,24 @@ stop  <- as_datetime("2016-03-03")
 
 params <- data_frame(
   # limits
-
-  limit.buy     = NA,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-  stop.buy      = NA,    # FIXME: no buy lower than 18
+  limit.buy     = 76,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  stop.buy      = 50,    # FIXME: no buy lower than 18
   
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = NA,    # FIXME: no sell above 19
   
   pos           = 0,     # initial position
   
-  spread        = 0.2,  # take profit
+  spread        = 0.8,  # take profit
   
   gamma.buy     = 1,       # size to buy on each mpi
   gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
- 
-  symbol        = "GE.CME.CS12M",   # exante prefix of contract series
-
-  roll_pattern  = list(list(7, 12)),
   
-  active_contract = 1             # which month to trade
+  symbol        = "LH.CME",   # exante prefix of contract series
+  
+  # roll_pattern  = list(list(7, 12)),
+  
+  active_contract = 5             # which month to trade
 )
 
 perfs <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)

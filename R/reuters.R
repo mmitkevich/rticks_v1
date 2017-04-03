@@ -57,7 +57,7 @@ query_candles.reuters <- function(instruments = NULL,
     print(schedule)
     #browser()
   }
-  schedule <- schedule %>% .filter_schedule(start=start, stop=stop)
+  schedule <- schedule %>% .filter_schedule(start=start, stop=NULL) # FIXED FROM stop=stop
   q <- structure(new.env(), class="reuters")
   with(q, {
     schedule = schedule

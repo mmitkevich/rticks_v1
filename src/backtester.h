@@ -69,19 +69,26 @@ struct Backtester : public Algo
     index = 0;
     stop = data.nrows();
     dt = datetimes[0];
-    double close_dt = dt;
-    int sent_events=0;
+    double close_dt = NAN;
+    size_t sent_events = 0;
+
     while(index < stop) {
       dt = datetimes[index];
-      if(dt<close_dt && !is_zero(dt-close_dt)) {
-          std::stringstream s;
-          s << "datetimes not sorted " << dt << ", " << close_dt <<", index=" << index;
-          Rcpp::stop(s.str());
+      if(!std::isnan(close_dt) && dt<=close_dt+eps()) {
+          auto s = fmt::format("datetime already seen - skipping dt={}, prev={}, index={}", Datetime(dt), Datetime(close_dt), index);
+          if(logger)
+              logger->warn(s);
+          //Rcpp::stop(s);
+          index++;
+          continue;
       }
-      if(bids[index]>=asks[index]-eps()) {
-        std::stringstream s;
-        s << "bid="<<bids[index]<<" >= ask="<<asks[index]<<" " << dt << ", " << close_dt <<", index=" << index;
-        Rcpp::stop(s.str());
+      if(bids[index]>asks[index]+eps()) {
+          auto s = fmt::format("bid>ask - skipping, bid=[}, ask={}, dt={}, index={}", bids[index], asks[index], Datetime(dt), index);
+          if(logger)
+              logger->warn(s);
+          index++;
+          continue;
+          //Rcpp::stop(s.str());
       }
       
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
