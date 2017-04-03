@@ -20,7 +20,8 @@ roll_day <- function(day_of_month=NA, months_ahead=NA) {
 #'  
 #' @export
 value_as_list <- function(value, keys, default){
-  defs <- as.list(keys) %>% map(~ ifelse(is.list(value), default, value)) %>% setNames(keys)
+  keys<-as.list(keys)
+  defs <- keys %>% map(~ ifelse(is.list(value), default, value)) %>% setNames(keys)
   if(is.list(value))
     defs%>%modifyList(value)
   else
@@ -40,12 +41,12 @@ roll_schedule <- function(instruments,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day")) {
+  if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
+    instruments <- instruments %>% query_instruments()
   max_active_contract <- max_active_contract %>% value_as_list(instruments$instrument_id, 12)
   min_active_contract <- min_active_contract %>% value_as_list(instruments$instrument_id, 1)
   #  print(instruments)
   # lazy instruments loading
-  if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
-    instruments <- instruments %>% query_instruments()
   ilog("roll_schedule",paste(instruments$instrument_id),
       "active_contract",paste(active_contract), 
       "max_active_contract",max_active_contract)
@@ -100,7 +101,9 @@ roll_schedule <- function(instruments,
   #browser()
   result <- bind_rows(result$.out) %>% arrange(datetime)
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id")
-  result
+  browser()
+  result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  result2
 }
 
 #' custom logic keeping contract until it goes out of allowed active_contract indexes range 
@@ -110,14 +113,14 @@ roll_schedule <- function(instruments,
 schedule.roll.logic <- function(sched, instruments, min_active_contract, max_active_contract) {
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
     instruments <- instruments %>% query_instruments()
-  
+  browser()  
   min_active_contract <- value_as_list(min_active_contract, instruments$instrument_id, 1)
   max_active_contract <- value_as_list(max_active_contract, instruments$instrument_id, 12)
   for (i in 1:nrow(instruments)) {
     filt_inst_schedule <- sched %>% filter(instrument_id == instruments$instrument_id[i])
     act_contracts = seq(max_active_contract[[i]], min_active_contract[[i]])
     for (j in 1:length(unique(filt_inst_schedule$datetime))) {
-      contract <- unlist(act_contracts[i])[if (j %% length(act_contracts) == 0) {length(act_contracts)} 
+      contract <- act_contracts[if (j %% length(act_contracts) == 0) {length(act_contracts)} 
                                            else {j - (j %/% length(act_contracts)) * length(act_contracts)}]
       line <- filt_inst_schedule %>% filter(datetime == unique(filt_inst_schedule$datetime)[j]) %>% filter(active_contract == contract)
       if (j == 1) {
