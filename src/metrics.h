@@ -22,7 +22,8 @@ struct Metrics : public Algo,
   NumericVector qty_buy, qty_sell;
   NumericVector multiplier;
   //NumericVector roundtrips;
-
+  BuySellVector market;
+  
   CharacterVector symbols;
   std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
 
@@ -37,6 +38,7 @@ struct Metrics : public Algo,
       symbols(required<CharacterVector>(params, "symbol")),
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
+      market(params.nrows()),
       perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", 24*60*60)[0])),
       multiplier(required<NumericVector>(params, "multiplier")),
       pos(optional<NumericVector>(params, "pos", 0.0)),
@@ -100,6 +102,7 @@ struct Metrics : public Algo,
   virtual void on_next(TQuoteMessage e) {
     on_clock(e.rtime);
     dlog<debug>(e);
+    market.update(e.symbol, e);
     
     int s = e.symbol;
     pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
@@ -121,7 +124,7 @@ struct Metrics : public Algo,
     //}
     //set_flush_time();
 
-    int s = e.symbol;
+    auto s = e.symbol;
 
     // update pos
     pos[s] = pos[s] + e.qty;
@@ -132,10 +135,10 @@ struct Metrics : public Algo,
     (e.qty > 0 ? qty_buy : qty_sell)[s] += fabs(e.qty);
 
     // update free cash
-    cash[s] = cash[s] - e.qty * e.price * multiplier[s];
+    cash[s] = cash[s] - e.qty * e.fill_price * multiplier[s];
     assert(!std::isnan(cash[s]));
 
-    pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
+    pnl[s] = cash[s] + pos[s] * e.fill_price * multiplier[s];
     assert(!std::isnan(pnl[s]));
     pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
     pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
@@ -143,9 +146,24 @@ struct Metrics : public Algo,
     //if(is_zero(pos[s]))
     //  roundtrips[s] = roundtrips[s] + 1;
 
+    xlog<info>("PNL", s, e.price, e.qty);
+      
     try_flush();
   }
-
+  
+  template<int level>
+  void xlog(const char*what, SymbolId s, double fill_price=NAN, double fill_qty=NAN) {
+    if(level>=log_level) {
+      if(logger) {
+        auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
+        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | PNL={} | CASH={} | POS={} | QTY={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+                    time, what, s.id, s.index, market.buy[s], market.sell[s], pnl[s], cash[s], pos[s], qty_buy[s], qty_sell[s], fill_price, fill_qty);
+        //if(level>=log_flush_level)
+        //  logger->flush();
+      }
+    }
+  }
+  
   void try_flush() {
     if(!std::isnan(next_flush_dt)){
         while(dt >= next_flush_dt-eps()) {

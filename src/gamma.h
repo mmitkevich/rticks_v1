@@ -172,10 +172,10 @@ struct GammaAlgo : public MarketAlgo,
         // move this side
         if(side>0) {
             quote_buy(s, e.price-mpi[s]);
-            quote_sell(s, e.price-mpi[s]+spread[s]);
+            quote_sell(s, e.price+spread[s]); //-mpi[s]
         } else {
             quote_sell(s, e.price+mpi[s]);
-            quote_buy(s, e.price+mpi[s]-spread[s]);
+            quote_buy(s, e.price-spread[s]); //+mpi[s]
         }
     }
   }

@@ -64,7 +64,7 @@ struct Backtester : public Algo
     lows = optional<NumericVector>(data, "low");
     virtual_symbol = required<CharacterVector>(data, "virtual_id");
     
-    logger->debug("rticks::Backtester::process {}", Datetime(datetimes[0]));
+    logger->warn("rticks::Backtester::process {}", Datetime(datetimes[0]));
     
     index = 0;
     stop = data.nrows();
@@ -123,6 +123,9 @@ struct Backtester : public Algo
           market.on_next(ask);  // send ask
           sent_events++;
         }
+      }else {
+        if(logger)
+          logger->warn("Unknown symbol {}",s.id);
       }
       
       market.notify(time2+1e-5); // flush the time
