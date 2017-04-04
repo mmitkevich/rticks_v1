@@ -174,13 +174,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     if(nrow(chunk)==0) {
       wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     } else {
+      if (sp == TRUE) {
+        chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
+      }
+      
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
       #browser()
       
-      if (sp == TRUE) {
-        chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
-      }
       #browser
       r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
       perfs <- perfs %>% bind_rows(r$perfs)
@@ -188,6 +189,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       params$cash <- r$cash
       params$qty_buy <- r$qty_buy
       params$qty_sell <- r$qty_sell
+
       ct = tail(chunk,1)
       params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)*params$multiplier # close the position
       params$pos <- ifelse(config$roll_position, params$pos, 0) # calc new pos
