@@ -34,7 +34,8 @@ ifply <- function(.x, .f, .p=function()T,...) {
 #' @export
 query_candles.reuters <- function(instruments = NULL, 
                                   schedule = NULL,
-                               active_contract = seq(1,3),
+                               active_contract = 1,
+                               min_active_contract = 1,
                                custom_roll = NULL,
                                start = NULL, 
                                stop = lubridate::now(), 
@@ -45,7 +46,12 @@ query_candles.reuters <- function(instruments = NULL,
   schedule <- schedule %>% 
     ifnull(cached_attr(instruments, "schedule", 
                        instruments %>% 
-                         roll_schedule(max_active_contract=max(active_contract), custom_roll=custom_roll, start=start, stop=stop)))
+                         roll_schedule(max_active_contract=active_contract, 
+                                       min_active_contract=min_active_contract, 
+                                       custom_roll=custom_roll, 
+                                       start=start, stop=stop) %>%
+                         schedule.roll.logic(instruments, max_active_contract=active_contract, min_active_contract=min_active_contract))
+                       )
   if(getOption("debug",F)){
     wlog("SCHEDULE")
     print(schedule)
@@ -91,14 +97,14 @@ fetch.reuters <- function(q) {
   tl = timeline(q$schedule, start=q$start)
   stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
 
-  symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
-    group_by(exante_id) %>%      # for each contract's group
-      arrange(datetime) %>%      # sort by datetime
-      filter(row_number()==n()) %>%  # and take last active_contract numbering 
+  symbols <- q$schedule %>% filter(datetime==q$start) %>%  # take past events
+    #group_by(instrument_id) %>%      # for each contract's group
+     # arrange(datetime) %>%      # sort by datetime
+      #filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
   
   wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
-  
+  #browser()
   if(nrow(symbols)==0) {
     ilog("\nEMPTY roll schedule:\n")
     print(q$schedule)

@@ -4,7 +4,8 @@
 
 query_candles <- function(instruments = NULL, 
                           schedule = NULL,
-                          active_contract = seq(1,3), 
+                          active_contract = 1,
+                          min_active_contract = 1,
                           custom_roll = NULL,
                           start = NULL, 
                           stop = lubridate::now(), 
@@ -13,6 +14,7 @@ query_candles <- function(instruments = NULL,
   query_fn(instruments = instruments, 
            schedule = schedule,
            active_contract = active_contract,
+           min_active_contract = min_active_contract,
            custom_roll = custom_roll,
            start = start,
            stop = stop,...)
@@ -93,7 +95,7 @@ cache_path <- function(instrument_id, start,stop, active_contract, cache_dir="~/
 #' @examples
 #' query_candles_cache("VIX.CBOE", 1) 
 #' @export
-query_candles_cache <- function(instruments, active_contract=1, roll_pattern=NULL, start=NULL, stop=lubridate::now(), schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
+query_candles_cache <- function(instruments, active_contract=1, min_active_contract=1, roll_pattern=NULL, start=NULL, stop=lubridate::now(), schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
   instruments <- query_instruments(instruments)
   if(!is.null(roll_pattern)) {
     instruments$active_contract <- roll_pattern
@@ -102,7 +104,7 @@ query_candles_cache <- function(instruments, active_contract=1, roll_pattern=NUL
   path <- cache_path(cache_name, start, stop, active_contract)
   ilog("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop))
   if(config$no_cache || !file.exists(path)) {
-    q <- query_candles(instruments, active_contract = active_contract, start=start, stop=stop, custom_roll=config$custom_roll)
+    q <- query_candles(instruments, active_contract = active_contract, min_active_contract=min_active_contract, start=start, stop=stop, custom_roll=config$custom_roll)
     data <- q %>% fetch_all()
     data_raw <- q$data
     if(!config$no_save) {
