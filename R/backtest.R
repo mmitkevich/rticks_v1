@@ -90,6 +90,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
   config$perfs_freq <- as.numeric(config$perfs_freq)
+  if(!has_name(params,"min_active_contract"))
+    params$min_active_contract <- params$active_contract
   
   if(is.null(instruments)) {
     instruments <- params$symbol

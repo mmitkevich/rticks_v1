@@ -97,14 +97,14 @@ fetch.reuters <- function(q) {
   tl = timeline(q$schedule, start=q$start)
   stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
 
-  symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
-    group_by(exante_id) %>%      # for each contract's group
-      arrange(datetime) %>%      # sort by datetime
-      filter(row_number()==n()) %>%  # and take last active_contract numbering 
+  symbols <- q$schedule %>% filter(datetime==q$start) %>%  # take past events
+    #group_by(instrument_id) %>%      # for each contract's group
+     # arrange(datetime) %>%      # sort by datetime
+      #filter(row_number()==n()) %>%  # and take last active_contract numbering 
       filter(active_contract %in% q$active_contract)
   
   wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
-  
+  #browser()
   if(nrow(symbols)==0) {
     ilog("\nEMPTY roll schedule:\n")
     print(q$schedule)

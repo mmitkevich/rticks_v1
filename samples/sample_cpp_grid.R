@@ -39,7 +39,7 @@ params <- data_frame(
   symbol        = "PL.NYMEX",   # exante prefix of contract series
   weight  = 1,
   roll_pattern  = list(list(4, 10)),
-  min_active_contract =1,
+  #min_active_contract = 1,
   active_contract = 1#seq(2,3)            # which month to trade
 )
 
@@ -62,18 +62,15 @@ params <- bind_rows(params, data_frame(
   symbol        = "GC.COMEX",   # exante prefix of contract series
   weight  = -1,
   roll_pattern  = list(list(4, 10)),
-  
-  min_active_contract =1,
+  #min_active_contract = 1,
   active_contract = 1#seq(2,3)             # which month to trade
-  
 ))
 
-q <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
 
-data <- q$data
 
-q$schedule
+r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
+r %>% bt_reports()
+# bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 
-perfs <- q$perfs %>% metrics.gamma(q$params) # calculate additional metrics
+r$data
 
-q %>% plot_bt()
