@@ -36,7 +36,6 @@ roll_schedule <- function(instruments,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day")) {
-  
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
     instruments <- instruments %>% query_instruments()
   max_active_contract <- max_active_contract %>% value_as_list(instruments$instrument_id, 12)
@@ -73,7 +72,8 @@ roll_schedule <- function(instruments,
     
     # for each active month .a in [0..max_active] create clones of each row
     # datetime for .a cloned row is lagging .a rows before its source
-    rs <- seq(min_active_contract[[ins$instrument_id]]-1, max_active_contract[[ins$instrument_id]]) %>% 
+    #  min_active_contract[[ins$instrument_id]]-1
+    rs <- seq(0, max_active_contract[[ins$instrument_id]]) %>% 
       map_df( function(.active_contract) {
         sym %>% mutate(active_contract=.active_contract, datetime=lag(first_notice_day, n=.active_contract))
       }) %>% # and sort by datetime
@@ -90,16 +90,14 @@ roll_schedule <- function(instruments,
     #      print(rs1)
     
     # return them combined
-    rs2<-as.data.frame(bind_rows(rs0, rs1))
-    #browser()
-    return(as.data.frame(rs2))
+    rs2<- bind_rows(rs0, rs1) %>% as_data_frame() %>% filter(active_contract>=min_active_contract[[ins$instrument_id]]-1)
+    rs2
   })
   #browser()
   result <- bind_rows(result$.out) %>% arrange(datetime)
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id")
-  return(result)
-  'result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
-  result2'
+  result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  result2
 }
 
 

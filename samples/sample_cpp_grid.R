@@ -18,7 +18,7 @@ cfg <- config(backtest) %>% modifyList(list(
 init_spd_log(cfg)
 
 start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2016-03-01")
+stop  <- as_datetime("2017-03-01")
 
 params <- data_frame(
   # limits
@@ -39,7 +39,7 @@ params <- data_frame(
   symbol        = "PL.NYMEX",   # exante prefix of contract series
   weight  = 1,
   roll_pattern  = list(list(4, 10)),
-  
+  min_active_contract =1,
   active_contract = 1#seq(2,3)            # which month to trade
 )
 
@@ -63,9 +63,17 @@ params <- bind_rows(params, data_frame(
   weight  = -1,
   roll_pattern  = list(list(4, 10)),
   
+  min_active_contract =1,
   active_contract = 1#seq(2,3)             # which month to trade
+  
 ))
 
-r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
-r %>% bt_reports()
-# r %>% bt_view()
+q <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
+
+data <- q$data
+
+q$schedule
+
+perfs <- q$perfs %>% metrics.gamma(q$params) # calculate additional metrics
+
+q %>% plot_bt()
