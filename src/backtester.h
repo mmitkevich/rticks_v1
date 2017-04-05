@@ -75,20 +75,20 @@ struct Backtester : public Algo
     while(index < stop) {
       dt = datetimes[index];
       if(!std::isnan(close_dt) && dt<=close_dt+eps()) {
-          auto s = fmt::format("datetime already seen - skipping dt={}, prev={}, index={}", Datetime(dt), Datetime(close_dt), index);
+          auto s = fmt::format("datetime already seen. dt={}, prev={}, index={}, symbol={}", Datetime(dt), Datetime(close_dt), index, virtual_symbol[index]);
           if(logger)
               logger->warn(s);
-          //Rcpp::stop(s);
           index++;
+          Rcpp::stop(s);
           continue;
       }
       if(bids[index]>asks[index]+eps()) {
-          auto s = fmt::format("bid>ask - skipping, bid=[}, ask={}, dt={}, index={}", bids[index], asks[index], Datetime(dt), index);
+          auto s = fmt::format("bid>ask - skipping, bid=[}, ask={}, dt={}, index={}, symbol={}", bids[index], asks[index], Datetime(dt), index, virtual_symbol[index]);
           if(logger)
               logger->warn(s);
           index++;
+          Rcpp::stop(s);
           continue;
-          //Rcpp::stop(s.str());
       }
       
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
