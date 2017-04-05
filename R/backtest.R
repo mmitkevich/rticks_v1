@@ -190,7 +190,9 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   nrows <- data %>% map_dbl(nrow) %>% sum()
   log_perf(timer, nrows, "data loading speed ")
   timer <- Sys.time()
-  data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% purrr::flatten()
+  browser()
+  data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% 
+    purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -212,6 +214,9 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       perfs <- perfs %>% bind_rows(r$perfs)
       params$pos  <- r$pos
       params$cash <- r$cash
+      if(r$qty_buy<params$qty_buy) {
+        browser()
+      }
       params$qty_buy <- r$qty_buy
       params$qty_sell <- r$qty_sell
 

@@ -70,6 +70,6 @@ params <- bind_rows(params, data_frame(
 
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
-#bt_reports(r)
+bt_reports(r)
 #bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 
