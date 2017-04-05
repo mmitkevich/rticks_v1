@@ -21,6 +21,7 @@ roll_day <- function(day_of_month=NA, months_ahead=NA) {
 #' @export
 value_as_list <- function(value, keys, default){
   keys<-as.list(keys)
+  value<-as.list(value)
   defs <- keys %>% map(~ ifelse(is.list(value), default, value)) %>% setNames(keys)
   if(is.list(value))
     defs%>%modifyList(value)
@@ -41,6 +42,7 @@ roll_schedule <- function(instruments,
                           stop = NULL,
                           nm = "instrument_id",
                           fields=c("instrument_id", "exante_id", "month", "year", "first_notice_day")) {
+  #browser()
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
     instruments <- instruments %>% query_instruments()
   max_active_contract <- max_active_contract %>% value_as_list(instruments$instrument_id, 12)
@@ -98,10 +100,11 @@ roll_schedule <- function(instruments,
     rs2<- bind_rows(rs0, rs1) %>% as_data_frame() %>% filter(active_contract>=min_active_contract[[ins$instrument_id]]-1)
     rs2
   })
-  #browser()
   result <- bind_rows(result$.out) %>% arrange(datetime)
-  result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id")
+  result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id") %>% 
+    mutate(virtual_id=paste0(instrument_id,".",active_contract))
   result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  #browser()
   result2
 }
 
@@ -133,7 +136,18 @@ schedule.roll.logic <- function(sched, instruments, min_active_contract, max_act
       DF_fin <- rbind(DF_fin, DF)
     }
   }
-  DF_fin %>% arrange(datetime)
+  DF_fin <- DF_fin %>% arrange(datetime) %>% select(-virtual_id)
+  DF_fin %>% by_row(function(ins)  {
+    paste0(
+      ins$instrument_id,
+      ".",
+      max_active_contract[ins$instrument_id],
+      ifelse( min_active_contract[[ins$instrument_id]]==max_active_contract[[ins$instrument_id]],
+              "",
+              paste0("_", min_active_contract[ins$instrument_id])))
+    },
+    .to="virtual_id",
+    .collate="cols") 
 }
 
 

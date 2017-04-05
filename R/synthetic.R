@@ -35,6 +35,7 @@ synthetic.chunk <- function(chunk, weights) {
   
   merged_DF <- merge(quotes[[1]], quotes[[2]], by = "datetime")
   print("quality of merge")
+  #browser()
   print(c(nrow(quotes[[1]]), nrow(quotes[[2]]), nrow(merged_DF)))
   
   spread_bid <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$bid.y} else {merged_DF$ask.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$bid.x} else {merged_DF$ask.x})

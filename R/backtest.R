@@ -93,6 +93,26 @@ log_perf <- function(timer, nrows, what="speed") {
   wlog(what, round(nrows/as.numeric(dur)), "op/s, nrows=", nrows, ", time spent", dur)
 }
 
+#' make virtual id for multiple instruments treated as the spread
+#' 
+#' @export
+
+to_virtual_id <- function(symbols) {
+  #symbols %>% by_row(function(s) {
+  #  paste0(s$symbol,".",s$active_contract,ifelse(s$min_active_contract==s$active_contract,"",paste0("-",s$min_active_contract)))
+  #}, .to="virtual_id", .collate="cols")
+  symbols %>% mutate(
+    virtual_id = paste0(
+      symbol,
+      ".",
+      active_contract, 
+      ifelse( min_active_contract == active_contract, 
+              "",
+              paste0("_",min_active_contract))))
+  
+#  paste0(params$symbol[1], ".", params$active_contract[1],"-", params$symbol[2], ".", params$active_contract[2])
+}
+
 #' backtest list of chunks
 #' 
 #' @export
@@ -118,6 +138,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   
   #cat("ORIGINAL PARAMS\n")
   #print(params)
+  vids <- to_virtual_id(params)$virtual_id 
+  #browser()
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
     q <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
@@ -134,8 +156,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   more_params <- instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier, commission=commission)
   if(nrow(params) > 1) {
     sp <- T
-    
-    weights.spread <- params$weight %>% setNames(paste0(params$symbol,".", params$active_contract))
+    weights.spread <- params$weight %>% setNames(vids) # paste0(params$symbol,".", params$active_contract)
     
     params <- as_data_frame(params) %>% left_join(more_params, by="symbol")
     
@@ -146,7 +167,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
                          spread = params$spread[1], 
                          gamma.buy = params$gamma.buy[1],
                          gamma.sell = params$gamma.sell[1],
-                         symbol = paste0(params$symbol[1], ".", params$active_contract[1],"-", params$symbol[2], ".", params$active_contract[2]),
+                         symbol = vids%>% reduce(~ paste0(.x, "-", .y)),
                          weight = NA,
                          roll_pattern = NA,
                          active_contract = NA,
@@ -160,12 +181,12 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   } else {
     sp <- F
     params <- as_data_frame(params) %>% 
-      left_join(more_params, by="symbol") %>% 
-      mutate(symbol=paste0(symbol,".",as.character(active_contract)))
+      left_join(more_params, by="symbol")
+    params <-  params %>% to_virtual_id() %>% mutate(symbol=virtual_id)
   }
   perfs <- NULL
   params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
-
+  #browser()
   nrows <- data %>% map_dbl(nrow) %>% sum()
   log_perf(timer, nrows, "data loading speed ")
   timer <- Sys.time()
@@ -177,6 +198,9 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       if (sp == TRUE) {
         chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
       }
+      #browser()
+      # FIXME: we need virtual_id=LH.CME.3/5 instead
+      #chunk$virtual_id <- params$virtual_id
       
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos

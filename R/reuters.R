@@ -49,9 +49,8 @@ query_candles.reuters <- function(instruments = NULL,
                          roll_schedule(max_active_contract=active_contract, 
                                        min_active_contract=min_active_contract, 
                                        custom_roll=custom_roll, 
-                                       start=start, stop=stop) %>%
-                         schedule.roll.logic(instruments, max_active_contract=active_contract, min_active_contract=min_active_contract))
-                       )
+                                       start=start, stop=stop)
+                       ))
   if(getOption("debug",F)){
     wlog("SCHEDULE")
     print(schedule)
@@ -76,15 +75,6 @@ query_candles.reuters <- function(instruments = NULL,
 #print.reuters <- function(q) {
 #  print(as.list(q))
 #}
-
-#' translate exante_id into continious id, adds instrument_id
-#'
-#' @export
-to_virtual_id <- function(df, symbols) {
-  df %>% 
-    left_join(symbols %>% select(exante_id,active_contract,instrument_id), by="exante_id") %>% 
-    mutate(virtual_id=paste0(instrument_id,".",active_contract))
-}
 
 .candles.attributes <- c("instruments", "start", "stop", "events")
 
@@ -130,7 +120,9 @@ fetch.reuters <- function(q) {
         ask = close_ask, 
         high = high_bid, 
         low = low_ask) 
-    df <- df %>% to_virtual_id(symbols)
+    #df <- df %>% to_virtual_id(symbols)
+    df <- df %>% left_join(symbols %>% select(exante_id,virtual_id, instrument_id), by="exante_id")
+    
     df <- df  %>% # gather_("event", "value", .reuters.fields)  %>%
       arrange(datetime) # todo: match("event",c("h","l","b","a")) so h,l before b,a
   }  
