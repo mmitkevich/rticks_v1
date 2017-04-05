@@ -190,6 +190,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   nrows <- data %>% map_dbl(nrow) %>% sum()
   log_perf(timer, nrows, "data loading speed ")
   timer <- Sys.time()
+  data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% purrr::flatten()
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -258,9 +259,9 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   #ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
   #  geom_line() + 
   #  geom_linerange(aes(ymin=low, ymax=high)) +
-  ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() +
+  ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() + theme(legend.position = "none") +
     geom_segment(aes(y=close,yend=close, xend=datetime+0.5*timeframe)) + 
-    geom_linerange(aes(ymin=low,ymax=high)) +
+    geom_linerange(aes(ymin=low,ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
     scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
     scale_size_manual(values=0.5) + 
