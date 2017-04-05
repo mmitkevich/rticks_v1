@@ -113,6 +113,17 @@ to_virtual_id <- function(symbols) {
 #  paste0(params$symbol[1], ".", params$active_contract[1],"-", params$symbol[2], ".", params$active_contract[2])
 }
 
+#' filter_time("2015-01","2015-02")
+#' 
+#' @export
+filter_time <- function(.x, start=NULL, stop=NULL) {
+  if(!is.null(start))
+    .x<-.x %>% filter(datetime>=dt(start))
+  if(!is.null(stop))
+    .x<-.x %>% filter(datetime<dt(stop))
+  .x
+}
+
 #' backtest list of chunks
 #' 
 #' @export

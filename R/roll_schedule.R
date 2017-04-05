@@ -89,13 +89,16 @@ roll_schedule <- function(instruments,
     rs1 <- rs %>% filter(!is.na(datetime))
     # and initial active contracts without datetime (because it is absent from dataframe)
     # patch it by taking first row for each contract and setting datetime = start
-    rs0 <- rs %>% filter(is.na(datetime)) %>% 
-      group_by(exante_id) %>% filter(row_number()==1) %>% mutate(datetime=start)
-    #      print("===== rs0")
-    #      print(rs0)
-    #      print("===== rs1")
-    #      print(rs1)
-    
+    if(start<rs1$datetime[[1]]) {
+      rs0 <- rs %>% filter(is.na(datetime)) %>% 
+        group_by(exante_id) %>% filter(row_number()==1) %>% mutate(datetime=start)
+      #      print("===== rs0")
+      #      print(rs0)
+      #      print("===== rs1")
+      #      print(rs1)
+    }else { 
+      rs0<-NULL
+    }
     # return them combined
     rs2<- bind_rows(rs0, rs1) %>% as_data_frame() %>% filter(active_contract>=min_active_contract[[ins$instrument_id]]-1)
     rs2
@@ -104,7 +107,6 @@ roll_schedule <- function(instruments,
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id") %>% 
     mutate(virtual_id=paste0(instrument_id,".",active_contract))
   result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
-  #browser()
   result2
 }
 
