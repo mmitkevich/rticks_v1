@@ -190,7 +190,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   nrows <- data %>% map_dbl(nrow) %>% sum()
   log_perf(timer, nrows, "data loading speed ")
   timer <- Sys.time()
-  browser()
+  #browser()
   data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% 
     purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   for(chunk in data) {
