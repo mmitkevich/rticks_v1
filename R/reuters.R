@@ -34,7 +34,8 @@ ifply <- function(.x, .f, .p=function()T,...) {
 #' @export
 query_candles.reuters <- function(instruments = NULL, 
                                   schedule = NULL,
-                               active_contract = seq(1,3),
+                               active_contract = 1,
+                               min_active_contract = 1,
                                custom_roll = NULL,
                                start = NULL, 
                                stop = lubridate::now(), 
@@ -45,7 +46,11 @@ query_candles.reuters <- function(instruments = NULL,
   schedule <- schedule %>% 
     ifnull(cached_attr(instruments, "schedule", 
                        instruments %>% 
-                         roll_schedule(max_active_contract=max(active_contract), custom_roll=custom_roll, start=start, stop=stop)))
+                         roll_schedule(max_active_contract=active_contract, 
+                                       min_active_contract=min_active_contract, 
+                                       custom_roll=custom_roll, 
+                                       start=start, stop=stop)
+                       ))
   if(getOption("debug",F)){
     wlog("SCHEDULE")
     print(schedule)
@@ -71,15 +76,6 @@ query_candles.reuters <- function(instruments = NULL,
 #  print(as.list(q))
 #}
 
-#' translate exante_id into continious id, adds instrument_id
-#'
-#' @export
-to_virtual_id <- function(df, symbols) {
-  df %>% 
-    left_join(symbols %>% select(exante_id,active_contract,instrument_id), by="exante_id") %>% 
-    mutate(virtual_id=paste0(instrument_id,".",active_contract))
-}
-
 .candles.attributes <- c("instruments", "start", "stop", "events")
 
 #' fetch query
@@ -91,14 +87,14 @@ fetch.reuters <- function(q) {
   tl = timeline(q$schedule, start=q$start)
   stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
 
-  symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
-    group_by(exante_id) %>%      # for each contract's group
-      arrange(datetime) %>%      # sort by datetime
-      filter(row_number()==n()) %>%  # and take last active_contract numbering 
-      filter(active_contract %in% q$active_contract)
+  symbols <- q$schedule %>% filter(datetime==q$start)# %>%  # take past events
+    #group_by(instrument_id) %>%      # for each contract's group
+     # arrange(datetime) %>%      # sort by datetime
+      #filter(row_number()==n()) %>%  # and take last active_contract numbering 
+      #filter(active_contract %in% q$active_contract)
   
   wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
-  
+  #browser()
   if(nrow(symbols)==0) {
     ilog("\nEMPTY roll schedule:\n")
     print(q$schedule)
@@ -106,7 +102,7 @@ fetch.reuters <- function(q) {
   }
   w <- c(
     paste("exante_id","IN","(",paste.list(paste0("'", symbols$exante_id, "'"),sep=","),")"),
-    paste("datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)),
+    paste("datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)-1000), # subtract 1 second
     q$where
   ) %>% reduce(sql.and)
   df <- 
@@ -119,12 +115,14 @@ fetch.reuters <- function(q) {
   if(nrow(df)>0) {
     df <- df %>% transmute(
         exante_id = exante_id, 
-        datetime = as_datetime(datetime/1000+59),  # actual time is close_time FIXME  
+        datetime = as_datetime(datetime/1000),  # actual time is close_time FIXME  
         bid = close_bid, 
         ask = close_ask, 
         high = high_bid, 
         low = low_ask) 
-    df <- df %>% to_virtual_id(symbols)
+    #df <- df %>% to_virtual_id(symbols)
+    df <- df %>% left_join(symbols %>% select(exante_id,virtual_id, instrument_id), by="exante_id")
+    
     df <- df  %>% # gather_("event", "value", .reuters.fields)  %>%
       arrange(datetime) # todo: match("event",c("h","l","b","a")) so h,l before b,a
   }  

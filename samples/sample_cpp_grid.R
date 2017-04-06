@@ -17,8 +17,8 @@ cfg <- config(backtest) %>% modifyList(list(
 # init logging, see rticks.log
 init_spd_log(cfg)
 
-start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2016-03-01")
+start <- as_datetime("2016-02-01")
+stop  <- as_datetime("2017-03-01")
 
 params <- data_frame(
   # limits
@@ -39,8 +39,8 @@ params <- data_frame(
   symbol        = "PL.NYMEX",   # exante prefix of contract series
   weight  = 1,
   roll_pattern  = list(list(4, 10)),
-  
-  active_contract = 1#seq(2,3)            # which month to trade
+  min_active_contract = 1,
+  active_contract = 2
 )
 
 params <- bind_rows(params, data_frame(
@@ -59,13 +59,17 @@ params <- bind_rows(params, data_frame(
   gamma.buy     = 1,       # size to buy on each mpi
   gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
   
+  
   symbol        = "GC.COMEX",   # exante prefix of contract series
   weight  = -1,
   roll_pattern  = list(list(4, 10)),
-  
-  active_contract = 1#seq(2,3)             # which month to trade
+  min_active_contract = 1,
+  active_contract = 1
 ))
 
+
+
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
-r %>% bt_reports()
-# bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
+bt_reports(r)
+#bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
+

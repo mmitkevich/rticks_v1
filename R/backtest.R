@@ -19,8 +19,10 @@ trunc_freq <- function(dts,freq) {
 #' @export
 backtest.chunk <- function(data, params, algo, config) {
   log_perfs("backtest.chunk in", data, params, params, 0.5*(head(data$bid,1)+head(data$ask,1)))
-
+  
+  timer <- Sys.time()
   r <- bt_gamma(algo, data, params, config)
+  log_perf(timer, nrow(data), "data processing speed ")
   
   if(length(r$perfs$datetime)==0) {
     wlog("backtest.chunk out empty perfs!", nrow(r$perfs$datetime), "rows", data$datetime %>% head(1) %>% as_datetime() %>% strftime("%y-%m-%d %H:%M:%S"),
@@ -83,19 +85,61 @@ backtest_config_default = list(
   log_stdout = 3#LOG$WARN
 )
 
+#' log_perf
+#' 
+#' @export
+log_perf <- function(timer, nrows, what="speed") {
+  dur <- Sys.time()-timer
+  wlog(what, round(nrows/as.numeric(dur)), "op/s, nrows=", nrows, ", time spent", dur)
+}
+
+#' make virtual id for multiple instruments treated as the spread
+#' 
+#' @export
+
+to_virtual_id <- function(symbols) {
+  #symbols %>% by_row(function(s) {
+  #  paste0(s$symbol,".",s$active_contract,ifelse(s$min_active_contract==s$active_contract,"",paste0("-",s$min_active_contract)))
+  #}, .to="virtual_id", .collate="cols")
+  symbols %>% mutate(
+    virtual_id = paste0(
+      symbol,
+      ".",
+      active_contract, 
+      ifelse( min_active_contract == active_contract, 
+              "",
+              paste0("_",min_active_contract))))
+  
+#  paste0(params$symbol[1], ".", params$active_contract[1],"-", params$symbol[2], ".", params$active_contract[2])
+}
+
+#' filter_time("2015-01","2015-02")
+#' 
+#' @export
+filter_time <- function(.x, start=NULL, stop=NULL) {
+  if(!is.null(start))
+    .x<-.x %>% filter(datetime>=dt(start))
+  if(!is.null(stop))
+    .x<-.x %>% filter(datetime<dt(stop))
+  .x
+}
+
 #' backtest list of chunks
 #' 
 #' @export
 backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+  timer <- Sys.time()
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
   config$perfs_freq <- as.numeric(config$perfs_freq)
+  if(!has_name(params,"min_active_contract"))
+    params$min_active_contract <- params$active_contract
   
   if(is.null(instruments)) {
     instruments <- params$symbol
   }
 
-  ilog("backtest","start",as.character(start),"stop",as.character(stop), "logging into ",config$log_path)
+  wlog("backtest","start",as.character(start),"stop",as.character(stop), "logging into ",config$log_path)
   
   instruments <- instruments %>% query_instruments()
   if(nrow(instruments)==0) {
@@ -103,11 +147,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     stop("instruments empty")
   }
   
-  cat("ORIGINAL PARAMS\n")
-  print(params)
+  #cat("ORIGINAL PARAMS\n")
+  #print(params)
+  vids <- to_virtual_id(params)$virtual_id 
+  #browser()
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
-    q <- instruments %>% query_candles_cache(active_contract=unique(params$active_contract), 
+    q <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
+                                             min_active_contract =params$min_active_contract %>% setNames(params$symbol),
                                                 roll_pattern=params$roll_pattern[1],
                                                 start=start, 
                                                 stop=stop, 
@@ -120,8 +167,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   more_params <- instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier, commission=commission)
   if(nrow(params) > 1) {
     sp <- T
-    
-    weights.spread <- params$weight %>% setNames(paste0(params$symbol,".", params$active_contract))
+    weights.spread <- params$weight %>% setNames(vids) # paste0(params$symbol,".", params$active_contract)
     
     params <- as_data_frame(params) %>% left_join(more_params, by="symbol")
     
@@ -132,7 +178,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
                          spread = params$spread[1], 
                          gamma.buy = params$gamma.buy[1],
                          gamma.sell = params$gamma.sell[1],
-                         symbol = paste0(params$symbol[1], ".", params$active_contract[1],"-", params$symbol[2], ".", params$active_contract[2]),
+                         symbol = vids%>% reduce(~ paste0(.x, "-", .y)),
                          weight = NA,
                          roll_pattern = NA,
                          active_contract = NA,
@@ -146,41 +192,53 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   } else {
     sp <- F
     params <- as_data_frame(params) %>% 
-      left_join(more_params, by="symbol") %>% 
-      mutate(symbol=paste0(symbol,".",as.character(active_contract)))
+      left_join(more_params, by="symbol")
+    params <-  params %>% to_virtual_id() %>% mutate(symbol=virtual_id)
   }
   perfs <- NULL
   params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
-  ilog("backtest algo", algo)
-  
-  cat("SPREAD PARAMS\n")
-  print(params)
   #browser()
-  active_contract_current <- 3
+  nrows <- data %>% map_dbl(nrow) %>% sum()
+  log_perf(timer, nrows, "data loading speed ")
+  timer <- Sys.time()
+  #browser()
+  data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% 
+    purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
       wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     } else {
+      if (sp == TRUE) {
+        chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
+      }
+      #browser()
+      # FIXME: we need virtual_id=LH.CME.3/5 instead
+      #chunk$virtual_id <- params$virtual_id
+      
       ch = head(chunk,1)
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
       #browser()
       
-      if (sp == TRUE) {
-        chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
-      }
       #browser
       r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
       perfs <- perfs %>% bind_rows(r$perfs)
       params$pos  <- r$pos
       params$cash <- r$cash
+      if(r$qty_buy<params$qty_buy) {
+        browser()
+      }
       params$qty_buy <- r$qty_buy
       params$qty_sell <- r$qty_sell
+
       ct = tail(chunk,1)
       params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)*params$multiplier # close the position
       params$pos <- ifelse(config$roll_position, params$pos, 0) # calc new pos
+
     }
+    
   }
+  log_perf(timer, nrows, "average data processing speed")
   flush_spd_log()
   perfs$datetime <- as_datetime(perfs$datetime)
   q$perfs<-perfs
@@ -217,9 +275,9 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   #ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
   #  geom_line() + 
   #  geom_linerange(aes(ymin=low, ymax=high)) +
-  ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() +
+  ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() + theme(legend.position = "none") +
     geom_segment(aes(y=close,yend=close, xend=datetime+0.5*timeframe)) + 
-    geom_linerange(aes(ymin=low,ymax=high)) +
+    geom_linerange(aes(ymin=low,ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
     scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
     scale_size_manual(values=0.5) + 
