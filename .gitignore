@@ -12,3 +12,11 @@ man
 .idea
 *.log
 *.rds
+.codelite
+callgrind*
+.depend
+.gdb_history
+*.creator.user*
+cpp/test_bt
+cpp/test_rx
+cpp/v3/
