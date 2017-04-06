@@ -102,7 +102,7 @@ fetch.reuters <- function(q) {
   }
   w <- c(
     paste("exante_id","IN","(",paste.list(paste0("'", symbols$exante_id, "'"),sep=","),")"),
-    paste("datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)),
+    paste("datetime", "BETWEEN", 1000*as.integer(q$start), "AND", 1000*as.integer(stop)-1000), # subtract 1 second
     q$where
   ) %>% reduce(sql.and)
   df <- 
@@ -115,7 +115,7 @@ fetch.reuters <- function(q) {
   if(nrow(df)>0) {
     df <- df %>% transmute(
         exante_id = exante_id, 
-        datetime = as_datetime(datetime/1000+59),  # actual time is close_time FIXME  
+        datetime = as_datetime(datetime/1000),  # actual time is close_time FIXME  
         bid = close_bid, 
         ask = close_ask, 
         high = high_bid, 
