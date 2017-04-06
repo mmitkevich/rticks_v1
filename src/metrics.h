@@ -99,17 +99,22 @@ struct Metrics : public Algo,
     }
   }
 
+  void update_hl(int s) {
+    assert(!std::isnan(pnl[s]));
+    pos_l[s] = std::min<double>(pos_l[s], pos[s]);
+    pos_h[s] = std::max<double>(pos_h[s], pos[s]);
+    pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
+    pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
+  }
+  
   virtual void on_next(TQuoteMessage e) {
     on_clock(e.rtime);
     dlog<debug>(e);
     market.update(e.symbol, e);
-    
-    int s = e.symbol;
+    auto s = e.symbol;
     pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
-    assert(!std::isnan(pnl[s]));
-    pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
-    pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
-    
+    update_hl(e.symbol);    
+    xlog<debug>("PNL.Q", e.symbol, e.price, e.qty);
     try_flush();   
   }
   
@@ -128,8 +133,6 @@ struct Metrics : public Algo,
 
     // update pos
     pos[s] = pos[s] + e.qty;
-    pos_l[s] = std::min<double>(pos_l[s], pos[s]);
-    pos_h[s] = std::max<double>(pos_h[s], pos[s]);
 
     // update qty bought/sold
     (e.qty > 0 ? qty_buy : qty_sell)[s] += fabs(e.qty);
@@ -139,14 +142,12 @@ struct Metrics : public Algo,
     assert(!std::isnan(cash[s]));
 
     pnl[s] = cash[s] + pos[s] * e.fill_price * multiplier[s];
-    assert(!std::isnan(pnl[s]));
-    pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
-    pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
 
+    update_hl(s);
     //if(is_zero(pos[s]))
     //  roundtrips[s] = roundtrips[s] + 1;
 
-    xlog<info>("PNL", s, e.price, e.qty);
+    xlog<info>("PNL.E", s, e.price, e.qty);
       
     try_flush();
   }
@@ -156,8 +157,8 @@ struct Metrics : public Algo,
     if(level>=log_level) {
       if(logger) {
         auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | PNL={} | CASH={} | POS={} | QTY={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
-                    time, what, s.id, s.index, market.buy[s], market.sell[s], pnl[s], cash[s], pos[s], qty_buy[s], qty_sell[s], fill_price, fill_qty);
+        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | PNL={} | PNL.LH={} {} | CASH={} | POS={} | POS.LH={} {} | QTY={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+                    time, what, s.id, s.index, market.buy[s], market.sell[s], pnl[s], pnl_l[s], pnl_h[s], cash[s], pos[s], pos_l[s], pos_h[s], qty_buy[s], qty_sell[s], fill_price, fill_qty);
         //if(level>=log_flush_level)
         //  logger->flush();
       }
@@ -178,10 +179,7 @@ struct Metrics : public Algo,
     logger->debug("rticks::Metrics::flush_perfs {}", Datetime(dt));
 
     for(int s=0;s<symbols.size();s++) {
-        pos_l[s] = std::min<double>(pos_l[s], pos[s]);
-        pos_h[s] = std::max<double>(pos_h[s], pos[s]);
-        pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
-        pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
+      update_hl(s);
     }
     
     std::string name;
