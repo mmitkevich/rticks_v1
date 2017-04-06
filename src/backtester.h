@@ -69,7 +69,9 @@ struct Backtester : public Algo
     index = 0;
     stop = data.nrows();
     dt = datetimes[0];
+
     double close_dt = NAN;
+
     size_t sent_events = 0;
 
     while(index < stop) {
@@ -91,6 +93,8 @@ struct Backtester : public Algo
           continue;
       }
       
+      market.notify(dt); // flush the time
+
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
       double time2 = dt + 1e-6;
       if(s.index>=0) {
@@ -128,11 +132,11 @@ struct Backtester : public Algo
           logger->warn("Unknown symbol {}",s.id);
       }
       
-      market.notify(time2+1e-5); // flush the time
-
       close_dt = dt;
       index++;
     }
+    dt+=60; // add 60 seconds after last event
+    market.notify(dt); // flush the time
   }
 };
 

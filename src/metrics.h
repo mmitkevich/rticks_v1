@@ -80,6 +80,9 @@ struct Metrics : public Algo,
 
   void init_metric(NumericVector* var, std::string name, double initial=NAN) {
       metrics.push_back(std::make_tuple(name, initial, var)); // save reference
+      if(!std::isnan(initial))
+          for(int i=0;i<var->size();i++)
+              (*var)[i] = initial;
   }
 
   virtual void on_next(TSessionMessage e) {
@@ -202,7 +205,8 @@ struct Metrics : public Algo,
         }
         auto is_cumulative = std::isnan(initial);
         if(!is_cumulative)
-          *metric = initial;
+          for(int i=0; i<symbols.size();i++)
+              (*metric)[i] = initial;
     }
   }
 
