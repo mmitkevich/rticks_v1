@@ -281,7 +281,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
     facet_grid(metric ~ ., scales = "free_y")  + 
     scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
     scale_size_manual(values=0.5) + 
-    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+    theme(axis.text.x = element_text(angle = 30, hjust = 1)) + ggtitle(paste.list(unique(perfs$symbol),sep=","))
   
   #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
 } 
