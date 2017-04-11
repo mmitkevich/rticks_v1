@@ -83,14 +83,14 @@ struct GammaAlgo : public MarketAlgo,
         }
     }else if(!q.count_buy()) {  // no buy
         // check the sell - could be too far from market
-        if(q.sell-m.sell > spread[s]) {
-          quote_sell(s, m.sell + spread[s]);
+        if(q.sell-m.buy > spread[s]) {
+          quote_sell(s, m.buy + spread[s]);
         }
         quote_buy(s, quotes.sell[s] - spread[s]);
     }else if(!q.count_sell()) { // no sell
         // check the buy - could be too far from market
-        if(m.buy - q.buy > spread[s]) {
-          quote_buy(s, m.buy - spread[s]);
+        if(m.sell - q.buy > spread[s]) {
+          quote_buy(s, m.sell - spread[s]);
         }
         quote_sell(s, quotes.buy[s] + spread[s]);
     }
@@ -105,8 +105,12 @@ struct GammaAlgo : public MarketAlgo,
         price = NAN;  // no long entries below buy stop price
       else if(price>stops.sell[s]) 
         price = stops.sell[s];  // no closing shorts above stop.sell
+      if(std::isinf(price))
+          price = NAN;
+
       stop_price = price - roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.)/gamma.buy[s])*mpi[s];
       stop_price = std::min<double>(stop_price, stops.sell[s]); // no closing shorts above stop.sell
+
 
       quotes.buy[s] = price;
       
@@ -135,6 +139,9 @@ struct GammaAlgo : public MarketAlgo,
         price = NAN;  // no short entries above sell stop price
       else if(price<stops.buy[s])
         price = stops.buy[s]; // no closing long under stop.buy
+      if(std::isinf(price))
+          price = NAN;
+
       stop_price = price + roundl(std::max<double>(pos[s] - gamma.buy[s], 0.) / gamma.buy[s])*mpi[s];
       stop_price = std::max<double>(stop_price, stops.buy[s]); // no closing longs below stop.buy
 
