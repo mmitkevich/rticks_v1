@@ -85,7 +85,7 @@ fetch.reuters <- function(q) {
   if(q$start>=q$stop)
     return(NULL)
   tl = timeline(q$schedule, start=q$start)
-  stop <- ifelse(length(tl)>1, tl[[2]], q$stop)
+  stop <- min(ifelse(length(tl)>1, tl[[2]], q$stop),q$stop)
 
   symbols <- q$schedule %>% filter(datetime==q$start)# %>%  # take past events
     #group_by(instrument_id) %>%      # for each contract's group
