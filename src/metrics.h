@@ -6,11 +6,13 @@ namespace Rcpp {
 
 template<typename TExecutionMessage=ExecutionMessage,
          typename TSessionMessage=SessionMessage,
-         typename TQuoteMessage=QuoteMessage>
+         typename TQuoteMessage=QuoteMessage,
+         typename TOrderMessage=OrderMessage>
 struct Metrics : public Algo,
         public IObserver<TExecutionMessage>,
         public IObserver<TSessionMessage>,
-        public IObserver<TQuoteMessage>
+        public IObserver<TQuoteMessage>,
+        public IObserver<TOrderMessage>
 {
   size_t index;
   size_t stop;
@@ -23,6 +25,7 @@ struct Metrics : public Algo,
   NumericVector multiplier;
   //NumericVector roundtrips;
   BuySellVector market;
+  BuySellVector quotes;
   
   CharacterVector symbols;
   std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
@@ -39,6 +42,7 @@ struct Metrics : public Algo,
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
       market(params.nrows()),
+      quotes(params.nrows()),
       perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", 24*60*60)[0])),
       multiplier(required<NumericVector>(params, "multiplier")),
       pos(optional<NumericVector>(params, "pos", 0.0)),
@@ -60,6 +64,8 @@ struct Metrics : public Algo,
       init_metric(&pos_l, "pos_low",  +INFINITY);
       init_metric(&qty_buy, "qty_buy");
       init_metric(&qty_sell, "qty_sell");
+      init_metric(&quotes.buy, "bid");
+      init_metric(&quotes.sell, "ask");
       //init_metric(&roundtrips, "roundtrips", 0.0);
       perfs_nrows(stop);  // datetime, symbol, value
       //if(logger) {
@@ -72,10 +78,11 @@ struct Metrics : public Algo,
   }
 
   template<typename TMarket>
-  void on_init(TMarket &market) {
-    market.$execs >>= *this;
-    market.$quotes >>= *this;
-    market.$session >>= *this;
+  void on_init(TMarket &mkt) {
+    mkt.$execs >>= *this;
+    mkt.$quotes >>= *this;
+    mkt.$orders >>= *this;
+    mkt.$session >>= *this;
   }
 
   void init_metric(NumericVector* var, std::string name, double initial=NAN) {
@@ -115,10 +122,17 @@ struct Metrics : public Algo,
     dlog<debug>(e);
     market.update(e.symbol, e);
     auto s = e.symbol;
-    pnl[s] = cash[s] + pos[s] * e.price * multiplier[s];
+    auto px = pos[s]>0 ? market.buy[s] : market.sell[s];
+    pnl[s] = cash[s] + pos[s] * px * multiplier[s];
     update_hl(e.symbol);    
     xlog<debug>("PNL.Q", e.symbol, e.price, e.qty);
     try_flush();   
+  }
+  
+  virtual void on_next(TOrderMessage e) {
+    on_clock(e.rtime);
+    dlog<debug>(e);
+    quotes.update(e.symbol, e);
   }
   
   virtual void on_next(TExecutionMessage e) {
@@ -144,7 +158,8 @@ struct Metrics : public Algo,
     cash[s] = cash[s] - e.qty * e.fill_price * multiplier[s];
     assert(!std::isnan(cash[s]));
 
-    pnl[s] = cash[s] + pos[s] * e.fill_price * multiplier[s];
+    auto px = pos[s]>0 ? market.buy[s] : market.sell[s];
+    pnl[s] = cash[s] + pos[s] * px * multiplier[s];
 
     update_hl(s);
     //if(is_zero(pos[s]))
@@ -191,7 +206,7 @@ struct Metrics : public Algo,
     for(auto tup : metrics) {
         std::tie(name, initial, metric) = tup;
         for(int i=0; i < symbols.size(); i++) {
-          as<NumericVector>(perfs[0])[index] = next_flush_dt;
+          as<NumericVector>(perfs[0])[index] = next_flush_dt-1e-9;  // flush 1ns before interval end
           as<CharacterVector>(perfs[1])[index] = (const char*)symbols[i];
           as<CharacterVector>(perfs[2])[index] = (const char*)name.c_str();
           as<NumericVector>(perfs[3])[index] = (*metric)[i];

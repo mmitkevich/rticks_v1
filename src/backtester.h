@@ -96,7 +96,7 @@ struct Backtester : public Algo
       market.notify(dt); // flush the time
 
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
-      double time2 = dt + 1e-6;
+      double time2 = dt + 1e-9;
       if(s.index>=0) {
         // buffer events
         QuoteMessage bid;

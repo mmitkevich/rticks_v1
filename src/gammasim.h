@@ -90,7 +90,7 @@ struct GammaSimulator : public MarketAlgo,
     }
     TSessionMessage e;
     e.rtime = e.ctime = dtime;
-    //e.ctime = e.rtime = dtime-1e-6; //FIXME: should be first message in order of sending without this hack
+    //e.ctime = e.rtime = dtime-1e-9; //FIXME: should be first message in order of sending without this hack
     $session.on_next(e);
   }
   

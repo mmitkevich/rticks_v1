@@ -116,12 +116,26 @@ to_virtual_id <- function(symbols) {
 #' filter_time("2015-01","2015-02")
 #' 
 #' @export
-filter_time <- function(.x, start=NULL, stop=NULL) {
+filter_date <- function(.x, start=NULL, stop=NULL) {
   if(!is.null(start))
     .x<-.x %>% filter(datetime>=dt(start))
   if(!is.null(stop))
     .x<-.x %>% filter(datetime<dt(stop))
   .x
+}
+
+#' time_of_Day
+#' 
+#' @export
+time_of_day <- function(.x) {
+  duration(as.numeric(.x) %% 86400) 
+}
+
+#' filter_time
+#' 
+#' @export
+filter_time <- function(.x) {
+ .x %>% filter(time_of_day()) 
 }
 
 #' backtest list of chunks
@@ -226,7 +240,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       params$pos  <- r$pos
       params$cash <- r$cash
       if(r$qty_buy<params$qty_buy) {
-        browser()
+        #browser()
       }
       params$qty_buy <- r$qty_buy
       params$qty_sell <- r$qty_sell
@@ -275,14 +289,28 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   #ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
   #  geom_line() + 
   #  geom_linerange(aes(ymin=low, ymax=high)) +
-  ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() + theme(legend.position = "none") +
+  plt <- ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() + theme(legend.position = "none") +
     geom_segment(aes(y=close,yend=close, xend=datetime+0.5*timeframe)) + 
     geom_linerange(aes(ymin=low,ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
-    scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d") +
     scale_size_manual(values=0.5) + 
     theme(axis.text.x = element_text(angle = 30, hjust = 1)) + ggtitle(paste.list(unique(perfs$symbol),sep=","))
-  
+  dur = max(df$datetime)-min(df$datetime)
+  browser()
+  if(dur>=ddays(90)){
+    plt <- plt + scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(28)) {
+    plt <- plt + scale_x_datetime(date_breaks = "1 week", date_minor_breaks = "1 day", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(7)) {
+    plt <- plt + scale_x_datetime(date_breaks = "1 day", date_minor_breaks = "4 hour", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(1)) {
+    plt <- plt + scale_x_datetime(date_breaks = "4 hour", date_minor_breaks = "1 hour",  date_labels = "%Y-%m-%d %H:%M")
+  }else if(dur>dminutes(15)) {
+    plt <- plt + scale_x_datetime(date_breaks = "1 minute", date_labels = "%Y-%m-%d %H:%M")
+  }else {
+    plt <- plt + scale_x_datetime(date_breaks = "1 second", date_labels = "%Y-%m-%d %H:%M:%S")
+  }
+  plt
   #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
 } 
 
@@ -291,7 +319,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
 #' bt_report(r)
 #' 
 #' @export
-bt_reports <- function(r) {
+bt_reports <- function(r, start=NULL, stop=NULL) {
   # view data
   symbol <- paste0(paste.list(r$params$symbol,"-"))
 
@@ -306,7 +334,8 @@ bt_reports <- function(r) {
   fn <- paste0("~/rticks_bt/",symbol)
   write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
   write.csv(r$metrics, file=paste(fn, dt, "csv", sep="."))
-  metrics %>% plot_bt()
+  
+  bt_plot(r, start=start,stop=stop)
 }
 
 #' view metrics
@@ -319,4 +348,11 @@ bt_view_metrics<-function(r, start=NULL, stop=NULL) {
   if(!is.null(stop))
     metrics<-metrics %>% filter(datetime<=as_datetime(stop))
   metrics %>% View()
+}
+
+#' bt_plot
+#'
+#' @export
+bt_plot<-function(r, start=NULL, stop=NULL) {
+  r$metrics %>% gather(metric,value,-datetime,-symbol) %>% plot_bt(start=start,stop=stop)
 }
