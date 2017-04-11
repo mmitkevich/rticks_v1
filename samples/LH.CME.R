@@ -15,7 +15,7 @@ init_spd_log(cfg)
 
 # period of backtest
 start <- as_datetime("2015-01-22")
-stop  <- as_datetime("2015-01-24")
+stop  <- as_datetime("2015-03-24")
 
 params <- data_frame(
   # limits
