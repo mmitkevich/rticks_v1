@@ -5,9 +5,9 @@ library(grid)
 options(debug=T)
 
 cfg <- config(backtest) %>% modifyList(list(
-  no_cache = T, # всегда из базы
-  no_save = T, # не писать кэш на диск
-  log_level = LOG$INFO,
+  no_cache = F, # всегда из базы
+  no_save = F, # не писать кэш на диск
+  log_level = LOG$DEBUG,
   log_stdout = LOG$WARN, 
   roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
@@ -18,7 +18,7 @@ cfg <- config(backtest) %>% modifyList(list(
 init_spd_log(cfg)
 
 start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2017-03-01")
+stop  <- as_datetime("2015-01-10")
 
 params <- data_frame(
   # limits

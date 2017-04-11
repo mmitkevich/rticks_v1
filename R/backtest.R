@@ -296,7 +296,6 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
     scale_size_manual(values=0.5) + 
     theme(axis.text.x = element_text(angle = 30, hjust = 1)) + ggtitle(paste.list(unique(perfs$symbol),sep=","))
   dur = max(df$datetime)-min(df$datetime)
-  browser()
   if(dur>=ddays(90)){
     plt <- plt + scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d")
   }else if(dur>=ddays(28)) {

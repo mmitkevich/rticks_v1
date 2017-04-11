@@ -80,16 +80,6 @@ clean_mim.chunk <- function(chunk,
   return(chunk)
 }
 
-#' cache_path
-#' 
-#' @export
-cache_path <- function(instrument_id, start,stop, active_contract, cache_dir="~/rticks/tests/"){
-  paste0(cache_dir,instrument_id, ".",as.character(active_contract),"-",
-         paste(as.character(as_date(start)), 
-               as.character(as_date(stop)),sep="--"),
-         ".rds")
-}
-
 #' query_candles_cache
 #'
 #' @examples
@@ -100,8 +90,9 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
   if(!is.null(roll_pattern)) {
     instruments$active_contract <- roll_pattern
   }
-  cache_name <- paste(unique(instruments$instrument_id), sep="_")
-  path <- cache_path(cache_name, start, stop, active_contract)
+  cache_name <- paste0("~/bt_cache/", paste.list(unique(instruments$instrument_id), sep="_"))
+  path <- cache_name
+  #browser()
   ilog("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop))
   if(config$no_cache || !file.exists(path)) {
     q <- query_candles(instruments, active_contract = active_contract, min_active_contract=min_active_contract, start=start, stop=stop, custom_roll=config$custom_roll)
@@ -123,6 +114,7 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
       }
     }
   }else {
+    q <- new.env();
     ilog("reading ",path)
     data <- readRDS(path)
   }
