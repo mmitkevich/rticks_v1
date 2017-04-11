@@ -20,3 +20,4 @@ callgrind*
 cpp/test_bt
 cpp/test_rx
 cpp/v3/
+*.png
