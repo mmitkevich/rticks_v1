@@ -99,9 +99,9 @@ struct Metrics : public MarketAlgo,
 
   virtual void on_next(TSessionMessage e) {
     on_clock(e.rtime);
-    dlog<debug>(e);
     set_flush_time();
     try_flush();
+    dlog<debug>(e);
   }
 
   void set_flush_time() {
@@ -126,6 +126,8 @@ struct Metrics : public MarketAlgo,
   
   virtual void on_next(TQuoteMessage e) {
     on_clock(e.rtime);
+    try_flush();   
+    
     dlog<debug>(e);
     market.update(e.symbol, e);
     auto s = e.symbol;
@@ -133,20 +135,21 @@ struct Metrics : public MarketAlgo,
     pnl[s] = cash[s] + pos[s] * px * multiplier[s];
     update_hl(s);    
     xlog<debug>("PNL.Q", e.symbol, e.price, e.qty);
-    try_flush();   
   }
   
   virtual void on_next(TOrderMessage e) {
     on_clock(e.rtime);
+    try_flush();
     dlog<debug>(e);
     quotes.update(e.symbol, e);
     
     xlog<info>("PNL.O", e.symbol, e.price, e.qty);
-    try_flush();   
   }
   
   virtual void on_next(TExecutionMessage e) {
     on_clock(e.rtime);
+    try_flush();
+    
     dlog<debug>(e);
     //dlog<3>(e);
     //if(fabs(e.qty)>3) {
@@ -175,8 +178,6 @@ struct Metrics : public MarketAlgo,
     //  roundtrips[s] = roundtrips[s] + 1;
 
     xlog<info>("PNL.E", s, e.price, e.qty);
-      
-    try_flush();
   }
   
   template<int level>
@@ -184,7 +185,7 @@ struct Metrics : public MarketAlgo,
     if(level>=log_level) {
       if(logger) {
         auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | S={}, {} | POS={}, {}:{} | PNL={}, {}:{} | CASH={} | QTY={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | S={}, {} | POS={}, {}:{} | PNL={}, {}:{} | CASH={} | QTY={}, {} | NF {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
                     time, what, s.id, s.index, 
                     market.buy[s], market.sell[s], 
                     quotes.buy[s], quotes.sell[s],
@@ -192,7 +193,8 @@ struct Metrics : public MarketAlgo,
                     pos[s], pos_l[s], pos_h[s],
                     pnl[s], pnl_l[s], pnl_h[s], 
                     cash[s], 
-                    qty_buy[s], qty_sell[s], fill_price, fill_qty);
+                    qty_buy[s], qty_sell[s], 
+                    Datetime(next_flush_dt), fill_price, fill_qty);
       }
     }
   }
