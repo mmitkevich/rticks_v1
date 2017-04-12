@@ -8,7 +8,7 @@ template<typename TExecutionMessage=ExecutionMessage,
          typename TSessionMessage=SessionMessage,
          typename TQuoteMessage=QuoteMessage,
          typename TOrderMessage=OrderMessage>
-struct Metrics : public Algo,
+struct Metrics : public MarketAlgo,
         public IObserver<TExecutionMessage>,
         public IObserver<TSessionMessage>,
         public IObserver<TQuoteMessage>,
@@ -20,14 +20,11 @@ struct Metrics : public Algo,
   NumericVector date;
   NumericVector pnl, pnl_h, pnl_l;  // by symbol
   NumericVector cash;
-  NumericVector pos, pos_h, pos_l;
+  NumericVector pos_h, pos_l;
   NumericVector qty_buy, qty_sell;
   NumericVector multiplier;
-  //NumericVector roundtrips;
-  BuySellVector market;
-  BuySellVector quotes;
+  NumericVector price, price_l, price_h;
   
-  CharacterVector symbols;
   std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
 
   List perfs;
@@ -37,33 +34,41 @@ struct Metrics : public Algo,
   long perfs_interval = 24*60*60;
 
   Metrics(DataFrame params, List config, std::string name="metrics")
-    : Algo(params, config, name),
-      symbols(required<CharacterVector>(params, "symbol")),
+    : MarketAlgo(params, config, name),
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
-      market(params.nrows()),
-      quotes(params.nrows()),
       perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", 24*60*60)[0])),
       multiplier(required<NumericVector>(params, "multiplier")),
-      pos(optional<NumericVector>(params, "pos", 0.0)),
       cash(optional<NumericVector>(params, "cash", 0.0)), // cash that was paid for the pos (or average price of pos)
       pos_h(params.nrows()),
       pos_l(params.nrows()),
       pnl_h(params.nrows()),
       pnl_l(params.nrows()),
+      price_l(params.nrows()),
+      price_h(params.nrows()),
+      price(params.nrows()),
       qty_buy(optional<NumericVector>(params, "qty_buy", 0.0)),
       qty_sell(optional<NumericVector>(params, "qty_sell", 0.0))
   {
       // initialize metrics
-      init_metric(&pnl, "pnl");
+      
       init_metric(&cash, "cash");
-      init_metric(&pos, "pos");
+      
+      init_metric(&pnl, "pnl");
       init_metric(&pnl_h, "pnl_high", -INFINITY);
       init_metric(&pnl_l, "pnl_low",  +INFINITY);
+      
+      init_metric(&pos, "pos");
       init_metric(&pos_h, "pos_high", -INFINITY);
       init_metric(&pos_l, "pos_low",  +INFINITY);
+      
+      init_metric(&price, "price");
+      init_metric(&price_h, "price_high", -INFINITY);
+      init_metric(&price_l, "price_low",  +INFINITY);
+      
       init_metric(&qty_buy, "qty_buy");
       init_metric(&qty_sell, "qty_sell");
+      
       init_metric(&quotes.buy, "bid");
       init_metric(&quotes.sell, "ask");
       //init_metric(&roundtrips, "roundtrips", 0.0);
@@ -115,6 +120,8 @@ struct Metrics : public Algo,
     pos_h[s] = std::max<double>(pos_h[s], pos[s]);
     pnl_l[s] = std::min<double>(pnl_l[s], pnl[s]);
     pnl_h[s] = std::max<double>(pnl_h[s], pnl[s]);
+    price_l[s] = std::min<double>(price_l[s], market.sell[s]);
+    price_h[s] = std::max<double>(price_h[s], market.buy[s]);
   }
   
   virtual void on_next(TQuoteMessage e) {
@@ -124,7 +131,7 @@ struct Metrics : public Algo,
     auto s = e.symbol;
     auto px = pos[s]>0 ? market.buy[s] : market.sell[s];
     pnl[s] = cash[s] + pos[s] * px * multiplier[s];
-    update_hl(e.symbol);    
+    update_hl(s);    
     xlog<debug>("PNL.Q", e.symbol, e.price, e.qty);
     try_flush();   
   }
@@ -133,6 +140,9 @@ struct Metrics : public Algo,
     on_clock(e.rtime);
     dlog<debug>(e);
     quotes.update(e.symbol, e);
+    
+    xlog<info>("PNL.O", e.symbol, e.price, e.qty);
+    try_flush();   
   }
   
   virtual void on_next(TExecutionMessage e) {
@@ -160,7 +170,6 @@ struct Metrics : public Algo,
 
     auto px = pos[s]>0 ? market.buy[s] : market.sell[s];
     pnl[s] = cash[s] + pos[s] * px * multiplier[s];
-
     update_hl(s);
     //if(is_zero(pos[s]))
     //  roundtrips[s] = roundtrips[s] + 1;
@@ -175,10 +184,15 @@ struct Metrics : public Algo,
     if(level>=log_level) {
       if(logger) {
         auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | PNL={} | PNL.LH={} {} | CASH={} | POS={} | POS.LH={} {} | QTY={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
-                    time, what, s.id, s.index, market.buy[s], market.sell[s], pnl[s], pnl_l[s], pnl_h[s], cash[s], pos[s], pos_l[s], pos_h[s], qty_buy[s], qty_sell[s], fill_price, fill_qty);
-        //if(level>=log_flush_level)
-        //  logger->flush();
+        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | S={}, {} | POS={}, {}:{} | PNL={}, {}:{} | CASH={} | QTY={}, {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+                    time, what, s.id, s.index, 
+                    market.buy[s], market.sell[s], 
+                    quotes.buy[s], quotes.sell[s],
+                    stop_quotes.buy[s], stop_quotes.sell[s],
+                    pos[s], pos_l[s], pos_h[s],
+                    pnl[s], pnl_l[s], pnl_h[s], 
+                    cash[s], 
+                    qty_buy[s], qty_sell[s], fill_price, fill_qty);
       }
     }
   }
@@ -193,11 +207,9 @@ struct Metrics : public Algo,
   }
 
   void flush_perfs() {
-   
-    logger->debug("rticks::Metrics::flush_perfs {}", Datetime(dt));
-
     for(int s=0;s<symbols.size();s++) {
       update_hl(s);
+      xlog<debug>("PNL.FLUSH",SymbolId(symbols[s],s));
     }
     
     std::string name;

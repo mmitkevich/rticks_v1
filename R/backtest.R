@@ -31,24 +31,22 @@ backtest.chunk <- function(data, params, algo, config) {
     return (r);
   }
   
-  d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
-  d <- d %>% transmute(datetime=datetime, symbol=virtual_id, bid=bid, ask=ask)
-  #d <- d %>% arrange(symbol, datetime) %>% as_data_frame()
-  d$datetime <- d$datetime %>% trunc_freq(config$perfs_freq)
-  #browser()
-  d <- d %>% group_by(symbol, datetime) %>% summarise(
-    price = tail(0.5*(bid+ask),1),
-    price_high = max(bid),
-    price_low = min(ask)
-  ) %>% as_data_frame()
-  #browser()
+  #d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
+  #d <- d %>% transmute(datetime=datetime, symbol=virtual_id, bid=bid, ask=ask)
+  #d$datetime <- d$datetime %>% trunc_freq(config$perfs_freq)
+  #d <- d %>% group_by(symbol, datetime) %>% arrange(datetime) %>% summarise(
+  #  price = (0.5*(bid+ask)) [n()],
+  #  price_high = max(bid),
+  #  price_low = min(ask)
+  #) %>% as_data_frame()
+  
   r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
   r$perfs <- as_data_frame(r$perfs)
-  r$perfs <- r$perfs %>% spread(metric, value) %>% 
-    inner_join(d, by=c("datetime","symbol")) %>%
-    gather(metric, value, -datetime, -symbol) %>% 
-    arrange(datetime)
-  r$perfs$datetime <- as_datetime(r$perfs$datetime)
+  #r$perfs <- r$perfs %>% spread(metric, value) %>% 
+  #  inner_join(d, by=c("datetime","symbol")) %>%
+  #  gather(metric, value, -datetime, -symbol) %>% 
+  #  arrange(datetime)
+  #r$perfs$datetime <- as_datetime(r$perfs$datetime)
   log_perfs("backtest.chunk out",data, r, params, 0.5*(tail(data$bid,1)+tail(data$ask,1)))  
   return(r)
 }
@@ -261,55 +259,94 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   q
 }
 
+#' 
+#' 
+#' @export
+lower_timeframe <- function(timeframe, nrows, maxrows=200, 
+                            timeframes = c(minutes(1), minutes(10), hours(1), 
+                                           hours(4), days(1), weeks(1), months(1), years(1))) {
+  timeframe <- as.numeric(timeframe)
+  timeframe.old <- timeframe
+  timeframes <- as.numeric(timeframes)
+  while(nrows*timeframe.old/timeframe > maxrows) {
+    idx<-which.max(timeframes > timeframe)
+    if(timeframes[idx] <= timeframe)
+      break
+    timeframe<-timeframes[idx]
+  }
+  as.period(timeframe)
+}
+
+#' 
+#' 
+#' @export
+scale_x_datetime_smart <- function(plt, dur) {
+  if(dur>=dyears(3)) {
+    plt + scale_x_datetime(date_breaks = "1 year", date_minor_breaks = "3 month", date_labels = "%Y-%m-%d")
+  }else  if(dur>=dyears(1)) {
+    plt + scale_x_datetime(date_breaks = "3 month", date_minor_breaks = "1 month", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(90)){
+    plt + scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(28)) {
+    plt + scale_x_datetime(date_breaks = "1 week", date_minor_breaks = "1 day", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(7)) {
+    plt + scale_x_datetime(date_breaks = "1 day", date_minor_breaks = "4 hour", date_labels = "%Y-%m-%d")
+  }else if(dur>=ddays(1)) {
+    plt + scale_x_datetime(date_breaks = "4 hour", date_minor_breaks = "1 hour",  date_labels = "%Y-%m-%d %H:%M")
+  }else if(dur>dminutes(15)) {
+    plt + scale_x_datetime(date_breaks = "1 minute", date_labels = "%Y-%m-%d %H:%M")
+  }else {
+    plt + scale_x_datetime(date_breaks = "1 second", date_labels = "%Y-%m-%d %H:%M:%S")
+  }
+}
+
 #' plot backtest results
 #' 
 #' @export
-plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl","pos")) {
+plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl","pos"), maxrows=400) {
+  #browser()
+  perfs <- perfs %>% arrange(datetime)
+  perfs <- ifnull(start, perfs, perfs %>% filter(datetime>=start))
+  perfs <- ifnull(stop, perfs, perfs %>% filter(datetime<stop))
+  timeframe <- perfs$datetime[2]-perfs$datetime[1]
+  timeframe.old <- timeframe
+  timeframe <- lower_timeframe(timeframe, nrow(perfs), maxrows=maxrows)
+  
   df <- data_frame()
   for(m in metrics) {
     ml = paste(m, "low", sep="_")
     mh = paste(m, "high", sep="_")
-    d <- perfs %>%filter(metric==m | metric==mh | metric==ml) %>% 
-      spread(metric, value) %>% mutate(metric=m) %>% rename_(.dots=list(close=m))
+    d <- perfs %>% select_(.dots=c("datetime", "symbol", m, ml, mh) %>% intersect(names(perfs))) %>% 
+      rename_(.dots=list(close=m))
     if(has_name(d, ml))
-      d <- d%>%rename_(.dots=list(low=ml))
+      d <- d %>% rename_(.dots=list(low=ml))
     else
-      d <- d%>%mutate(low=close)
-    if(has_name(d, mh)) {
-      d <- d%>%rename_(.dots=list(high=mh))
-    }
+      d <- d %>% mutate(low=close)
+    if(has_name(d, mh))
+      d <- d %>% rename_(.dots=list(high=mh))
     else
-      d <- d%>%mutate(high=close)
-    df <- bind_rows(df, d)
+      d <- d %>% mutate(high=close)
+    
+    d1 <- d %>% ohlc(freq=timeframe)
+    df <- bind_rows(df, d1 %>% mutate(metric=m))
   }
-  df <- ifnull(start, df, df%>%filter(datetime>=start))
-  df <- ifnull(stop, df, df%>%filter(datetime<stop))
-  timeframe <- sort(unique(df$datetime))
-  timeframe <- timeframe[2]-timeframe[1]
+  df1 <- df %>% arrange(datetime) %>% as_data_frame()
+  #browser()
   #ggplot(df, aes(x=datetime, y=value, colour=symbol)) + 
   #  geom_line() + 
   #  geom_linerange(aes(ymin=low, ymax=high)) +
-  plt <- ggplot(df, aes(x=datetime,y=close,colour=symbol)) + theme_bw() + theme(legend.position = "none") +
-    geom_segment(aes(y=close,yend=close, xend=datetime+0.5*timeframe)) + 
-    geom_linerange(aes(ymin=low,ymax=high)) + guides(fill=FALSE) +
+  #browser()
+  plt <- ggplot(df1, aes(x=datetime, y=close, colour=symbol)) + 
+    theme_bw() + 
+    theme(legend.position = "none") +
+    geom_segment(aes(y=close, yend=close, xend=datetime+0.5*timeframe)) + 
+    geom_linerange(aes(ymin=low, ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
     scale_size_manual(values=0.5) + 
-    theme(axis.text.x = element_text(angle = 30, hjust = 1)) + ggtitle(paste.list(unique(perfs$symbol),sep=","))
-  dur = max(df$datetime)-min(df$datetime)
-  if(dur>=ddays(90)){
-    plt <- plt + scale_x_datetime(date_breaks = "1 month", date_labels = "%Y-%m-%d")
-  }else if(dur>=ddays(28)) {
-    plt <- plt + scale_x_datetime(date_breaks = "1 week", date_minor_breaks = "1 day", date_labels = "%Y-%m-%d")
-  }else if(dur>=ddays(7)) {
-    plt <- plt + scale_x_datetime(date_breaks = "1 day", date_minor_breaks = "4 hour", date_labels = "%Y-%m-%d")
-  }else if(dur>=ddays(1)) {
-    plt <- plt + scale_x_datetime(date_breaks = "4 hour", date_minor_breaks = "1 hour",  date_labels = "%Y-%m-%d %H:%M")
-  }else if(dur>dminutes(15)) {
-    plt <- plt + scale_x_datetime(date_breaks = "1 minute", date_labels = "%Y-%m-%d %H:%M")
-  }else {
-    plt <- plt + scale_x_datetime(date_breaks = "1 second", date_labels = "%Y-%m-%d %H:%M:%S")
-  }
-  plt
+    theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
+    ggtitle(paste.list(unique(perfs$symbol),sep=","))
+  #browser()
+  scale_x_datetime_smart(plt, max(df$datetime)-min(df$datetime))
   #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
 } 
 
@@ -318,23 +355,22 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
 #' bt_report(r)
 #' 
 #' @export
-bt_reports <- function(r, start=NULL, stop=NULL) {
+bt_reports <- function(r, start=NULL, stop=NULL, save=F) {
   # view data
-  symbol <- paste0(paste.list(r$params$symbol,"-"))
-
   metrics <- metrics.gamma(r) # calculate additional metrics
   r$metrics <- metrics %>% spread(metric,value)
   
   # plot pnl
   
   # save results
-  dir.create("~/rticks_bt", showWarnings=F)
-  dt <- now() %>% strftime("%Y-%m-%d_%H-%M-%S")
-  fn <- paste0("~/rticks_bt/",symbol)
-  write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
-  write.csv(r$metrics, file=paste(fn, dt, "csv", sep="."))
-  
-  bt_plot(r, start=start,stop=stop)
+  if(save) {
+    symbol <- paste0(paste.list(r$params$symbol,"-"))
+    dir.create("~/rticks_bt", showWarnings=F)
+    dt <- now() %>% strftime("%Y-%m-%d_%H-%M-%S")
+    fn <- paste0("~/rticks_bt/",symbol)
+    write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
+    write.csv(r$metrics, file=paste(fn, dt, "csv", sep="."))
+  }
 }
 
 #' view metrics
@@ -352,6 +388,6 @@ bt_view_metrics<-function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, start=NULL, stop=NULL) {
-  r$metrics %>% gather(metric,value,-datetime,-symbol) %>% plot_bt(start=start,stop=stop)
+bt_plot<-function(r, start=NULL, stop=NULL,maxrows=400) {
+  r$metrics %>% plot_bt(start=start,stop=stop,maxrows=maxrows)
 }
