@@ -75,13 +75,13 @@ struct GammaAlgo : public MarketAlgo,
     auto m = market[s];
     // restore our quotes if needed
     auto q = quotes[s];
-    if(!q.count_buy() && !q.count_sell()) { // no buy & no sell
+    if(!q.count_buy() && !q.count_sell()) { // no buy & no sell ==> initialization
         auto mid = market.midprice(s);
-        if(!std::isnan(mid)) {
-            quote_buy(s, mid - 0.5 * spread[s]);
-            quote_sell(s, mid + 0.5 * spread[s]);
-        }
-    }else if(!q.count_buy()) {  // no buy
+        if(m.count_buy())
+            quote_buy(s, m.buy);  // start quoting at best-bid & best-ask
+        if(m.count_sell())
+            quote_sell(s, m.sell);
+    }/*else if(!q.count_buy()) {  // no buy
         // check the sell - could be too far from market
         if(q.sell-m.buy > spread[s]) {
           quote_sell(s, m.buy + spread[s]);
@@ -93,70 +93,69 @@ struct GammaAlgo : public MarketAlgo,
           quote_buy(s, m.sell - spread[s]);
         }
         quote_sell(s, quotes.buy[s] + spread[s]);
-    }
+    }*/
   }
 
-  bool quote_buy(SymbolId s, double price) {
+  void quote_buy(SymbolId s, double price) {
       price = round_price(s, price);
-      auto stop_price = stops.buy[s]; // no entering longs under stop.buy
-        
-      price = std::min<double>(price, limits.buy[s]); // no entering longs above limit.buy
-      if(price<stops.buy[s])
-        price = NAN;  // no long entries below buy stop price
-      else if(price>stops.sell[s]) 
-        price = stops.sell[s];  // no closing shorts above stop.sell
-      if(std::isinf(price))
-          price = NAN;
-
-      stop_price = price - roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.)/gamma.buy[s])*mpi[s];
-      stop_price = std::min<double>(stop_price, stops.sell[s]); // no closing shorts above stop.sell
-
-
-      quotes.buy[s] = price;
+      double stop_price = stops.buy[s];      
       
-      xlog<info>("ALGO.BID", s, quotes[s], market[s], pos[s], gamma.buy[s]);
-
-      TOrderMessage e;
-      e.rtime = e.ctime = dt;
-      e.symbol = s;
-      //e.set_side(side); TODO: set_side is sign of qty!
-      e.price = price;
-      e.stop_price = stop_price;
-      e.qty = gamma.buy[e.symbol];
-      //FIXME: gamma -> $gamma input stream
-      $orders.on_next(e);
-      return true;
+      if(pos[s]>-eps()) { // have long position or nothing
+        price = std::min<double>(price, limits.buy[s]); // no entering longs above limit.buy
+        if(price<stops.buy[s])
+          price = -INFINITY;  // no long entries below buy stop price
+      }else { // takeprofits for shorts
+        price = std::min<double>(price, stops.sell[s] - spread[s]); // no closing shorts above stop.sell-spread
+        stop_price = price - roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.)/gamma.buy[s])*mpi[s];
+      }
+      place_order(s, gamma.buy[s], price, stop_price);
   }
-
-  bool quote_sell(SymbolId s, double price) {
-      price = round_price(s, price);
-
-      auto stop_price = stops.sell[s]; // no shorts above stop price
-      
-      // opening shorts      
+  
+  void quote_sell(SymbolId s, double price) {
+    price = round_price(s, price);
+    double stop_price = stops.sell[s];
+    
+    if(pos[s]<eps()) { // have short position or nothing
       price = std::max<double>(price, limits.sell[s]); // no short-enters under sell limit price
       if(price>stops.sell[s])
-        price = NAN;  // no short entries above sell stop price
-      else if(price<stops.buy[s])
-        price = stops.buy[s]; // no closing long under stop.buy
-      if(std::isinf(price))
-          price = NAN;
-
+        price = +INFINITY;  // no short entries above sell stop price
+    }else { // take profits for longs
+      price = std::max<double>(price, stops.buy[s]+spread[s]); // no closing longs below stop.buy+spread  
       stop_price = price + roundl(std::max<double>(pos[s] - gamma.buy[s], 0.) / gamma.buy[s])*mpi[s];
-      stop_price = std::max<double>(stop_price, stops.buy[s]); // no closing longs below stop.buy
-
-      quotes.sell[s] = price;
+    }
+    place_order(s, -gamma.sell[s], price, stop_price);
+  }
+  
+  void place_order(SymbolId s, double qty, double price, double stop_price) {
+    
+    int side = qty>0?1:-1;
+    
+    if(std::isinf(price)) {
+      price = stop_price = NAN;
+    }
+    
+    if(!is_equal(quotes(side)[s],price) || !is_equal(stop_quotes(side)[s],stop_price)) {
+      quotes(side)[s] = price;
+      stop_quotes(side)[s] = stop_price;
       
-      xlog<info>("ALGO.ASK", s, quotes[s], market[s], pos[s], gamma.sell[s]);
+      if(info >= log_level) {
+        std::string what = "ALGO.";
+        what += (side>0) ? "BID" : "ASK";
+        xlog<info>(what, s, NAN, qty);
+      }
+      
+  
+      
       TOrderMessage e;
       e.rtime = e.ctime = dt;
       e.symbol = s;
       //e.set_side(side); TODO: set_side is sign of qty!
       e.price = price;
       e.stop_price = stop_price;
-      e.qty = -gamma.sell[e.symbol];
+      e.qty = qty;
+      //FIXME: gamma -> $gamma input stream
       $orders.on_next(e);
-      return true;
+    }
   }
 
   virtual void on_next(ExecutionMessage e) {

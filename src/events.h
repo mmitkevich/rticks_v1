@@ -93,6 +93,7 @@ struct MarketAlgo : public Algo {
     NumericVector mpi;
     BuySellVector market;  // latest market prices
     BuySellVector quotes;  // latest our bid & ask
+    BuySellVector stop_quotes;
     CharacterVector symbols;
 
     MarketAlgo(    DataFrame params,
@@ -102,26 +103,24 @@ struct MarketAlgo : public Algo {
           symbols(required<CharacterVector>(params, "symbol")),
           market(params.nrows()),
           quotes(params.nrows()),
+          stop_quotes(params.nrows()),
           pos(optional<NumericVector>(params, "pos", 0)),
           mpi(required<NumericVector>(params, "mpi"))
     {
     }
 
     template<int level>
-    void xlog(std::string what, SymbolId sym, const BuySell &q, const BuySell &m, double pos, double fill_price=NAN, double fill_qty=NAN) {
+    void xlog(std::string what, SymbolId s, double fill_price=NAN, double fill_qty=NAN) {
         if(level>=log_level) {
             if(logger) {
               auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-              logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | POS={} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
-                         time, what, sym.id, sym.index, m.buy, m.sell, q.buy, q.sell, pos, fill_price, fill_qty);
-              //if(level>=log_flush_level)
-              //  logger->flush();
+              logger->log(spdlog::level::info, "{} | {} | {}:{} | M={}, {} | Q={}, {} | S={}, {} | POS={} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+                         time, what, s.id, s.index,
+                         market.buy[s], market.sell[s], 
+                         quotes.buy[s], quotes.sell[s], 
+                         stop_quotes.buy[s], stop_quotes.sell[s],
+                         pos[s], fill_price, fill_qty);
             }
-            //else
-            //  std::cout << Datetime(dt) << " | " << what << " | " << sym.id << " | " << sym.index <<
-            //               " | " << m.buy << " " << m.sell <<
-            //               " | " << q.buy << " " << q.sell <<
-            //               fill_price << fill_qty << std::endl << std::flush;
         }
     }
 

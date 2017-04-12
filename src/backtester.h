@@ -76,6 +76,13 @@ struct Backtester : public Algo
 
     while(index < stop) {
       dt = datetimes[index];
+      
+      market.notify(dt); // flush the time
+      
+      if(logger && debug>=log_level) {
+        logger->info("CANDLE {} | {}, {}", Datetime(dt), bids[index], asks[index]);
+      }
+      
       if(!std::isnan(close_dt) && dt<=close_dt+eps()) {
           auto s = fmt::format("datetime already seen. dt={}, prev={}, index={}, symbol={}", Datetime(dt), Datetime(close_dt), index, virtual_symbol[index]);
           if(logger)
@@ -93,8 +100,6 @@ struct Backtester : public Algo
           continue;
       }
       
-      market.notify(dt); // flush the time
-
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
       double time2 = dt + 1e-9;
       if(s.index>=0) {

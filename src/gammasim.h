@@ -20,7 +20,7 @@ struct GammaSimulator : public MarketAlgo,
   typedef TOrderMessage order_message_type;
 
   BuySellVector gamma;    // gamma
-  BuySellVector stops;
+
   
   // outputs
   LatencyQueue<TSessionMessage> $session;
@@ -37,7 +37,6 @@ struct GammaSimulator : public MarketAlgo,
     : MarketAlgo(params, config, name),
       scheduler(params, config),
       metrics(params, config),
-      stops(params.nrow()),
       $session(params, config, &scheduler, "$sess  "),
       $quotes(params, config, &scheduler, "$quotes "),
       $execs(params, config, &scheduler,  "$execs  "),
@@ -65,7 +64,7 @@ struct GammaSimulator : public MarketAlgo,
     dlog<debug>(e);
     assert(e.flag(Message::FROM_MARKET));
     market.update(s, e);
-    xlog<debug>("SIM.QUOT", s, quotes[s], market[s], pos[s]);
+    xlog<debug>("SIM.QUOT", s);
     on_simulate(e.symbol);
     // forward to algorithms
     $quotes.on_next(std::move(e));
@@ -78,9 +77,9 @@ struct GammaSimulator : public MarketAlgo,
     assert(!std::isnan(e.price));
     assert(!std::isnan(e.qty));
     gamma(e.side())[e.symbol] = fabs(e.qty);
-    stops(e.side())[e.symbol] = e.stop_price;
+    stop_quotes(e.side())[e.symbol] = e.stop_price;
     quotes(e.side())[e.symbol] = e.price;
-    xlog<info>("SIM.ORDR", e.symbol, quotes[e.symbol], market[e.symbol], pos[e.symbol], e.stop_price);
+    xlog<info>("SIM.ORDR", e.symbol);
     on_simulate(e.symbol);
   }
 
@@ -112,19 +111,19 @@ struct GammaSimulator : public MarketAlgo,
     if(!std::isnan(q.sell) && should_fill(m.buy-q.sell)) {
       // simulate the sells
       auto stop = m.buy;
-      if(!std::isnan(stops.sell[s]))
-        stop = std::min(stop, stops.sell[s]);
+      if(!std::isnan(stop_quotes.sell[s]))
+        stop = std::min(stop, stop_quotes.sell[s]);
       
       e.price = m.buy;
       e.fill_price = 0.5*(stop+q.sell);
       e.qty = - (g.sell + roundl((stop-q.sell)/pi)*g.sell);
       pos[s] +=e.qty;
-      xlog<info>("SIM.SELL", s, quotes[s], m, pos[s], stop, e.qty);
+      xlog<info>("SIM.SELL", s, e.fill_price, e.qty);
       // move up sell quote since it got filled
       quotes.sell[s] = m.buy + pi;
-      if(!std::isnan(stops.sell[s]) && quotes.sell[s]>stops.sell[s]+eps()) {
+      if(!std::isnan(stop_quotes.sell[s]) && quotes.sell[s]>stop_quotes.sell[s]+eps()) {
         quotes.sell[s] = NAN;
-        stops.sell[s] = NAN;
+        stop_quotes.sell[s] = NAN;
       }
       check(e);
       $execs.on_next(e);
@@ -132,22 +131,22 @@ struct GammaSimulator : public MarketAlgo,
     if(!std::isnan(q.buy) && should_fill(-(m.sell-q.buy))) {
       // simulate the buys
       auto stop = m.sell;
-      if(!std::isnan(stops.buy[s]))
-        stop = std::max(stop, stops.buy[s]);
+      if(!std::isnan(stop_quotes.buy[s]))
+        stop = std::max(stop, stop_quotes.buy[s]);
       
       e.price = m.sell;
       e.fill_price = 0.5*(stop+q.buy);
       e.qty =  (g.buy + roundl((q.buy-stop)/pi)*g.buy);
       pos[s] +=e.qty;
       
-      xlog<info>("SIM.BUY ", s, quotes[s], m, pos[s], stop, e.qty);
+      xlog<info>("SIM.BUY ", s, e.fill_price, e.qty);
 
       // move down buy quote since it got filled
       quotes.buy[s] = m.sell - pi;
       
-      if(!std::isnan(stops.buy[s]) && quotes.buy[s]<stops.buy[s]-eps()) {
+      if(!std::isnan(stop_quotes.buy[s]) && quotes.buy[s]<stop_quotes.buy[s]-eps()) {
         quotes.buy[s] = NAN;
-        stops.buy[s] = NAN;
+        stop_quotes.buy[s] = NAN;
       }
       check(e);
       $execs.on_next(e);
@@ -157,7 +156,7 @@ struct GammaSimulator : public MarketAlgo,
   void check(const ExecutionMessage &e) {
       if(fabs(e.qty)>=check_big_qty) {
         auto s = e.symbol;
-        xlog<warn>("BIG.QTY!", e.symbol, quotes[s], market[s], pos[s], e.fill_price, e.qty);
+        xlog<warn>("BIG.QTY!", e.symbol, e.fill_price, e.qty);
       }
   }
   
