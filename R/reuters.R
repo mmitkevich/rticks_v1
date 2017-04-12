@@ -112,11 +112,11 @@ fetch.reuters <- function(q) {
       where = w, 
       order = "datetime")
   #browser()
-  timeframe <- minutes(1)
+  timeframe <- as.numeric(minutes(1))
   if(nrow(df)>0) {
     df <- df %>% transmute(
         exante_id = exante_id, 
-        datetime = as_datetime(datetime/1000)+timeframe-(1e-9),  # actual time is close_time FIXME  
+        datetime = as_datetime(datetime/1000+timeframe*59/60),  # actual time is close_time FIXME  
         bid = close_bid, 
         ask = close_ask, 
         high = high_bid, 
