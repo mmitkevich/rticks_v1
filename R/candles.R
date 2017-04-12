@@ -125,11 +125,20 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
 #' chunk.resample
 #' 
 #' @export
-chunk.resample<-function (data, freq=days(1)) {
-  data$datetime <- trunc_freq(freq)
-  data %>% 
-    arrange(datetime) %>%
-    group_by(datetime, symbol) %>%
-    filter(row_number()==n()) %>% 
-    as_data_frame()
+ohlc<-function (data, freq=days(1), high="high", low="low", close="close") {
+  data$datetime <- data$datetime %>% trunc_freq(freq)
+  if(!has_name(data, high))
+    high = close
+  if(!has_name(data, low))
+    low = close
+  dots <- c(
+    high = paste0("max(",high,")"), 
+    low = paste0("min(",low,")"),
+    close = paste0(close,"[n()]"))
+  r <- data %>% 
+    group_by(datetime, symbol) %>% arrange(datetime) %>% 
+    summarise_(.dots = dots) %>% 
+    as_data_frame() %>% arrange(datetime)
+  #browser()
+  r
 }
