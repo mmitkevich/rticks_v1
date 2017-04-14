@@ -75,30 +75,23 @@ struct GammaAlgo : public MarketAlgo,
     auto m = market[s];
     // restore our quotes if needed
     auto q = quotes[s];
-    if(!q.count_buy() && !q.count_sell()) { // no buy & no sell ==> initialization
-        auto mid = market.midprice(s);
-        if(m.count_buy())
-            quote_buy(s, m.buy);  // start quoting at best-bid & best-ask
-        if(m.count_sell())
-            quote_sell(s, m.sell);
-    }/*else if(!q.count_buy()) {  // no buy
-        // check the sell - could be too far from market
-        if(q.sell-m.buy > spread[s]) {
-          quote_sell(s, m.buy + spread[s]);
-        }
-        quote_buy(s, quotes.sell[s] - spread[s]);
-    }else if(!q.count_sell()) { // no sell
-        // check the buy - could be too far from market
-        if(m.sell - q.buy > spread[s]) {
-          quote_buy(s, m.sell - spread[s]);
-        }
-        quote_sell(s, quotes.buy[s] + spread[s]);
-    }*/
+    
+    if(!m.count_buy())
+      quote_buy(s, NAN);   // we don't quote when no bid price defined
+    else if(!q.count_buy() || q.buy>m.buy)
+        quote_buy(s, m.buy);  // we dont' quote better than market bid
+    
+    if(!m.count_sell())
+      quote_sell(s, NAN);   // we don't quote when no ask price defined
+    else if(!q.count_sell() || q.sell<m.sell)
+        quote_sell(s, m.sell); // we don't quote better than market ask
   }
 
   void quote_buy(SymbolId s, double price) {
       price = round_price(s, price);
       double stop_price = stops.buy[s];      
+      
+      xlog<info>("ALGO.BID", s, price, gamma.buy[s]);
       
       if(pos[s]>-eps()) { // have long position or nothing
         price = std::min<double>(price, limits.buy[s]); // no entering longs above limit.buy
@@ -114,6 +107,8 @@ struct GammaAlgo : public MarketAlgo,
   void quote_sell(SymbolId s, double price) {
     price = round_price(s, price);
     double stop_price = stops.sell[s];
+  
+    xlog<info>("ALGO.ASK", s, price, -gamma.sell[s]);
     
     if(pos[s]<eps()) { // have short position or nothing
       price = std::max<double>(price, limits.sell[s]); // no short-enters under sell limit price
@@ -134,17 +129,10 @@ struct GammaAlgo : public MarketAlgo,
       price = stop_price = NAN;
     }
     
-    if(!is_equal(quotes(side)[s],price) || !is_equal(stop_quotes(side)[s],stop_price)) {
+    if(!is_equal(quotes(side)[s],price) || !is_equal(stop_quotes(side)[s],stop_price)) 
+    {
       quotes(side)[s] = price;
       stop_quotes(side)[s] = stop_price;
-      
-      if(info >= log_level) {
-        std::string what = "ALGO.";
-        what += (side>0) ? "BID" : "ASK";
-        xlog<info>(what, s, NAN, qty);
-      }
-      
-  
       
       TOrderMessage e;
       e.rtime = e.ctime = dt;
