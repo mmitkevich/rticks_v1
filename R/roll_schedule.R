@@ -139,7 +139,7 @@ schedule.roll.logic <- function(sched, instruments, min_active_contract, max_act
     }
   }
   DF_fin <- DF_fin %>% arrange(datetime) %>% select(-virtual_id)
-  DF_fin %>% by_row(function(ins)  {
+  DF_fin <- DF_fin %>% by_row(function(ins)  {
     paste0(
       ins$instrument_id,
       ".",
@@ -150,6 +150,9 @@ schedule.roll.logic <- function(sched, instruments, min_active_contract, max_act
     },
     .to="virtual_id",
     .collate="cols") 
+  
+  DF_fin <- DF_fin %>% group_by(exante_id, virtual_id) %>% arrange(datetime) %>% filter(row_number()==1)
+  DF_fin
 }
 
 
