@@ -1,11 +1,14 @@
+library(rticks)
+library(ggplot2)
+
 options(debug=T)
 
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  log_level = LOG$DEBUG,
+  log_level = LOG$OFF,
   log_stdout = LOG$WARN,
-  roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
+  roll_position = T, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, months_ahead=1 at least 1 month ahead of expiration  
   perfs_freq = as.numeric(minutes(1))
 ))
@@ -15,7 +18,7 @@ init_spd_log(cfg)
 
 # period of backtest
 start <- as_datetime("2015-01-22")
-stop  <- as_datetime("2015-03-24")
+stop  <- as_datetime("2017-03-24")
 
 params <- data_frame(
   # limits
@@ -45,3 +48,5 @@ c( 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12)
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
 bt_reports(r)
+r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% View()
+bt_plot(r)
