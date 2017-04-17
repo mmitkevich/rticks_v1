@@ -151,8 +151,8 @@ schedule.roll.logic <- function(sched, instruments, min_active_contract, max_act
     .to="virtual_id",
     .collate="cols") 
   
-  DF_fin <- DF_fin %>% group_by(exante_id, virtual_id) %>% arrange(datetime) %>% filter(row_number()==1)
-  DF_fin
+  #DF_fin <- DF_fin %>% group_by(exante_id, virtual_id) %>% arrange(datetime) %>% filter(row_number()==1)
+  #DF_fin
 }
 
 
