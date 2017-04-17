@@ -6,7 +6,7 @@ options(debug=T)
 
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
-  no_save = F, # не писать кэш на диск
+  no_save = T, # не писать кэш на диск
   log_level = LOG$OFF,
   log_stdout = LOG$WARN, 
   roll_position = T, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
@@ -63,8 +63,8 @@ params <- bind_rows(params, data_frame(
   symbol        = "GC.COMEX",   # exante prefix of contract series
   weight  = -1,
   roll_pattern  = list(list(4, 10)),
-  min_active_contract = 1,
-  active_contract = 1
+  min_active_contract = 2,
+  active_contract = 3
 ))
 
 
