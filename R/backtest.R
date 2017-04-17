@@ -136,6 +136,13 @@ filter_time <- function(.x) {
  .x %>% filter(time_of_day()) 
 }
 
+#' 
+#' 
+#' @export
+ndf <- function(names, val=numeric()){
+  seq(1,length(names)) %>% map(~ val) %>% setNames(names) %>% as_data_frame()
+}
+
 #' backtest list of chunks
 #' 
 #' @export
@@ -216,6 +223,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   #browser()
   data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% 
     purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
+  gaps = data_frame()
+  ct = NULL
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -227,8 +236,11 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       #browser()
       # FIXME: we need virtual_id=LH.CME.3/5 instead
       #chunk$virtual_id <- params$virtual_id
-      
       ch = head(chunk,1)
+      if(!is.null(ct)) {
+        gap <- data_frame(datetime=ch$datetime, gap = 0.5*((ch$bid+ch$ask)-(ct$bid+ct$ask)))
+        gaps <- bind_rows(gaps,gap)
+      }
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
       #browser()
       
@@ -237,9 +249,6 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       perfs <- perfs %>% bind_rows(r$perfs)
       params$pos  <- r$pos
       params$cash <- r$cash
-      if(r$qty_buy<params$qty_buy) {
-        #browser()
-      }
       params$qty_buy <- r$qty_buy
       params$qty_sell <- r$qty_sell
 
@@ -254,6 +263,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   flush_spd_log()
   perfs$datetime <- as_datetime(perfs$datetime)
   q$perfs<-perfs
+  q$gaps<-gaps
   q$data<-data
   q$params<-params
   q
@@ -376,7 +386,7 @@ bt_reports <- function(r, start=NULL, stop=NULL, save=F) {
 #' view metrics
 #' 
 #' @export
-bt_view_metrics<-function(r, start=NULL, stop=NULL) {
+bt_view_metrics <- function(r, start=NULL, stop=NULL) {
   metrics <- r$metrics
   if(!is.null(start))
     metrics<-metrics %>% filter(datetime>=as_datetime(start))
@@ -388,6 +398,15 @@ bt_view_metrics<-function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, start=NULL, stop=NULL,maxrows=400) {
-  r$metrics %>% plot_bt(start=start,stop=stop,maxrows=maxrows)
+bt_plot<-function(r, start=NULL, stop=NULL,maxrows=400, no_gaps=T) {
+  metrics <- r$metrics
+  if(no_gaps) {
+    metrics$chunk <- metrics$datetime %>% findInterval(r$gaps$datetime)+1
+    for(i in seq(1,nrow(r$gaps)-1)) {
+      metrics$price[metrics$chunk==i] <- metrics$price[metrics$chunk==i] + r$gaps$gap[i] 
+      metrics$price_low[metrics$chunk==i] <- metrics$price_low[metrics$chunk==i] + r$gaps$gap[i] 
+      metrics$price_high[metrics$chunk==i] <- metrics$price_high[metrics$chunk==i] + r$gaps$gap[i] 
+    }
+  }
+  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxrows)
 }
