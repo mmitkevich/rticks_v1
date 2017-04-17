@@ -76,10 +76,11 @@ struct GammaAlgo : public MarketAlgo,
     // restore our quotes if needed
     auto q = quotes[s];
     
-    if(!q.count_buy() && !q.count_sell()){
-      quote_buy(s, m.buy);
-      quote_sell(s, m.sell);
-    }
+    if(m.count_buy() && m.count_sell())
+      if(!q.count_buy() && !q.count_sell()) {
+        quote_buy(s, m.buy);
+        quote_sell(s, m.sell);
+      }
       
     /*if(!m.count_buy())
       q.buy = NAN;   // we don't quote when no bid price defined
