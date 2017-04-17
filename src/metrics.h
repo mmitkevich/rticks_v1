@@ -133,6 +133,7 @@ struct Metrics : public MarketAlgo,
     auto s = e.symbol;
     auto px = pos[s]>0 ? market.buy[s] : market.sell[s];
     pnl[s] = cash[s] + pos[s] * px * multiplier[s];
+    price[s] = market.midprice(s);
     update_hl(s);    
     xlog<debug>("PNL.Q", e.symbol, e.price, e.qty);
   }
