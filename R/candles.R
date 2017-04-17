@@ -90,6 +90,7 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
   if(!is.null(roll_pattern)) {
     instruments$active_contract <- roll_pattern
   }
+  dir.create("~/bt_cache", showWarnings=F)
   cache_name <- paste0("~/bt_cache/", paste.list(unique(instruments$instrument_id), sep="_"))
   path <- cache_name
   #browser()
