@@ -10,7 +10,7 @@ cfg <- config(backtest) %>% modifyList(list(
   log_stdout = LOG$WARN,
   roll_position = T, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, months_ahead=1 at least 1 month ahead of expiration  
-  perfs_freq = as.numeric(minutes(1))
+  perfs_freq = as.numeric(days(1))
 ))
 
 # init logging, see rticks.log
@@ -47,6 +47,6 @@ c("F","G","H","J","K","M","N","Q","U","V","X","Z")
 c( 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12)
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
-bt_reports(r)
-r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% View()
+bt_reports(r, save=F)
+#r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% View()
 bt_plot(r)
