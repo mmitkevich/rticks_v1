@@ -6,7 +6,7 @@ options(debug=T)
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  log_level = LOG$DEBUG,
+  log_level = LOG$OFF,
   log_stdout = LOG$WARN, 
   roll_position = T, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, months_ahead=1 at least 1 month ahead of expiration  
@@ -18,7 +18,7 @@ init_spd_log(cfg)
 
 # period of backtest
 start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2015-06-23")
+stop  <- as_datetime("2017-06-23")
 
 params <- data_frame(
   # limits
@@ -49,3 +49,4 @@ c( 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12)
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
 bt_reports(r)
+bt_plot(r)
