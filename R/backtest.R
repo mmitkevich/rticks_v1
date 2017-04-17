@@ -282,6 +282,7 @@ lower_timeframe <- function(timeframe, nrows, maxrows=200,
     idx<-which.max(timeframes > timeframe)
     if(timeframes[idx] <= timeframe)
       break
+    #browser()
     timeframe<-timeframes[idx]
   }
   as.period(timeframe)
@@ -318,7 +319,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   perfs <- perfs %>% arrange(datetime)
   perfs <- ifnull(start, perfs, perfs %>% filter(datetime>=start))
   perfs <- ifnull(stop, perfs, perfs %>% filter(datetime<stop))
-  timeframe <- perfs$datetime[2]-perfs$datetime[1]
+  timeframe <- as.period(perfs$datetime[2]-perfs$datetime[1])
   timeframe.old <- timeframe
   timeframe <- lower_timeframe(timeframe, nrow(perfs), maxrows=maxrows)
   
@@ -349,7 +350,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   plt <- ggplot(df1, aes(x=datetime, y=close, colour=symbol)) + 
     theme_bw() + 
     theme(legend.position = "none") +
-    geom_segment(aes(y=close, yend=close, xend=datetime+0.5*timeframe)) + 
+    geom_segment(aes(y=close, yend=close, xend=datetime+timeframe)) + 
     geom_linerange(aes(ymin=low, ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
     scale_size_manual(values=0.5) + 
@@ -365,9 +366,9 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
 #' bt_report(r)
 #' 
 #' @export
-bt_reports <- function(r, start=NULL, stop=NULL, save=F) {
+bt_reports <- function(r, start=NULL, stop=NULL, save=F, ...) {
   # view data
-  metrics <- metrics.gamma(r) # calculate additional metrics
+  metrics <- metrics.gamma(r, ...) # calculate additional metrics
   r$metrics <- metrics %>% spread(metric,value)
   
   # plot pnl
@@ -398,7 +399,7 @@ bt_view_metrics <- function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, start=NULL, stop=NULL,maxrows=400, no_gaps=T) {
+bt_plot<-function(r, start=NULL, stop=NULL, maxpoints=400, no_gaps=T) {
   metrics <- r$metrics
   if(no_gaps) {
     metrics$chunk <- metrics$datetime %>% findInterval(r$gaps$datetime)+1
@@ -408,5 +409,5 @@ bt_plot<-function(r, start=NULL, stop=NULL,maxrows=400, no_gaps=T) {
       metrics$price_high[metrics$chunk==i] <- metrics$price_high[metrics$chunk==i] + r$gaps$gap[i] 
     }
   }
-  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxrows)
+  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints)
 }
