@@ -76,15 +76,25 @@ struct GammaAlgo : public MarketAlgo,
     // restore our quotes if needed
     auto q = quotes[s];
     
-    if(!m.count_buy())
-      quote_buy(s, NAN);   // we don't quote when no bid price defined
+    if(!q.count_buy() && !q.count_sell()){
+      quote_buy(s, m.buy);
+      quote_sell(s, m.sell);
+    }
+      
+    /*if(!m.count_buy())
+      q.buy = NAN;   // we don't quote when no bid price defined
     else if(!q.count_buy() || q.buy>m.buy)
-        quote_buy(s, m.buy);  // we dont' quote better than market bid
-    
+        q.buy = m.buy;
+
     if(!m.count_sell())
-      quote_sell(s, NAN);   // we don't quote when no ask price defined
+      q.sell = NAN;   // we don't quote when no ask price defined
     else if(!q.count_sell() || q.sell<m.sell)
-        quote_sell(s, m.sell); // we don't quote better than market ask
+        q.sell = m.sell
+      
+    if(q.count_buy() && q.count_sell() && q.sell-q.buy>spread[s] && m.sell-m.buy<=spread[s]) {
+      std::max(q.buy+spread[s], m.sell); // we don't quote better than market ask
+      std::min<double>(q.sell-spread[s], m.buy);  // we dont' quote better than market bid
+    }*/
   }
 
   void quote_buy(SymbolId s, double price) {
