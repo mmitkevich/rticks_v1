@@ -31,22 +31,8 @@ backtest.chunk <- function(data, params, algo, config) {
     return (r);
   }
   
-  #d <- data %>% select(datetime, virtual_id, bid, ask) %>% as_data_frame()
-  #d <- d %>% transmute(datetime=datetime, symbol=virtual_id, bid=bid, ask=ask)
-  #d$datetime <- d$datetime %>% trunc_freq(config$perfs_freq)
-  #d <- d %>% group_by(symbol, datetime) %>% arrange(datetime) %>% summarise(
-  #  price = (0.5*(bid+ask)) [n()],
-  #  price_high = max(bid),
-  #  price_low = min(ask)
-  #) %>% as_data_frame()
-  
-  r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
+  #r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
   r$perfs <- as_data_frame(r$perfs)
-  #r$perfs <- r$perfs %>% spread(metric, value) %>% 
-  #  inner_join(d, by=c("datetime","symbol")) %>%
-  #  gather(metric, value, -datetime, -symbol) %>% 
-  #  arrange(datetime)
-  #r$perfs$datetime <- as_datetime(r$perfs$datetime)
   log_perfs("backtest.chunk out",data, r, params, 0.5*(tail(data$bid,1)+tail(data$ask,1)))  
   return(r)
 }
@@ -75,7 +61,7 @@ backtest_config_default = list(
   no_clean=F, 
   no_save=T, 
   
-  roll_position=T,
+  zero_position=NULL,
   custom_roll=NULL,
   
   log_path = "rticks.log",
@@ -141,6 +127,16 @@ filter_time <- function(.x) {
 #' @export
 ndf <- function(names, val=numeric()){
   seq(1,length(names)) %>% map(~ val) %>% setNames(names) %>% as_data_frame()
+}
+
+#' time_frame_index
+#'
+#' @export
+time_frame_index <- function(datetime, freq) {
+  if(as.numeric(freq)>=as.numeric(months(1)))
+    trunc((month(datetime)+12*year(datetime))/trunc(as.numeric(freq)/as.numeric(months(1))))
+  else
+    trunc(as.numeric(datetime)/as.numeric(freq))
 }
 
 #' backtest list of chunks
@@ -221,10 +217,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   log_perf(timer, nrows, "data loading speed ")
   timer <- Sys.time()
   #browser()
-  data <- data %>% map(function(d) (d %>% group_by(lubridate::month(datetime)) %>% by_slice(~ ., .labels=F))$.out) %>% 
-    purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
+  if(config$zero_position_freq) {
+    data0 <- data
+    data <- data %>% map(function(d) (d %>% group_by(time_frame_index(datetime, config$zero_position_freq)) %>% by_slice(~ ., .labels=F))$.out) %>% 
+      purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
+  }
   gaps = data_frame()
   ct = NULL
+  tf_index <- -1
   for(chunk in data) {
     # open positions in the chunk
     if(nrow(chunk)==0) {
@@ -237,6 +237,20 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       # FIXME: we need virtual_id=LH.CME.3/5 instead
       #chunk$virtual_id <- params$virtual_id
       ch = head(chunk,1)
+      if(!is.null(ct)) {
+        tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
+        if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
+            params$pos <- 0
+            tf_index <- tf_index1
+            wlog("zero_position_freq ",as.character(as.datetime(ch$datetime)))
+        }else if(config$zero_position_on_rolls) {
+          params$pos <- 0
+          wlog("zero_position_on_rolls ",as.character(as.datetime(ch$datetime)))
+        }
+      }else {
+        tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
+      }
+        
       if(!is.null(ct)) {
         gap <- data_frame(datetime=ch$datetime, gap = 0.5*((ch$bid+ch$ask)-(ct$bid+ct$ask)))
         gaps <- bind_rows(gaps,gap)
@@ -254,8 +268,6 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
 
       ct = tail(chunk,1)
       params$cash <- params$cash + params$pos*0.5*(ct$bid+ct$ask)*params$multiplier # close the position
-      params$pos <- ifelse(config$roll_position, params$pos, 0) # calc new pos
-
     }
     
   }
