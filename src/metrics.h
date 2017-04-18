@@ -29,7 +29,8 @@ struct Metrics : public MarketAlgo,
 
   List perfs;
   List trades;
-
+  int tz_offset;
+  
   double next_flush_dt;
   long perfs_interval = 24*60*60;
 
@@ -38,6 +39,7 @@ struct Metrics : public MarketAlgo,
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
       perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", 24*60*60)[0])),
+      tz_offset((long)optional<IntegerVector>(config, "perfs_tz", 16)[0]),
       multiplier(required<NumericVector>(params, "multiplier")),
       cash(optional<NumericVector>(params, "cash", 0.0)), // cash that was paid for the pos (or average price of pos)
       pos_h(params.nrows()),
@@ -106,11 +108,18 @@ struct Metrics : public MarketAlgo,
 
   void set_flush_time() {
     if(std::isnan(next_flush_dt)) {
-      next_flush_dt = datetime(); // FIXME: convert to flush time
+      ; // FIXME: convert to flush time // should be at 16h00 UTC in LONDON
+      next_flush_dt = datetime();
       next_flush_dt -= ((long)next_flush_dt) % perfs_interval;
       next_flush_dt = truncl(next_flush_dt);      // flush_dt = 00:00 UTC
 //      flush_perfs();  // flush initial zeros
-      next_flush_dt = next_flush_dt + perfs_interval;
+      if(perfs_interval>=86400-eps()) { // for daily we set day cutover time at 
+        next_flush_dt += tz_offset*3600;  // london 1600 == 00:00 of this day
+      }
+      if(next_flush_dt<datetime()+eps())
+        next_flush_dt += perfs_interval;
+      if(logger)
+        logger->warn("next_flush_dt {}",Datetime(next_flush_dt));
     }
   }
 
@@ -221,7 +230,7 @@ struct Metrics : public MarketAlgo,
     for(auto tup : metrics) {
         std::tie(name, initial, metric) = tup;
         for(int i=0; i < symbols.size(); i++) {
-          as<NumericVector>(perfs[0])[index] = next_flush_dt-1e-9;  // flush 1ns before interval end
+          as<NumericVector>(perfs[0])[index] = next_flush_dt;  // flush 1ns before interval end
           as<CharacterVector>(perfs[1])[index] = (const char*)symbols[i];
           as<CharacterVector>(perfs[2])[index] = (const char*)name.c_str();
           as<NumericVector>(perfs[3])[index] = (*metric)[i];
