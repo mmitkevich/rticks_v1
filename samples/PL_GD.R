@@ -10,7 +10,8 @@ cfg <- config(backtest) %>% modifyList(list(
   no_save = T, # не писать кэш на диск
   log_level = LOG$DEBUG,
   log_stdout = LOG$INFO,
-  roll_position = F, # if T, then close position roll of ANY instrument (TODO: do it on real roll only). if F - roll position into next contract
+  zero_position_on_rolls = F,
+  zero_position_freq = NULL, #as.numeric(months(1)),
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
   perfs_freq = as.numeric(minutes(1))
 ))
