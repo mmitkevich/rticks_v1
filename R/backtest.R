@@ -423,3 +423,16 @@ bt_plot<-function(r, start=NULL, stop=NULL, maxpoints=400, no_gaps=F) {
   }
   metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints)
 }
+
+bt_summaries <- function(r, start=NULL, stop=NULL) {
+  m <- r$metrics %>% filter_date(start,stop)
+  df <- data_frame()
+  for(x in list("buy","sell","pos","price")) {
+    d <- c(m[[paste(x,"low",sep="_")]], m[[paste(x,"high",sep="_")]])
+    d <- d[!is.na(d) & !is.infinite(d)]
+    d <- d %>% summary() %>% as.list() %>% as_data_frame()
+    d$metric = x
+    df <- bind_rows(df, d)
+  }
+  df
+}
