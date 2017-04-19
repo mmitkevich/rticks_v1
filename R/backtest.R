@@ -411,14 +411,14 @@ bt_view_metrics <- function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, start=NULL, stop=NULL, maxpoints=400, no_gaps=T) {
+bt_plot<-function(r, start=NULL, stop=NULL, maxpoints=400, no_gaps=F) {
   metrics <- r$metrics
   if(no_gaps) {
     metrics$chunk <- metrics$datetime %>% findInterval(r$gaps$datetime)+1
     for(i in seq(1,nrow(r$gaps)-1)) {
-      metrics$price[metrics$chunk==i] <- metrics$price[metrics$chunk==i] + r$gaps$gap[i] 
-      metrics$price_low[metrics$chunk==i] <- metrics$price_low[metrics$chunk==i] + r$gaps$gap[i] 
-      metrics$price_high[metrics$chunk==i] <- metrics$price_high[metrics$chunk==i] + r$gaps$gap[i] 
+      metrics$price[metrics$chunk<=i] <- metrics$price[metrics$chunk<=i] + r$gaps$gap[i] 
+      metrics$price_low[metrics$chunk<=i] <- metrics$price_low[metrics$chunk<=i] + r$gaps$gap[i] 
+      metrics$price_high[metrics$chunk<=i] <- metrics$price_high[metrics$chunk<=i] + r$gaps$gap[i] 
     }
   }
   metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints)
