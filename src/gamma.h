@@ -76,14 +76,16 @@ struct GammaAlgo : public MarketAlgo,
     // restore our quotes if needed
     auto q = quotes[s];
     
-    // we have our spread defined and it is less than our constraint (TP+1). overwise we try to move quote to best levels
-    if(m.count_buy())
-      if(!q.count_buy() || !q.count_sell() || q.sell - q.buy > spread[s]+mpi[s]+eps())
+    // reset to quote at best bid & ask levels if any of the following is true:
+    if(!q.count_buy() ||  // we have no bid
+       !q.count_sell() || // we have no asks
+       q.sell-q.buy>spread[s]+mpi[s]+eps()) { // we have bid & ask but our spread is very huge
+      if(m.count_buy())
         quote_buy(s, m.buy);
-    
-    if(m.count_sell())
-      if(!q.count_sell() || !q.count_buy() || q.sell - q.buy > spread[s]+mpi[s]+eps())
-        quote_sell(s, m.sell); 
+      if(m.count_sell())
+        quote_sell(s, m.sell);
+    }
+    // note: quote_by/quote_sell will adjust prices according to limits
   }
 
   void quote_buy(SymbolId s, double price) {
@@ -99,7 +101,7 @@ struct GammaAlgo : public MarketAlgo,
       }else { // takeprofits for shorts
         price = std::min<double>(price, stops.sell[s] - spread[s]); // no closing shorts above stop.sell-spread
         price = std::max<double>(price, limits.sell[s] - spread[s]);
-        stop_price = price - roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.)/gamma.buy[s])*mpi[s];
+        stop_price = price - roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.) / gamma.buy[s])*mpi[s];
       }
       place_order(s, gamma.buy[s], price, stop_price);
   }
@@ -115,9 +117,9 @@ struct GammaAlgo : public MarketAlgo,
       if(price>stops.sell[s])
         price = +INFINITY;  // no short entries above sell stop price
     }else { // take profits for longs
-      price = std::max<double>(price, stops.buy[s]+spread[s]); // no closing longs below stop.buy+spread  
-      price = std::min<double>(price, limits.buy[s]+spread[s]); // no closing longs above limit.buy+spread
-      stop_price = price + roundl(std::max<double>(pos[s] - gamma.buy[s], 0.) / gamma.buy[s])*mpi[s];
+      price = std::max<double>(price, stops.buy[s] + spread[s]); // no closing longs below stop.buy+spread  
+      price = std::min<double>(price, limits.buy[s] + spread[s]);
+      stop_price = price + roundl(std::max<double>(pos[s] - gamma.sell[s], 0.) / gamma.sell[s])*mpi[s];
     }
     place_order(s, -gamma.sell[s], price, stop_price);
   }
