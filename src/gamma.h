@@ -76,26 +76,14 @@ struct GammaAlgo : public MarketAlgo,
     // restore our quotes if needed
     auto q = quotes[s];
     
-    if(m.count_buy() && m.count_sell())
-      if(!q.count_buy() && !q.count_sell()) {
+    // we have our spread defined and it is less than our constraint (TP+1). overwise we try to move quote to best levels
+    if(m.count_buy())
+      if(!q.count_buy() || !q.count_sell() || q.sell - q.buy > spread[s]+mpi[s]+eps())
         quote_buy(s, m.buy);
-        quote_sell(s, m.sell);
-      }
-      
-    /*if(!m.count_buy())
-      q.buy = NAN;   // we don't quote when no bid price defined
-    else if(!q.count_buy() || q.buy>m.buy)
-        q.buy = m.buy;
-
-    if(!m.count_sell())
-      q.sell = NAN;   // we don't quote when no ask price defined
-    else if(!q.count_sell() || q.sell<m.sell)
-        q.sell = m.sell
-      
-    if(q.count_buy() && q.count_sell() && q.sell-q.buy>spread[s] && m.sell-m.buy<=spread[s]) {
-      std::max(q.buy+spread[s], m.sell); // we don't quote better than market ask
-      std::min<double>(q.sell-spread[s], m.buy);  // we dont' quote better than market bid
-    }*/
+    
+    if(m.count_sell())
+      if(!q.count_sell() || !q.count_buy() || q.sell - q.buy > spread[s]+mpi[s]+eps())
+        quote_sell(s, m.sell); 
   }
 
   void quote_buy(SymbolId s, double price) {
@@ -110,6 +98,7 @@ struct GammaAlgo : public MarketAlgo,
           price = -INFINITY;  // no long entries below buy stop price
       }else { // takeprofits for shorts
         price = std::min<double>(price, stops.sell[s] - spread[s]); // no closing shorts above stop.sell-spread
+        price = std::max<double>(price, limits.sell[s] - spread[s]);
         stop_price = price - roundl(std::max<double>(-pos[s]-gamma.buy[s], 0.)/gamma.buy[s])*mpi[s];
       }
       place_order(s, gamma.buy[s], price, stop_price);
@@ -127,6 +116,7 @@ struct GammaAlgo : public MarketAlgo,
         price = +INFINITY;  // no short entries above sell stop price
     }else { // take profits for longs
       price = std::max<double>(price, stops.buy[s]+spread[s]); // no closing longs below stop.buy+spread  
+      price = std::min<double>(price, limits.buy[s]+spread[s]); // no closing longs above limit.buy+spread
       stop_price = price + roundl(std::max<double>(pos[s] - gamma.buy[s], 0.) / gamma.buy[s])*mpi[s];
     }
     place_order(s, -gamma.sell[s], price, stop_price);
@@ -136,7 +126,7 @@ struct GammaAlgo : public MarketAlgo,
     
     int side = qty>0?1:-1;
     
-    if(std::isinf(price)) {
+    if(std::isinf(price) || std::isnan(price)) {
       price = stop_price = NAN;
     }
     
