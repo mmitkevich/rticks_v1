@@ -24,6 +24,10 @@ struct Metrics : public MarketAlgo,
   NumericVector qty_buy, qty_sell;
   NumericVector multiplier;
   NumericVector price, price_l, price_h;
+  NumericVector buy_l,buy_h;
+  NumericVector sell_l,sell_h;
+  NumericVector turnover_buy; // dollars bought
+  NumericVector turnover_sell; // dollars sold
   
   std::vector<std::tuple<std::string, double, NumericVector*>> metrics;
 
@@ -49,6 +53,12 @@ struct Metrics : public MarketAlgo,
       price_l(params.nrows()),
       price_h(params.nrows()),
       price(params.nrows()),
+      buy_l(params.nrows()),
+      buy_h(params.nrows()),
+      sell_l(params.nrows()),
+      sell_h(params.nrows()),
+      turnover_buy(optional<NumericVector>(params, "turnover_buy", 0.0)),
+      turnover_sell(optional<NumericVector>(params, "turnover_sell", 0.0)),
       qty_buy(optional<NumericVector>(params, "qty_buy", 0.0)),
       qty_sell(optional<NumericVector>(params, "qty_sell", 0.0))
   {
@@ -70,6 +80,15 @@ struct Metrics : public MarketAlgo,
       
       init_metric(&qty_buy, "qty_buy");
       init_metric(&qty_sell, "qty_sell");
+
+      init_metric(&turnover_buy, "turnover_buy");
+      init_metric(&turnover_sell, "turnover_sell");
+
+      init_metric(&buy_h, "buy_high", -INFINITY);
+      init_metric(&buy_l, "buy_low",  +INFINITY);
+
+      init_metric(&sell_h, "sell_high", -INFINITY);
+      init_metric(&sell_l, "sell_low",  +INFINITY);
       
       init_metric(&quotes.buy, "bid");
       init_metric(&quotes.sell, "ask");
@@ -152,7 +171,6 @@ struct Metrics : public MarketAlgo,
     try_flush();
     dlog<debug>(e);
     quotes.update(e.symbol, e);
-    
     xlog<info>("PNL.O", e.symbol, e.price, e.qty);
   }
   
@@ -183,6 +201,17 @@ struct Metrics : public MarketAlgo,
 
     auto px = pos[s]>0 ? market.buy[s] : market.sell[s];
     pnl[s] = cash[s] + pos[s] * px * multiplier[s];
+    
+    if(e.side()>0) {
+      buy_h[s] = std::max<double>(buy_h[s], e.fill_price);
+      buy_l[s] = std::min<double>(buy_l[s], e.fill_price);
+      turnover_buy[s] += e.fill_price*fabs(e.qty);
+    }else{
+      sell_h[s] = std::max<double>(sell_h[s], e.fill_price);
+      sell_l[s] = std::min<double>(sell_l[s], e.fill_price);
+      turnover_sell[s] += e.fill_price*fabs(e.qty);
+    }
+    
     update_hl(s);
     //if(is_zero(pos[s]))
     //  roundtrips[s] = roundtrips[s] + 1;
