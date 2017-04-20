@@ -78,8 +78,9 @@ struct GammaSimulator : public MarketAlgo,
     assert(!std::isnan(e.qty));
     gamma(e.side())[e.symbol] = fabs(e.qty);
     stop_quotes(e.side())[e.symbol] = e.stop_price;
+    auto old_quote = quotes(e.side())[e.symbol];
     quotes(e.side())[e.symbol] = e.price;
-    xlog<info>("SIM.ORDR", e.symbol);
+    xlog<info>("SIM.MOV", e.symbol, old_quote, e.qty);
     on_simulate(e.symbol);
   }
 
@@ -97,7 +98,7 @@ struct GammaSimulator : public MarketAlgo,
     return overlap >= - eps();  // equal with rounding error or greater
   }
   
-  virtual void on_simulate(const SymbolId& s) {
+  virtual void on_simulate(const SymbolId& s, bool aggressive=false) {
     ExecutionMessage e;
     e.set_flag(ExecutionMessage::IS_FILL);
     e.ctime = e.rtime = dt;
@@ -107,6 +108,7 @@ struct GammaSimulator : public MarketAlgo,
     auto q = quotes[s];
     auto pi = mpi[s];
     auto g = gamma[s];
+    double slippage = 10; // mpi
     assert(!std::isnan(pi));
     if(!std::isnan(q.sell) && should_fill(m.buy-q.sell)) {
       // simulate the sells
@@ -115,7 +117,7 @@ struct GammaSimulator : public MarketAlgo,
         stop = std::min(stop, stop_quotes.sell[s]);
       
       e.price = m.buy;
-      e.fill_price = 0.5*(stop+q.sell);
+      e.fill_price = aggressive ? m.buy - slippage*pi : 0.5*(stop+q.sell);
       e.qty = - (g.sell + roundl((stop-q.sell)/pi)*g.sell);
       pos[s] +=e.qty;
       xlog<info>("SIM.SELL", s, e.fill_price, e.qty);
@@ -135,7 +137,7 @@ struct GammaSimulator : public MarketAlgo,
         stop = std::max(stop, stop_quotes.buy[s]);
       
       e.price = m.sell;
-      e.fill_price = 0.5*(stop+q.buy);
+      e.fill_price = aggressive ? m.sell + slippage*pi : 0.5*(stop+q.buy);
       e.qty =  (g.buy + roundl((q.buy-stop)/pi)*g.buy);
       pos[s] +=e.qty;
       
