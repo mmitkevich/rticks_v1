@@ -9,7 +9,7 @@ cfg <- config(backtest) %>% modifyList(list(
   log_level = LOG$OFF,
   log_stdout = LOG$WARN, 
   zero_position_on_rolls = F,
-  zero_position_freq = NULL,
+  zero_position_freq = F,
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, months_ahead=1 at least 1 month ahead of expiration  
   perfs_freq = as.numeric(minutes(1))
 ))
@@ -42,11 +42,6 @@ params <- data_frame(
   min_active_contract = 6,
   active_contract = 6             # which month to trade
 )
-
-LowRisk <- -0.1
-
-c("F","G","H","J","K","M","N","Q","U","V","X","Z")
-c( 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12)
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
 bt_reports(r)
