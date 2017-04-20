@@ -317,9 +317,9 @@ scale_x_datetime_smart <- function(plt, dur) {
   }else if(dur>=ddays(1)) {
     plt + scale_x_datetime(date_breaks = "4 hour", date_minor_breaks = "1 hour",  date_labels = "%Y-%m-%d %H:%M")
   }else if(dur>dminutes(15)) {
-    plt + scale_x_datetime(date_breaks = "1 minute", date_labels = "%Y-%m-%d %H:%M")
+    plt #+ scale_x_datetime(date_breaks = "1 minute", date_labels = "%Y-%m-%d %H:%M")
   }else {
-    plt + scale_x_datetime(date_breaks = "1 second", date_labels = "%Y-%m-%d %H:%M:%S")
+    plt #+ scale_x_datetime(date_breaks = "1 second", date_labels = "%Y-%m-%d %H:%M:%S")
   }
 }
 
