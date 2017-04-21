@@ -1,7 +1,8 @@
 library(rticks)
 library(ggplot2)
 library(gridExtra)
-
+library(magrittr)
+library(testthat)
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = F, # не писать кэш на диск
@@ -21,7 +22,7 @@ params <- data_frame(
   
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = +Inf,    # FIXME: no sell above 19
-  pos           = 0,     # initial position
+  pos           = 5,     # initial position
   
   spread        = 2,  # take profit
   
@@ -40,8 +41,8 @@ params <- data_frame(
 )
 
 prices = c(
-  108,109,
-  107,108,
+  #113,114,
+  #113,114,
   106,107,
   105,106,
   104,105,
@@ -94,8 +95,8 @@ r$perfs <- rs$perfs
 r$perfs$datetime <- as_datetime(r$perfs$datetime)
 r$params <- params
 bt_reports(r)
-r$metrics <- r$metrics[-1,]
-r$metrics %>% select(datetime, bid, ask, price_high, price_low, pos, pnl, rpnl, qty_buy, qty_sell) %>% View()
+#r$metrics <- r$metrics[-1,]
+r$metrics %>% select(datetime, bid, ask, price_high, price_low, pos, pnl, rpnl, qty_buy, qty_sell, buy_high, buy_low, sell_high,sell_low) %>% View()
 bt_plot(r)
 
 grid.arrange(ggplot(r$metrics, aes(x=datetime)) +
@@ -110,4 +111,19 @@ grid.arrange(ggplot(r$metrics, aes(x=datetime)) +
     geom_step(aes(y=pos)) + 
     theme_bw() + scale_x_datetime(date_minor_breaks = "1 min"))
 
+bt_summaries(r)
 
+spr <- r$metrics%>%mutate(spr=ask-bid) %$% spr
+spr.max <- max(spr, na.rm = T)
+spr.min <- min(spr, na.rm = T)
+
+test_that("ask-bid==TP+1",  expect_equal(spr.max,3) & expect_equal(spr.min,3))
+test_that("min(buy_low)==105", expect_equal(min(r$metrics$buy_low, na.rm=T), 105))
+test_that("max(buy_high)==110", expect_equal(max(r$metrics$buy_high, na.rm=T), 110))
+test_that("min(sell_low)==107", expect_equal(min(r$metrics$sell_low, na.rm=T), 107))
+#test_that("max(sell_high)==112", expect_equal(max(r$metrics$sell_high, na.rm=T), 112))
+
+test_that("max(bid)==110", expect_equal(max(r$metrics$bid, na.rm=T),110))
+test_that("min(bid)==105", expect_equal(min(r$metrics$bid, na.rm=T),105))
+test_that("max(ask)==112", expect_equal(max(r$metrics$ask, na.rm=T),112))
+test_that("min(ask)==107", expect_equal(min(r$metrics$ask, na.rm=T),107))
