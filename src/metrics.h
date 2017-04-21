@@ -203,12 +203,12 @@ struct Metrics : public MarketAlgo,
     pnl[s] = cash[s] + pos[s] * px * multiplier[s];
     
     if(e.side()>0) {
-      buy_h[s] = std::max<double>(buy_h[s], e.fill_price);
-      buy_l[s] = std::min<double>(buy_l[s], e.fill_price);
+      buy_h[s] = std::max<double>(buy_h[s], e.price);
+      buy_l[s] = std::min<double>(buy_l[s], e.price);
       turnover_buy[s] += e.fill_price*fabs(e.qty);
     }else{
-      sell_h[s] = std::max<double>(sell_h[s], e.fill_price);
-      sell_l[s] = std::min<double>(sell_l[s], e.fill_price);
+      sell_h[s] = std::max<double>(sell_h[s], e.price);
+      sell_l[s] = std::min<double>(sell_l[s], e.price);
       turnover_sell[s] += e.fill_price*fabs(e.qty);
     }
     

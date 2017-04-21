@@ -116,7 +116,7 @@ struct GammaSimulator : public MarketAlgo,
       if(!std::isnan(stop_quotes.sell[s]))
         stop = std::min(stop, stop_quotes.sell[s]);
       
-      e.price = m.buy;
+      e.price = stop; //m.buy
       e.fill_price = aggressive ? m.buy - slippage*pi : 0.5*(stop+q.sell);
       e.qty = - (g.sell + roundl((stop-q.sell)/pi)*g.sell);
       pos[s] +=e.qty;
@@ -136,7 +136,7 @@ struct GammaSimulator : public MarketAlgo,
       if(!std::isnan(stop_quotes.buy[s]))
         stop = std::max(stop, stop_quotes.buy[s]);
       
-      e.price = m.sell;
+      e.price = stop; // m.sell
       e.fill_price = aggressive ? m.sell + slippage*pi : 0.5*(stop+q.buy);
       e.qty =  (g.buy + roundl((q.buy-stop)/pi)*g.buy);
       pos[s] +=e.qty;
