@@ -242,13 +242,17 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
             params$pos <- 0
             tf_index <- tf_index1
-            wlog("zero_position_freq ",as.character(as.datetime(ch$datetime)))
+            wlog("zero_position_freq ",as.character(as_datetime(ch$datetime)))
         }else if(config$zero_position_on_rolls) {
           params$pos <- 0
-          wlog("zero_position_on_rolls ",as.character(as.datetime(ch$datetime)))
+          wlog("zero_position_on_rolls ",as.character(as_datetime(ch$datetime)))
         }
       }else {
         tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
+      }
+      if(ch$bid>=params$limit.buy+params$spread+params$mpi || ch$ask<=params$limit.sell-params$spread-params$mpi)  { # opening outside of limits
+        params$pos <- 0
+        wlog("zero position outside limits ", "bid=",ch$bid, "ask=",ch$ask)
       }
         
       if(!is.null(ct)) {
