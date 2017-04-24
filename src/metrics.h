@@ -124,7 +124,10 @@ struct Metrics : public MarketAlgo,
     on_clock(e.rtime);
     dlog<debug>(e);
     set_flush_time();
-    try_flush(!e.is_active());
+    if(!e.is_active())
+        flush_perfs();
+    else
+        try_flush();
   }
 
   void set_flush_time() {
@@ -240,9 +243,9 @@ struct Metrics : public MarketAlgo,
     }
   }
   
-  void try_flush(bool force=false) {
-    if(!std::isnan(next_flush_dt)){
-        while(dt >= next_flush_dt-eps() || force) {
+  void try_flush() {
+    if(!std::isnan(next_flush_dt)) {
+        while(dt >= next_flush_dt-eps()) {
           flush_perfs();
         }
     }
