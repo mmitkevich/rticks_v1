@@ -6,6 +6,8 @@
 
 namespace Rcpp {
 
+const double MAX_LATENCY = 1; //second
+
 template<typename TAlgo,
          typename TMarket=GammaSimulator<typename TAlgo::order_message_type>>
 struct Backtester : public Algo
@@ -73,7 +75,12 @@ struct Backtester : public Algo
     double close_dt = NAN;
 
     size_t sent_events = 0;
-
+    
+    SessionMessage ses;
+    ses.ctime = ses.rtime = dt;
+    ses.set_flag(Message::IS_SESSION_OPENED);
+    market.on_next(ses);
+      
     while(index < stop) {
       dt = datetimes[index];
       
@@ -139,9 +146,14 @@ struct Backtester : public Algo
       
       close_dt = dt;
       index++;
-    }
-    dt+=60; // add 60 seconds after last event
-    market.notify(dt); // flush the time
+    } // while
+
+    dt+=1e-6;
+    ses.ctime = ses.rtime = dt;
+    ses.clear_flag(Message::IS_SESSION_OPENED);
+    market.on_next(ses);
+    dt+=MAX_LATENCY;
+    market.notify(dt); // flush the time, allow 1 second latency to deliver everything
   }
 };
 

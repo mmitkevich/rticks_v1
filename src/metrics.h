@@ -4,6 +4,8 @@
 
 namespace Rcpp {
 
+const long METRICS_DEFAULT_TIMEFRAME = 24*60*60;
+  
 template<typename TExecutionMessage=ExecutionMessage,
          typename TSessionMessage=SessionMessage,
          typename TQuoteMessage=QuoteMessage,
@@ -42,7 +44,7 @@ struct Metrics : public MarketAlgo,
     : MarketAlgo(params, config, name),
       index(0), stop(10), next_flush_dt(NAN),
       pnl(params.nrows(), 0.0),
-      perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", 24*60*60)[0])),
+      perfs_interval((long)roundl(optional<NumericVector>(config, "perfs_freq", METRICS_DEFAULT_TIMEFRAME)[0])),
       tz_offset((long)optional<IntegerVector>(config, "perfs_tz", 16)[0]),
       multiplier(required<NumericVector>(params, "multiplier")),
       cash(optional<NumericVector>(params, "cash", 0.0)), // cash that was paid for the pos (or average price of pos)
@@ -67,16 +69,16 @@ struct Metrics : public MarketAlgo,
       init_metric(&cash, "cash");
       
       init_metric(&pnl, "pnl");
-      init_metric(&pnl_h, "pnl_high", -INFINITY);
-      init_metric(&pnl_l, "pnl_low",  +INFINITY);
+      init_metric(&pnl_h, "pnl_high", true, -INFINITY);
+      init_metric(&pnl_l, "pnl_low", true,  +INFINITY);
       
       init_metric(&pos, "pos");
-      init_metric(&pos_h, "pos_high", -INFINITY);
-      init_metric(&pos_l, "pos_low",  +INFINITY);
+      init_metric(&pos_h, "pos_high", true, -INFINITY);
+      init_metric(&pos_l, "pos_low",  true, +INFINITY);
       
-      init_metric(&price, "price");
-      init_metric(&price_h, "price_high", -INFINITY);
-      init_metric(&price_l, "price_low",  +INFINITY);
+      init_metric(&price, "price", true, NAN);
+      init_metric(&price_h, "price_high", true, -INFINITY);
+      init_metric(&price_l, "price_low",  true, +INFINITY);
       
       init_metric(&qty_buy, "qty_buy");
       init_metric(&qty_sell, "qty_sell");
@@ -84,11 +86,11 @@ struct Metrics : public MarketAlgo,
       init_metric(&turnover_buy, "turnover_buy");
       init_metric(&turnover_sell, "turnover_sell");
 
-      init_metric(&buy_h, "buy_high", -INFINITY);
-      init_metric(&buy_l, "buy_low",  +INFINITY);
+      init_metric(&buy_h, "buy_high", true, -INFINITY);
+      init_metric(&buy_l, "buy_low",  true, +INFINITY);
 
-      init_metric(&sell_h, "sell_high", -INFINITY);
-      init_metric(&sell_l, "sell_low",  +INFINITY);
+      init_metric(&sell_h, "sell_high", true, -INFINITY);
+      init_metric(&sell_l, "sell_low",  true, +INFINITY);
       
       init_metric(&quotes.buy, "bid");
       init_metric(&quotes.sell, "ask");
@@ -111,18 +113,18 @@ struct Metrics : public MarketAlgo,
     mkt.$session >>= *this;
   }
 
-  void init_metric(NumericVector* var, std::string name, double initial=NAN) {
+  void init_metric(NumericVector* var, std::string name, bool reset=false, double initial=NAN) {
       metrics.push_back(std::make_tuple(name, initial, var)); // save reference
-      if(!std::isnan(initial))
+      if(reset)
           for(int i=0;i<var->size();i++)
               (*var)[i] = initial;
   }
-
+  
   virtual void on_next(TSessionMessage e) {
     on_clock(e.rtime);
-    set_flush_time();
-    try_flush();
     dlog<debug>(e);
+    set_flush_time();
+    try_flush(!e.is_active());
   }
 
   void set_flush_time() {
@@ -135,8 +137,8 @@ struct Metrics : public MarketAlgo,
       if(perfs_interval>=86400-eps()) { // for daily we set day cutover time at 
         next_flush_dt += tz_offset*3600;  // london 1600 == 00:00 of this day
       }
-      if(next_flush_dt<datetime()+eps())
-        next_flush_dt += perfs_interval;
+      //if(next_flush_dt<datetime()+eps())
+      next_flush_dt += perfs_interval;  // only future
       if(logger)
         logger->warn("next_flush_dt {}",Datetime(next_flush_dt));
     }
@@ -238,11 +240,10 @@ struct Metrics : public MarketAlgo,
     }
   }
   
-  void try_flush() {
+  void try_flush(bool force=false) {
     if(!std::isnan(next_flush_dt)){
-        while(dt >= next_flush_dt-eps()) {
+        while(dt >= next_flush_dt-eps() || force) {
           flush_perfs();
-          next_flush_dt = next_flush_dt + perfs_interval;
         }
     }
   }
@@ -252,7 +253,6 @@ struct Metrics : public MarketAlgo,
       update_hl(s);
       xlog<debug>("PNL.FLUSH",SymbolId(symbols[s],s));
     }
-    
     std::string name;
     double initial;
     NumericVector *metric;
@@ -276,6 +276,9 @@ struct Metrics : public MarketAlgo,
           for(int i=0; i<symbols.size();i++)
               (*metric)[i] = initial;
     }
+    next_flush_dt = next_flush_dt + perfs_interval;
+    if(logger)
+      logger->info("{} | NEXT_FLUSH {}", Datetime(dt), Datetime(next_flush_dt));
   }
 
   List toR() {

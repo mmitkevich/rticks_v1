@@ -21,6 +21,7 @@ struct Message {
     IS_CANCEL   = 2<<12,
     IS_FILL     = 2<<13,
     IS_PLACE    = 2<<14,
+    IS_SESSION_OPENED = 2<<16,
   };
 
   Message(double ctime = NAN, double rtime = NAN, SymbolId symbol = SymbolId(), unsigned long flags = 0) :
@@ -141,6 +142,10 @@ struct SymbolMessage : public Message {
 /// L1 bid/ask spread algorithm output
 struct SessionMessage : public Message {
   SessionMessage() { }
+  
+  bool is_active() {
+    return flag(IS_SESSION_OPENED);
+  }
 };
 
 /// L1 bid/ask spread algorithm output

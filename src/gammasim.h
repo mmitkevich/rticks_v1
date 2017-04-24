@@ -15,7 +15,8 @@ template<typename TOrderMessage=OrderMessage,
 struct GammaSimulator : public MarketAlgo,
                         // inputs
                         public IObserver<TQuoteMessage>,         // from market
-                        public IObserver<TOrderMessage>          // from algo
+                        public IObserver<TOrderMessage>,        // from algo
+                        public IObserver<TSessionMessage>      // from market
 {
   typedef TOrderMessage order_message_type;
 
@@ -46,7 +47,6 @@ struct GammaSimulator : public MarketAlgo,
       //quotes.buy = quotes.sell = NAN; // FIXME: this is wrong. quotes.buy and quotes.sell will be SHARED NumVector.
       // TODO: migrate to std::vector instead of NumericVector???
       $orders >>= *this;
-      
       // wire up metrics
       metrics.on_init(*this);
       
@@ -54,12 +54,12 @@ struct GammaSimulator : public MarketAlgo,
   }
   
   virtual void on_next(TQuoteMessage e) {
-    bool is_session_start = std::isnan(datetime());
+    //bool is_session_start = std::isnan(datetime());
     on_clock(e.rtime);
     
-    if(is_session_start) {
-       on_session_start(e.rtime);
-    }
+    //if(is_session_start) {
+    //   on_session_open(e.rtime);
+    //}
     auto s = e.symbol;
     dlog<debug>(e);
     assert(e.flag(Message::FROM_MARKET));
@@ -84,13 +84,7 @@ struct GammaSimulator : public MarketAlgo,
     on_simulate(e.symbol);
   }
 
-  virtual void on_session_start(double dtime) {
-    if(std::isnan(dtime)) {
-        throw std::runtime_error("on_session_start(NAN)");
-    }
-    TSessionMessage e;
-    e.rtime = e.ctime = dtime;
-    //e.ctime = e.rtime = dtime-1e-9; //FIXME: should be first message in order of sending without this hack
+  virtual void on_next(TSessionMessage e) {
     $session.on_next(e);
   }
   
