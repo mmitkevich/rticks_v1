@@ -6,7 +6,7 @@ options(debug=T)
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  log_level = LOG$OFF,
+  log_level = LOG$INFO,
   log_stdout = LOG$WARN,
   zero_position_freq= F, #as.numeric(months(2)),
   zero_position_on_rolls = F,
