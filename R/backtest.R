@@ -250,11 +250,15 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       }else {
         tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
       }
-      if(ch$bid>=params$limit.buy+params$spread+params$mpi || ch$ask<=params$limit.sell-params$spread-params$mpi)  { # opening outside of limits
+      if(!is.na(params$limit.buy) && params$pos>0 && ch$bid>params$limit.buy+params$spread) {
         params$pos <- 0
-        wlog("zero position outside limits ", "bid=",ch$bid, "ask=",ch$ask)
+        wlog("zero_long_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask)
       }
-        
+      if(!is.na(params$limit.sell) && params$pos<0 && params$ch$ask<params$limit.sell-params$spread) {
+        params$pos <- 0
+        wlog("zero_short_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask)
+      }
+
       if(!is.null(ct)) {
         gap <- data_frame(datetime=ch$datetime, gap = 0.5*((ch$bid+ch$ask)-(ct$bid+ct$ask)))
         gaps <- bind_rows(gaps,gap)
