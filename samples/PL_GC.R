@@ -7,19 +7,20 @@ options(debug=T)
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = T, # не писать кэш на диск
-  log_level = LOG$OFF,
+  log_level = LOG$INFO,
   log_stdout = LOG$WARN,
-  zero_position_on_rolls = F,
-  zero_position_freq = NULL, #as.numeric(months(1)),
+  zero_position_on_rolls = T,
+  zero_position_freq = F, #as.numeric(months(1)),
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
-  perfs_freq = as.numeric(days(1))
+  perfs_freq = as.numeric(days(1)),
+  perfs_tz = as.integer(16)
 ))
 
 # init logging, see rticks.log
 init_spd_log(cfg)
 
 start <- as_datetime("2015-01-01")
-stop  <- as_datetime("2017-01-10")
+stop  <- as_datetime("2017-03-01")
 
 params <- data_frame(
   # limits
@@ -41,7 +42,7 @@ params <- data_frame(
   weight  = 1,
   roll_pattern  = list(list(4, 10)),
   min_active_contract = 1,
-  active_contract = 2
+  active_contract = 1
 )
 
 params <- bind_rows(params, data_frame(
@@ -64,8 +65,8 @@ params <- bind_rows(params, data_frame(
   symbol        = "GC.COMEX",   # exante prefix of contract series
   weight  = -1,
   roll_pattern  = list(list(4, 10)),
-  min_active_contract = 2,
-  active_contract = 3
+  min_active_contract = 1,
+  active_contract = 1
 ))
 
 
@@ -74,3 +75,5 @@ r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
 bt_reports(r)
 #bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 bt_plot(r,no_gaps=F)
+
+r$metrics %>% filter(pos==pos_high & pos_high==pos_low & (qty_buy!=lag(qty_buy) | qty_sell!=lag(qty_sell))) %>% View()
