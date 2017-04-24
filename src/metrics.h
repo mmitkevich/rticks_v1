@@ -65,7 +65,6 @@ struct Metrics : public MarketAlgo,
       qty_sell(optional<NumericVector>(params, "qty_sell", 0.0))
   {
       // initialize metrics
-      
       init_metric(&cash, "cash");
       
       init_metric(&pnl, "pnl");
@@ -194,6 +193,7 @@ struct Metrics : public MarketAlgo,
 
     auto s = e.symbol;
 
+    update_hl(s); // for previous position
     // update pos
     pos[s] = pos[s] + e.qty;
 
@@ -229,8 +229,9 @@ struct Metrics : public MarketAlgo,
     if(level>=log_level) {
       if(logger) {
         auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-        logger->log(spdlog::level::info, "{} | {} | {}={} | M={}, {} | Q={}, {} | S={}, {} | POS={}, {}:{} | PNL={}, {}:{} | CASH={} | QTY={}, {} | NF {} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
-                    time, what, s.id, s.index, 
+        auto ntime = std::isnan(next_flush_dt) ? std::string("NA") : Datetime(next_flush_dt).format();
+        logger->log(spdlog::level::info, "{} | {} | {} | {}={} | M={}, {} | Q={}, {} | S={}, {} | POS={}, {}:{} | PNL={}, {}:{} | CASH={} | QTY={}, {} |  {} | {}", // FIXME ::(spdlog::level::level_enum)level
+                    time, what, ntime, s.id, s.index, 
                     market.buy[s], market.sell[s], 
                     quotes.buy[s], quotes.sell[s],
                     stop_quotes.buy[s], stop_quotes.sell[s],
@@ -238,7 +239,7 @@ struct Metrics : public MarketAlgo,
                     pnl[s], pnl_l[s], pnl_h[s], 
                     cash[s], 
                     qty_buy[s], qty_sell[s], 
-                    Datetime(next_flush_dt), fill_price, fill_qty);
+                    fill_price, fill_qty);
       }
     }
   }
@@ -254,7 +255,7 @@ struct Metrics : public MarketAlgo,
   void flush_perfs() {
     for(int s=0;s<symbols.size();s++) {
       update_hl(s);
-      xlog<debug>("PNL.FLUSH",SymbolId(symbols[s],s));
+      xlog<info>("PNL.FLUSH",SymbolId(symbols[s],s));
     }
     std::string name;
     double initial;
@@ -281,7 +282,7 @@ struct Metrics : public MarketAlgo,
     }
     next_flush_dt = next_flush_dt + perfs_interval;
     if(logger)
-      logger->info("{} | NEXT_FLUSH {}", Datetime(dt), Datetime(next_flush_dt));
+      logger->info("{} | PNL.NXT {}", Datetime(dt), Datetime(next_flush_dt));
   }
 
   List toR() {
