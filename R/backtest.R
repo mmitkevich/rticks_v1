@@ -186,24 +186,13 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     
     params <- as_data_frame(params) %>% left_join(more_params, by="symbol")
     
-    params <- data_frame(limit.buy = params$limit.buy[1],
-                         stop.buy = params$stop.buy[1],
-                         limit.sell = params$limit.sell[1],
-                         stop.sell = params$stop.sell[1],
-                         spread = params$spread[1], 
-                         gamma.buy = params$gamma.buy[1],
-                         gamma.sell = params$gamma.sell[1],
-                         symbol = vids%>% reduce(~ paste0(.x, "-", .y)),
+    params <- params[1,] %>%  mutate(symbol = vids%>% reduce(~ paste0(.x, "-", .y)),
                          weight = NA,
                          roll_pattern = NA,
                          active_contract = NA,
                          mpi = min(params$mpi),
                          multiplier = max(params$multiplier),
-                         commission = sum(params$commission),
-                         pos = 0,
-                         cash = 0,
-                         qty_buy = 0, 
-                         qty_sell = 0)
+                         commission = sum(params$commission))
   } else {
     sp <- F
     params <- as_data_frame(params) %>% 
