@@ -21,7 +21,7 @@ metrics.gamma <- function(env, no_commission=F) {
   else
     qtys <- qtys %>% mutate(commission = 0)
   qtys <- qtys %>% mutate(      
-    drisk = (lag(pos)+0.5*(lag(price)-env$params$stop.buy)/env$params$mpi*env$params$gamma.buy)*(lag(price)-env$params$stop.buy),
+    drisk = (lag(pos)+0.5*(lag(price)-env$params$risk.buy)/env$params$mpi*env$params$gamma.buy)*(lag(price)-env$params$risk.buy),
     rtn = (pnl-lag(pnl))/drisk)
   qtys<- qtys %>% select(-spread,-multiplier) %>% gather(metric, value, -datetime, -symbol)
   qtys
