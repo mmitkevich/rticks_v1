@@ -26,6 +26,8 @@ params <- data_frame(
   # limits
   
   limit.buy     = -200,    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  stop.buy      = -360,
+  
   risk.buy      = -400,
   
   limit.sell    = +Inf,  # sell when price>=sell only
