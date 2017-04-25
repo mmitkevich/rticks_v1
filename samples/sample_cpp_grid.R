@@ -7,12 +7,12 @@ options(debug=T)
 cfg <- config(backtest) %>% modifyList(list(
   no_cache = T, # всегда из базы
   no_save = F, # не писать кэш на диск
-  log_level = LOG$DEBUG,
+  log_level = LOG$INFO,
   log_stdout = LOG$WARN, 
   zero_position_on_rolls = F,
-  zero_position_freq = F, #as.numeric(months(2)), 
+  zero_position_freq = as.numeric(months(1)), 
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
-  perfs_freq = as.numeric(minutes(1)),
+  perfs_freq = as.numeric(days(1)),
   perfs_tz = as.integer(16)
 ))
 
@@ -26,6 +26,7 @@ params <- data_frame(
   # limits
   
   limit.buy     = -200,    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+  risk.buy      = -400,
   
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = NA,    # FIXME: no sell above 19
@@ -49,6 +50,7 @@ params <- bind_rows(params, data_frame(
   
   limit.buy     = NA,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
   stop.buy      = NA,    # FIXME: no buy lower than 18
+  risk.buy      = NA,
   
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = NA,    # FIXME: no sell above 19
@@ -75,6 +77,8 @@ bt_reports(r)
 #bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 #r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% filter_date("2016-01-01","2016-05-01") %>% View()
 bt_plot(r,no_gaps=F)
-print(bt_summaries(r))
+
+r$metrics %>% filter(!is.na(rtn)) %>% mutate(cumrtn = cumsum(rtn)) %>% plot_bt(metrics=c("price","pnl","pos","drisk","cumrtn"))
+#print(bt_summaries(r))
 
 #r$metrics %>% filter_date("2015-12-18") %>% filter(bid!=lead(bid)|ask!=lead(ask)|pos!=lead(pos)) %>% View()
