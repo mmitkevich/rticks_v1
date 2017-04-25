@@ -46,7 +46,7 @@ TVector get(List config, const char* name, TVector def) {
 }
 
 
-double eps() { return std::numeric_limits<double>::epsilon(); }
+double eps() { return 1e-8; }
 
 bool is_zero(double x)
 {
