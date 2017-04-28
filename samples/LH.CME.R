@@ -26,7 +26,7 @@ params <- data_frame(
   # limits
   limit.buy     = 76,  # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
   stop.buy      = 50,    # FIXME: no buy lower than 18
-  
+  risk.buy      = 20,  
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = +Inf,    # FIXME: no sell above 19
   
