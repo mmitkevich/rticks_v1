@@ -226,13 +226,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       # FIXME: we need virtual_id=LH.CME.3/5 instead
       #chunk$virtual_id <- params$virtual_id
       ch = head(chunk,1)
+      is_roll <- !is.null(ct) && ch$exante_id!=ct$exante_id
       if(!is.null(ct)) {
         tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
         if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
             params$pos <- 0
             tf_index <- tf_index1
             wlog("zero_position_freq ",as.character(as_datetime(ch$datetime)))
-        }else if(config$zero_position_on_rolls) {
+        }else if(is_roll && config$zero_position_on_rolls) {
           params$pos <- 0
           wlog("zero_position_on_rolls ",as.character(as_datetime(ch$datetime)))
         }
@@ -254,8 +255,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         }
       }
       
-      if(!is.null(ct)) {
-        gap <- data_frame(datetime=ch$datetime, gap = 0.5*((ch$bid+ch$ask)-(ct$bid+ct$ask)))
+      if(is_roll) {
+        gap <- data_frame(datetime=ch$datetime, gap = 0.5*((ch$bid+ch$ask)-(ct$bid+ct$ask)), roll_from=ct$exante_id, roll_into=ch$exante_id)
         gaps <- bind_rows(gaps,gap)
       }
       params$cash <- params$cash - params$pos*0.5*(ch$bid+ch$ask)*params$multiplier # open the pos
