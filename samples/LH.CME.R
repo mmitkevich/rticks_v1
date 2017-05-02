@@ -9,7 +9,7 @@ cfg <- config(backtest) %>% modifyList(list(
   log_level = LOG$INFO,
   log_stdout = LOG$WARN,
   zero_position_freq= F, #as.numeric(months(2)),
-  zero_position_on_rolls = F,
+  zero_position_on_rolls = T,
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, months_ahead=1 at least 1 month ahead of expiration  
   perfs_freq = as.numeric(days(1)),
   perfs_tz = as.integer(16),
