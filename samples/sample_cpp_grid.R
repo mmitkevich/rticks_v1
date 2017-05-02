@@ -13,7 +13,8 @@ cfg <- config(backtest) %>% modifyList(list(
   zero_position_freq = as.numeric(months(1)), 
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
   perfs_freq = as.numeric(days(1)),
-  perfs_tz = as.integer(16)
+  perfs_tz = as.integer(16),
+  roll_same_day_all_legs=F
 ))
 
 # init logging, see rticks.log

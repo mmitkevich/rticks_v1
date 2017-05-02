@@ -85,7 +85,10 @@ clean_mim.chunk <- function(chunk,
 #' @examples
 #' query_candles_cache("VIX.CBOE", 1) 
 #' @export
-query_candles_cache <- function(instruments, active_contract=1, min_active_contract=1, roll_pattern=NULL, start=NULL, stop=lubridate::now(), schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T, custom_roll=NULL)) {
+query_candles_cache <- function(instruments, active_contract=1, min_active_contract=1, 
+                                roll_pattern=NULL, start=NULL, stop=lubridate::now(), 
+                                schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T, 
+                                                           custom_roll=NULL, roll_same_day_all_legs=F)) {
   instruments <- query_instruments(instruments)
   if(!is.null(roll_pattern)) {
     instruments$active_contract <- roll_pattern
@@ -96,7 +99,9 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
   #browser()
   ilog("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop))
   if(config$no_cache || !file.exists(path)) {
-    q <- query_candles(instruments, active_contract = active_contract, min_active_contract=min_active_contract, start=start, stop=stop, custom_roll=config$custom_roll)
+    q <- query_candles(instruments, active_contract = active_contract, 
+                       min_active_contract=min_active_contract, start=start, stop=stop, custom_roll=config$custom_roll, 
+                       roll_same_day_all_legs=config$roll_same_day_all_legs)
     data <- q %>% fetch_all()
     data_raw <- q$data
     if(!config$no_save) {

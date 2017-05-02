@@ -37,6 +37,7 @@ query_candles.reuters <- function(instruments = NULL,
                                active_contract = 1,
                                min_active_contract = 1,
                                custom_roll = NULL,
+                               roll_same_day_all_legs=T,
                                start = NULL, 
                                stop = lubridate::now(), 
                                where = NULL) {
@@ -49,6 +50,7 @@ query_candles.reuters <- function(instruments = NULL,
                          roll_schedule(max_active_contract=active_contract, 
                                        min_active_contract=min_active_contract, 
                                        custom_roll=custom_roll, 
+                                       roll_same_day_all_legs=roll_same_day_all_legs,
                                        start=start, stop=stop)
                        ))
   if(getOption("debug",F)){
@@ -87,11 +89,11 @@ fetch.reuters <- function(q) {
   tl = timeline(q$schedule, start=q$start)
   stop <- min(ifelse(length(tl)>1, tl[[2]], q$stop),q$stop)
 
-  symbols <- q$schedule %>% filter(datetime==q$start)# %>%  # take past events
-    #group_by(instrument_id) %>%      # for each contract's group
-     # arrange(datetime) %>%      # sort by datetime
-      #filter(row_number()==n()) %>%  # and take last active_contract numbering 
-      #filter(active_contract %in% q$active_contract)
+  symbols <- q$schedule %>% filter(datetime<=q$start) %>%  # take past events
+    group_by(instrument_id) %>%      # for each contract's group
+      arrange(datetime) %>%      # sort by datetime
+      filter(row_number()==n()) #%>%  # and take last active_contract numbering 
+    #  filter(active_contract %in% q$active_contract)
   
   wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
   #browser()

@@ -34,9 +34,11 @@ synthetic.chunk <- function(chunk, weights) {
   names(quotes) <- instruments
   
   merged_DF <- merge(quotes[[1]], quotes[[2]], by = "datetime")
-  print("quality of merge")
-  #browser()
-  print(c(nrow(quotes[[1]]), nrow(quotes[[2]]), nrow(merged_DF)))
+  cat("merged ", nrow(quotes[[1]]), nrow(quotes[[2]]), "into", nrow(merged_DF),"\n")
+
+  if(nrow(merged_DF)==0 && (nrow(quotes[[1]])>0 || nrow(quotes[[2]]>0))) {
+    stop(paste("failed to merge ", instruments))
+  }
   
   spread_bid <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$bid.y} else {merged_DF$ask.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$bid.x} else {merged_DF$ask.x})
   spread_ask <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$ask.y} else {merged_DF$bid.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$ask.x} else {merged_DF$bid.x})

@@ -38,6 +38,7 @@ roll_schedule <- function(instruments,
                           max_active_contract = 12,
                           min_active_contract = 1,
                           custom_roll = NULL, # ~ . - days(day(.)) - months(2)
+                          roll_same_day_all_legs = F, # for all legs
                           start = NULL,
                           stop = NULL,
                           nm = "instrument_id",
@@ -107,6 +108,11 @@ roll_schedule <- function(instruments,
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id") %>% 
     mutate(virtual_id=paste0(instrument_id,".",active_contract))
   result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  if(roll_same_day_all_legs) {
+    result2 <- result2 %>% group_by(year, month) %>% summarise(min_datetime=min(datetime)) %>% 
+      inner_join(result2, by=c("year","month")) %>% mutate(datetime=min_datetime) %>% select(-min_datetime)
+  }
+  
   result2
 }
 
