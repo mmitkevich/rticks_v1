@@ -130,13 +130,13 @@ query_symbols <- function(instruments = NULL,
       fields.dt<-intersect(fields.dt, fields)
     for(f in fields.dt)
       result[[f]] <- as.datetime(result[[f]])
+    # return result
+    result <- result %>% parse_symbols
+    # add additional fields from instruments
+    #browser()
+    instruments <- query_instruments(instruments)
+    result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
   }
-  # return result
-  result <- result %>% parse_symbols
-  # add additional fields from instruments
-  #browser()
-  instruments <- query_instruments(instruments)
-  result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
   return(result)
 }
 

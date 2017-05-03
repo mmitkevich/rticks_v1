@@ -183,6 +183,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   if(nrow(params) > 1) {
     sp <- T
     weights.spread <- params$weight %>% setNames(vids) # paste0(params$symbol,".", params$active_contract)
+    powers.spread <- params$power %>% setNames(vids)
+    currency.spread <- params$currency %>% setNames(vids)
     
     params <- as_data_frame(params) %>% left_join(more_params, by="symbol")
     
@@ -193,6 +195,10 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
                          mpi = min(params$mpi),
                          multiplier = max(params$multiplier),
                          commission = sum(params$commission))
+    if(!is.null(config$multiplier))
+      params$multiplier <- config$multiplier
+    if(!is.null(config$mpi))
+      params$mpi <- config$mpi
   } else {
     sp <- F
     params <- as_data_frame(params) %>% 
@@ -208,25 +214,26 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   #browser()
   if(config$zero_position_freq) {
     data0 <- data
-    data <- data %>% map(function(d) (d %>% group_by(time_frame_index(datetime, config$zero_position_freq)) %>% by_slice(~ ., .labels=F))$.out) %>% 
+    data <- data %>% keep(~ nrow(.)>0) %>% map(function(d) (d %>% group_by(time_frame_index(datetime, config$zero_position_freq)) %>% by_slice(~ ., .labels=F))$.out) %>% 
       purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   }
   gaps = data_frame()
   ct = NULL
   tf_index <- -1
+  data.spread<-list()
   for(chunk in data) {
     # open positions in the chunk
+    if (sp == TRUE && nrow(chunk)>0) {
+      chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
+      data.spread<-c(data.spread,list(chunk))
+    }
     if(nrow(chunk)==0) {
       wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     } else {
-      if (sp == TRUE) {
-        chunk <- chunk %>% synthetic.chunk(weights=weights.spread)
-      }
-      #browser()
-      # FIXME: we need virtual_id=LH.CME.3/5 instead
-      #chunk$virtual_id <- params$virtual_id
       ch = head(chunk,1)
       is_roll <- !is.null(ct) && ch$exante_id!=ct$exante_id
+      # FIXME: we need virtual_id=LH.CME.3/5 instead
+      #chunk$virtual_id <- params$virtual_id
       if(!is.null(ct)) {
         tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
         if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
@@ -241,14 +248,15 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
       }
       if(!is.na(params$limit.buy) && !is.infinite(params$limit.buy) && params$pos>0) {
-        pos.max <- (params$limit.buy+params$spread-ch$bid)/params$mpi
+        pos.max <- trunc(max(0,(params$limit.buy+params$spread-ch$bid)/params$mpi*params$gamma.buy))
         if(params$pos>pos.max) {
+          wlog("zero_long_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask, "pos reduced to ",pos.max, "from",params$pos)
           params$pos <- pos.max
-          wlog("zero_long_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask, "pos reduced to ",params$pos)
+          
         }
       }
       if(!is.na(params$limit.sell) && !is.infinite(params$limit.sell) && params$pos<0) {
-        pos.min <- (params$limit.sell-params$spread-ch$ask)/params$mpi
+        pos.min <- trunc(min(0,(params$limit.sell-params$spread-ch$ask)/params$mpi*params$gamma.sell))
         if(params$pos<pos.min) {
           params$pos <- pos.min
           wlog("zero_short_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask, "pos reduced to",params$pos)
@@ -281,6 +289,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   q$perfs<-perfs
   q$gaps<-gaps
   q$data<-data
+  q$data.spread<-data.spread
   q$params<-params
   q
 }
