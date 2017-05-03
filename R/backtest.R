@@ -248,7 +248,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
       }
       if(!is.na(params$limit.buy) && !is.infinite(params$limit.buy) && params$pos>0) {
-        pos.max <- trunc(max(0,(params$limit.buy+params$spread-ch$bid)/params$mpi*params$gamma.buy))
+        pos.max <- trunc(max(0,((params$limit.buy+params$spread-ch$bid)/params$mpi+1e-3)*params$gamma.buy))
         if(params$pos>pos.max) {
           wlog("zero_long_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask, "pos reduced to ",pos.max, "from",params$pos)
           params$pos <- pos.max
@@ -256,7 +256,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         }
       }
       if(!is.na(params$limit.sell) && !is.infinite(params$limit.sell) && params$pos<0) {
-        pos.min <- trunc(min(0,(params$limit.sell-params$spread-ch$ask)/params$mpi*params$gamma.sell))
+        pos.min <- trunc(min(0,((params$limit.sell-params$spread-ch$ask)/params$mpi+1e-3)*params$gamma.sell))
         if(params$pos<pos.min) {
           params$pos <- pos.min
           wlog("zero_short_position_outside_limits ", "bid=",ch$bid, "ask=",ch$ask, "pos reduced to",params$pos)
