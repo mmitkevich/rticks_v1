@@ -34,23 +34,24 @@ synthetic.chunk <- function(chunk, weights, powers, currencies, mpi=NULL) {
     #browser()
     if(p<0)
       quotes[[i]] <- quotes[[i]] %>% rename(bid=ask,ask=bid)
-    
     quotes[[i]] <- quotes[[i]] %>% mutate(bid=bid^p, ask=ask^p)
-    
-    w<-weights[instruments[i]]
-    quotes[[i]] <- quotes[[i]]%>%mutate(bid=bid*w, ask=ask*w)
-
-    if(weights[instruments[i]]<0)
-      quotes[[i]] <- quotes[[i]] %>% rename(bid=ask,ask=bid)
   }
   names(quotes) <- instruments
   
   for (i in 1:length(instruments)) {
     cur <- currencies[instruments[i]]
+    w<-weights[instruments[i]]
     if(!is.na(cur)) {
-      cur_mid <- 0.5*(quotes[[cur]]$bid+quotes[[cur]]$ask)
-      quotes[[i]] <- quotes[[i]] %>% mutate(bid=bid*cur_mid, ask=ask*cur_mid)
+      currency  <- if(w>=0) {
+        quotes[[cur]] %>% mutate(cur=bid) %>% select(datetime, cur)
+      } else {
+        quotes[[cur]] %>% mutate(cur=ask) %>% select(datetime, cur)
+      }
+      quotes[[i]] <- quotes[[i]] %>% inner_join(currency, by="datetime") %>% mutate(bid=bid*cur, ask=ask*cur)
     }
+    quotes[[i]] <- quotes[[i]]%>%mutate(bid=bid*w, ask=ask*w)
+    if(w<0)
+      quotes[[i]] <- quotes[[i]] %>% rename(bid=ask,ask=bid)
   }
 
   # apply powers
