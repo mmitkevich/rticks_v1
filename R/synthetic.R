@@ -24,32 +24,58 @@ synthetic.chunk(chunk, weights)
 #' synthesize chunk by formula
 #' 
 #' @export
-synthetic.chunk <- function(chunk, weights) {
+synthetic.chunk <- function(chunk, weights, powers, currencies, mpi=NULL) {
   quotes <- list()
   instruments <- names(weights)
   
   for (i in 1:length(instruments)) {
     quotes[[i]] <- chunk %>% filter(virtual_id == instruments[i]) %>% select(datetime,bid,ask)
+    p <- powers[instruments[i]] 
+    #browser()
+    if(p<0)
+      quotes[[i]] <- quotes[[i]] %>% rename(bid=ask,ask=bid)
+    
+    quotes[[i]] <- quotes[[i]] %>% mutate(bid=bid^p, ask=ask^p)
+    
+    w<-weights[instruments[i]]
+    quotes[[i]] <- quotes[[i]]%>%mutate(bid=bid*w, ask=ask*w)
+
+    if(weights[instruments[i]]<0)
+      quotes[[i]] <- quotes[[i]] %>% rename(bid=ask,ask=bid)
   }
   names(quotes) <- instruments
   
-  merged_DF <- merge(quotes[[1]], quotes[[2]], by = "datetime")
-  cat("merged ", nrow(quotes[[1]]), nrow(quotes[[2]]), "into", nrow(merged_DF),"\n")
-
-  if(nrow(merged_DF)==0 && (nrow(quotes[[1]])>0 || nrow(quotes[[2]]>0))) {
-    stop(paste("failed to merge ", instruments))
+  for (i in 1:length(instruments)) {
+    cur <- currencies[instruments[i]]
+    if(!is.na(cur)) {
+      cur_mid <- 0.5*(quotes[[cur]]$bid+quotes[[cur]]$ask)
+      quotes[[i]] <- quotes[[i]] %>% mutate(bid=bid*cur_mid, ask=ask*cur_mid)
+    }
   }
+
+  # apply powers
   
-  spread_bid <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$bid.y} else {merged_DF$ask.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$bid.x} else {merged_DF$ask.x})
-  spread_ask <- weights[[2]] * (if(weights[[2]] >= 0) {merged_DF$ask.y} else {merged_DF$bid.y}) + weights[[1]] * (if(weights[[1]] >= 0) {merged_DF$ask.x} else {merged_DF$bid.x})
+  bids <- quotes %>% map2(names(quotes), ~ .x%>%select(datetime, bid)%>%setNames(c("datetime",.y))) %>% reduce(inner_join, by="datetime")
+  dts <- bids$datetime
+  bids <- bids %>% select(-datetime) %>% reduce(`+`)
+  asks <- quotes %>% map2(names(quotes), ~ .x%>%select(datetime, ask)%>%setNames(c("datetime",.y))) %>% reduce(inner_join, by="datetime") %>% select(-datetime) %>% reduce(`+`)
+  if(!is.null(mpi)) {
+    bids <- trunc(bids/mpi)*mpi
+    asks <- trunc((asks*(1-1e-6))/mpi)*mpi+mpi
+  }
+  cat("merged ", nrow(quotes[[1]]), nrow(quotes[[2]]), "into", nrow(bids),"\n")
   
-  spread.chunk <- data_frame(datetime = merged_DF$datetime, 
-                             bid = spread_bid, 
-                             ask = spread_ask, 
+
+  if(length(bids)==0)
+    return(data_frame())
+  
+  spread.chunk <- data_frame(datetime = dts, 
+                             bid = bids, 
+                             ask = asks, 
                              high = bid, 
                              low = ask, 
                              virtual_id = paste.list(names(weights), sep = "-"),
-                             exante_id = virtual_id)
+                             exante_id = paste.list(sort(unique(chunk$exante_id)), sep="-"))
   return(spread.chunk)
 }
 
