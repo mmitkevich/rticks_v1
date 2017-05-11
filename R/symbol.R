@@ -119,7 +119,7 @@ query_symbols <- function(instruments = NULL,
                         fields = list("exante_id", "first_notice_day"), 
                         fields.dt = list("first_notice_day", "first_trading_day", "expiry_date", "last_delivery_day", "last_delivery_day")) {
   # convert to data.frame
-  instruments <- parse_symbols(instruments)
+  instruments <- query_instruments(instruments, f.prefix=f.prefix)
   # prepare WHERE
   w <- c(
     instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "instrument_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
@@ -133,17 +133,21 @@ query_symbols <- function(instruments = NULL,
              where = w,
              order = "first_notice_day")
   # fix datetime columns
-  if(nrow(result)>0 && !is.null(fields.dt)) {
-    if(!is.null(fields))
-      fields.dt<-intersect(fields.dt, fields)
-    for(f in fields.dt)
-      result[[f]] <- as.datetime(result[[f]])
-    # return result
-    result <- result %>% parse_symbols
-    # add additional fields from instruments
-    #browser()
-    instruments <- query_instruments(instruments)
-    result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
+  if(nrow(result)>0) {
+    if(!is.null(fields.dt)) {
+      if(!is.null(fields))
+        fields.dt<-intersect(fields.dt, fields)
+      for(f in fields.dt)
+        result[[f]] <- as.datetime(result[[f]])
+      # return result
+      result <- result %>% parse_symbols
+      # add additional fields from instruments
+      #browser()
+      instruments <- query_instruments(instruments)
+      result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
+    }
+  }else { # FIXME: instrument_class not analyzed at all
+    result <- instruments %>% mutate(first_notice_day=as_datetime("4000-01-01"))
   }
   return(result)
 }
