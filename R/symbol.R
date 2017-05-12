@@ -120,6 +120,10 @@ query_symbols <- function(instruments = NULL,
                         fields.dt = list("first_notice_day", "first_trading_day", "expiry_date", "last_delivery_day", "last_delivery_day")) {
   # convert to data.frame
   instruments <- query_instruments(instruments, f.prefix=f.prefix)
+  if(nrow(instruments)==0) {
+    stop("No such instrument")
+    return (data_frame())
+  }
   # prepare WHERE
   w <- c(
     instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "instrument_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
@@ -147,7 +151,7 @@ query_symbols <- function(instruments = NULL,
       result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
     }
   }else { # FIXME: instrument_class not analyzed at all
-    result <- instruments %>% mutate(first_notice_day=as_datetime("4000-01-01"))
+    result <- instruments %>% mutate(first_notice_day=as_datetime("4000-01-01"), month=NA, year=NA)
   }
   return(result)
 }
