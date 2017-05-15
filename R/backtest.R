@@ -149,6 +149,10 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   config$perfs_freq <- as.numeric(config$perfs_freq)
   if(!has_name(params,"min_active_contract"))
     params$min_active_contract <- params$active_contract
+  if(!has_name(params,"power"))
+    params$power <- rep(1, nrow(params))
+  if(!has_name(params,"currency"))
+    params$power <- rep(NA, nrow(params))
   
   if(is.null(instruments)) {
     instruments <- params$symbol
@@ -382,19 +386,35 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
     theme(axis.text.x = element_text(angle = 30, hjust = 1)) + 
     ggtitle(paste.list(unique(perfs$symbol),sep=","))
   #browser()
-  scale_x_datetime_smart(plt, max(df$datetime)-min(df$datetime))
+  scale_x_datetime_smart(plt, max(df$datetime)-min(df$datetime)) + scale_y_continuous(label=dollar_format(suffix="",prefix=""))
   #ggplot(d, aes(x=datetime)) + geom_segment(aes(y=close,yend=close, xend=datetime+1))+geom_linerange(aes(ymin=low,ymax=high))
 } 
 
 
 
 #' bt_report(r)
-#' 
+#' "USD/RUB.MOEX" to divide by the currency rate
 #' @export
-bt_reports <- function(r, start=NULL, stop=NULL, save=F, ...) {
+bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1, save=F, ...) {
   # view data
   metrics <- metrics.gamma(r, ...) # calculate additional metrics
   r$metrics <- metrics %>% spread(metric,value)
+  r$metrics.original <- r$metrics
+  if(!is.null(currency)) {
+    cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
+      reduce(bind_rows) %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
+    r$metrics <- r$metrics %>% inner_join(cur, by="datetime") %>% mutate(
+      cur = ifelse(pos>0, cur_bid, cur_ask)) %>% 
+      filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
+      cur = cur,
+      commission = cur^currency_power*commission,
+      pnl = cur^currency_power*pnl, 
+      pnl_high=cur^currency_power*pnl_high, 
+      pnl_low=cur^currency_power*pnl_low,
+      drisk = cur^currency_power*drisk,
+      rpnl = cumsum((rpnl-lag(rpnl,default=0))*cur^currency_power)
+    )
+  }
   
   # plot pnl
   
@@ -424,8 +444,8 @@ bt_view_metrics <- function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, start=NULL, stop=NULL, maxpoints=400, no_gaps=F) {
-  metrics <- r$metrics
+bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, maxpoints=400, no_gaps=F) {
+  metrics <- r[[what]]
   if(no_gaps) {
     metrics$chunk <- metrics$datetime %>% findInterval(r$gaps$datetime)+1
     for(i in seq(1,nrow(r$gaps)-1)) {
