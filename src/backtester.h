@@ -29,12 +29,14 @@ struct Backtester : public Algo
 
   TMarket market;
   TAlgo algo;
-
+  double close_time_fix;
+  
   Backtester(DataFrame params,     // symbol, mpi, spread, buy_gamma, sell_gamma
             List config)                // metrics_interval
     : Algo(params, config, "player"),
       market(params, config),
       algo(params, config),
+      close_time_fix(1.0),  // event occured 1 second before close time
       index(0),
       stop(0),
       mpi(required<NumericVector>(params, "mpi")),
@@ -82,7 +84,7 @@ struct Backtester : public Algo
     market.on_next(ses);
       
     while(index < stop) {
-      dt = datetimes[index];
+      dt = datetimes[index] - close_time_fix;
       
       market.notify(dt); // flush the time
       
