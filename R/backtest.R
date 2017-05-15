@@ -152,7 +152,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   if(!has_name(params,"power"))
     params$power <- rep(1, nrow(params))
   if(!has_name(params,"currency"))
-    params$power <- rep(NA, nrow(params))
+    params$currency <- rep(NA, nrow(params))
   
   if(is.null(instruments)) {
     instruments <- params$symbol
