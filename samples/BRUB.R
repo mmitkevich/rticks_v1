@@ -80,10 +80,11 @@ params <- bind_rows(params, data_frame(
 ))
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
-bt_reports(r, no_commission=T)
+bt_reports(r, no_commission=T, currency="USD/RUB.MOEX", currency_power = -1)
 #bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 #r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% filter_date("2016-01-01","2016-05-01") %>% View()
-bt_plot(r,no_gaps=F)
+bt_plot(r,no_gaps=F) # PLOT IN USD
+# bt_plot(r,what="metrics.original", no_gaps=F) # PLOT IN THE ORIGINAL CURRENCY
 
 #r$metrics %>% filter(!is.na(rtn)) %>% mutate(cumrtn = cumsum(rtn)) %>% plot_bt(metrics=c("price","pnl","pos","drisk","cumrtn"))
 #print(bt_summaries(r))
