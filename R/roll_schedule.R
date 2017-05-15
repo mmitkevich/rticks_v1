@@ -60,7 +60,7 @@ roll_schedule <- function(instruments,
   if(is.null(fields))
     fields <- names(r)
   if(is.null(start))
-    start <- min(symbols$first_notice_day, na.rm=T)
+    start <- min(as.numeric(symbols$first_notice_day)) %>% na_replace(as_datetime("0000-01-01")) %>% as_datetime()
   
   # go through instruments
   result <- instruments %>% by_row(function(ins) {
@@ -69,12 +69,15 @@ roll_schedule <- function(instruments,
     # get symbols for the instrument, conforming to active_contract pattern
     sym <- symbols %>% select_(.dots=fields) %>%
       filter(instrument_id==ins$instrument_id) %>%
-      filter(month %in% roll_pattern)
+      filter(month %in% roll_pattern | is.na(month))
     if(!is.null(custom_roll)) {
       sym$first_notice_day <- as_function(custom_roll)(sym$first_notice_day)
     }
     sym <- sym %>% arrange(first_notice_day)
-    
+    if(nrow(sym)==1 && is.na(sym$month)) { # is_spot TODO FIXME
+      return(sym %>% mutate(active_contract=1, datetime=start))
+    }
+      
     #      print(sym)
     #      cat("----")
     
@@ -102,18 +105,25 @@ roll_schedule <- function(instruments,
     }
     # return them combined
     rs2<- bind_rows(rs0, rs1) %>% as_data_frame() %>% filter(active_contract>=min_active_contract[[ins$instrument_id]]-1)
+    #}else { # spot
+    #  rs2 <- sym %>% mutate(active_contract=1, datetime=start)
+    #}
     rs2
   })
   result <- bind_rows(result$.out) %>% arrange(datetime)
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id") %>% 
     mutate(virtual_id=paste0(instrument_id,".",active_contract))
-  result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  if(nrow(result)!=1 || !is.na(result$month)) { # is_spot TODO
+    result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+  }else {
+    result2 <- result
+  }
   if(roll_same_day_all_legs) {
     result2 <- result2 %>% group_by(year, month) %>% summarise(min_datetime=min(datetime)) %>% 
       inner_join(result2, by=c("year","month")) %>% mutate(datetime=min_datetime) %>% select(-min_datetime)
   }
   
-  result2
+  result2 %>% as_data_frame()
 }
 
 #' custom logic keeping contract until it goes out of allowed active_contract indexes range 

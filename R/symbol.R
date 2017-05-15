@@ -127,7 +127,7 @@ query_symbols <- function(instruments = NULL,
   # prepare WHERE
   w <- c(
     instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "instrument_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
-    start %>% nnmap( ~ paste("first_notice_day", ">=", trunc(as.numeric(.x)*1000))), # start date
+    start %>% nnmap( ~ paste("(first_notice_day IS NULL OR first_notice_day", ">=", trunc(as.numeric(.x)*1000),")")), # start date
     stop %>% nnmap( ~ paste("first_notice_day", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
     ) %>% reduce(sql.and)
@@ -137,7 +137,7 @@ query_symbols <- function(instruments = NULL,
              where = w,
              order = "first_notice_day")
   # fix datetime columns
-  if(nrow(result)>0) {
+  #if(nrow(result)>0) {
     if(!is.null(fields.dt)) {
       if(!is.null(fields))
         fields.dt<-intersect(fields.dt, fields)
@@ -150,9 +150,9 @@ query_symbols <- function(instruments = NULL,
       instruments <- query_instruments(instruments)
       result <- result %>% left_join(instruments %>% select(-exante_id), by="instrument_id")
     }
-  }else { # FIXME: instrument_class not analyzed at all
-    result <- instruments %>% mutate(first_notice_day=as_datetime("4000-01-01"), month=NA, year=NA)
-  }
+  #}else { # FIXME: instrument_class not analyzed at all
+  #  result <- instruments %>% mutate(first_notice_day=as_datetime("4000-01-01"), month=1, year=4000)
+  #}
   return(result)
 }
 
