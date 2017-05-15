@@ -21,6 +21,7 @@ Depends:
     RPostgreSQL,
     DBI,
     jsonlite,
-    functional
+    functional,
+    scales
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
