@@ -36,7 +36,7 @@ struct Backtester : public Algo
     : Algo(params, config, "player"),
       market(params, config),
       algo(params, config),
-      close_time_fix(1.0),  // event occured 1 second before close time
+      close_time_fix(0),  // event occured 1 second before close time
       index(0),
       stop(0),
       mpi(required<NumericVector>(params, "mpi")),
