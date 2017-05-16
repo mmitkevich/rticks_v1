@@ -131,8 +131,8 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
 #' chunk.resample
 #' 
 #' @export
-ohlc<-function (data, freq=days(1), high="high", low="low", close="close") {
-  data$datetime <- data$datetime %>% trunc_freq(freq)
+ohlc<-function (data, freq=days(1), tz_offset=0, high="high", low="low", close="close") {
+  data$datetime <- ((data$datetime+freq-hours(tz_offset)) %>% trunc_freq(freq))+hours(tz_offset)
   if(!has_name(data, high))
     high = close
   if(!has_name(data, low))
@@ -147,4 +147,12 @@ ohlc<-function (data, freq=days(1), high="high", low="low", close="close") {
     as_data_frame() %>% arrange(datetime)
   #browser()
   r
+}
+
+#'
+#'
+#' @export
+to_freq <- function(data, freq=days(1), tz_offset=0, by=c("datetime","symbol")) {
+  data$datetime <- ((data$datetime+freq-hours(tz_offset)) %>% trunc_freq(freq))+hours(tz_offset)
+  data %>% group_by_(.dots = by) %>% arrange_(.dots=by) %>% filter(row_number()==n())
 }

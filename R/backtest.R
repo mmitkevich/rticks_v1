@@ -292,6 +292,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   perfs$datetime <- as_datetime(perfs$datetime)
   q$perfs<-perfs
   q$gaps<-gaps
+  q$config <- config
   q$data<-data
   q$data.spread<-data.spread
   q$params<-params
@@ -402,7 +403,9 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
     cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
-      reduce(bind_rows) %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
+      reduce(bind_rows)
+    browser()
+    cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
     r$metrics <- r$metrics %>% inner_join(cur, by="datetime") %>% mutate(
       cur = ifelse(pos>0, cur_bid, cur_ask)) %>% 
       filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
