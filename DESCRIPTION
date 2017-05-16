@@ -17,6 +17,7 @@ Depends:
     dplyr,
     tidyr,
     purrr,
+    purrrlyr,
     R.utils,
     RPostgreSQL,
     DBI,
