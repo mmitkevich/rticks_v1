@@ -179,11 +179,15 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 #'  query_instruments("VIX")
 #' @export
 
-query_instruments <- function(instruments = NULL, 
-                             fields = c("instrument_id", "currency", "mpi", "commission", "contract_multiplier as multiplier", "active_contracts as active_contract"), 
+query_instruments <- function(instruments = NULL, dt = lubridate::now(),
+                             fields = c("instrument_id", "currency", "mpi", "commission", "contract_multiplier as multiplier", "active_contracts as active_contract", "valid_since as datetime"), 
                              json_cols = c("active_contract"), ...) {
   instruments <- parse_symbols(instruments) # TODO: WHY nm = "instrument_id"
   r <- query_quant_data(instruments$instrument_id, "quant_data.smart_instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
+  if(!is.null(dt)) {
+    # FIX HACK: No support for changing insturment metadata for now
+    r <- r %>% group_by(instrument_id) %>% arrange(datetime) %>% filter(datetime<=dt) %>% filter(row_number()==n()) %>% as_data_frame() %>% select(-datetime)
+  }
   # FIXME: patch exante_id == instrument_id so every symbol df has some exante_id column
   r$exante_id <- r[["instrument_id"]]
   return(r)

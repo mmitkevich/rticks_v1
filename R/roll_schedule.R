@@ -50,9 +50,12 @@ roll_schedule <- function(instruments,
   min_active_contract <- min_active_contract %>% value_as_list(instruments$instrument_id, 1)
   #  print(instruments)
   # lazy instruments loading
-  ilog("roll_schedule",paste(instruments$instrument_id),
+  wlog("roll_schedule",paste(instruments$instrument_id),
       "active_contract",paste(active_contract), 
-      "max_active_contract",max_active_contract)
+      "max_active_contract",max_active_contract,
+      "start", as.character(start),
+      "stop", as.character(stop))
+  #browser()
   # load symbols including those expiring 1 year after the end of backtesting period so all the patterns could be built
   if(is.null(symbols))
     symbols <- instruments %>% query_symbols(start = start, stop = NULL) #nnmap(stop, ~ . + years(1))
@@ -93,6 +96,7 @@ roll_schedule <- function(instruments,
     rs1 <- rs %>% filter(!is.na(datetime))
     # and initial active contracts without datetime (because it is absent from dataframe)
     # patch it by taking first row for each contract and setting datetime = start
+    #browser()
     if(start<rs1$datetime[[1]]) {
       rs0 <- rs %>% filter(is.na(datetime)) %>% 
         group_by(exante_id) %>% filter(row_number()==1) %>% mutate(datetime=start)
