@@ -50,7 +50,7 @@ parse_exante_id <- function(id, instruments=NULL) {
   instruments$month <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), 
                               ifelse(substr(future_part, 3, 3) == "/",substr(future_part, 4, 4),NA), 
                               substr(future_part, 1, 1))
-  instruments$month <- match(instruments$month, contract_month_letter)
+  instruments$month <- ifelse(instruments$exchange!="E", match(instruments$month, contract_month_letter),NA)
   #ifelse(is.na(future_part), NA, which.max(contract_month_letter==substr(future_part,1,1)))
   instruments$year <- ifelse(substr(future_part, 0, 2) %in% c("RS", "CS"), as.numeric(substr(future_part,5,8)), as.numeric(substr(future_part,2,5)))
   # month2 and year2 only for standalone spreads
@@ -65,11 +65,11 @@ parse_exante_id <- function(id, instruments=NULL) {
   
   option_part <- q %>% map(~ .x[4])
   option_type <- substr(option_part,1,1)
-  instruments$instrument_class = ifelse(q0 %>% map_chr(~ tail(.,1)) == "FX", "FX",
+  instruments$instrument_type = ifelse(q0 %>% map_chr(~ tail(.,1)) == "SPOT", "SPOT",
                                         ifelse(substr(future_part, 0, 2) == "CS", "CS",
-                                          ifelse(substr(future_part, 0, 2) == "RS", "RS",
+                                          ifelse(substr(future_part, 0, 2) == "RS", "CS",
                                                ifelse(!is.na(option_type), option_type,
-                                                      ifelse(!is.na(instruments$month), "F", "S")))))
+                                                      ifelse(!is.na(instruments$month), "FUT", "SPOT")))))
   instruments$strike <- as.numeric(gsub("_","\\.",substr(option_part, 2, nchar(option_part))))
   instruments
 }
@@ -180,11 +180,11 @@ query_quant_data <- function(x, table, nm, fields = NULL, json_cols = NULL, f.pr
 #' @export
 
 query_instruments <- function(instruments = NULL, dt = lubridate::now(),
-                             fields = c("instrument_id", "currency", "mpi", "commission", "contract_multiplier as multiplier", "active_contracts as active_contract", "valid_since as datetime"), 
+                             fields = c("instrument_id", "currency", "mpi", "commission", "contract_multiplier as multiplier", "active_contracts as active_contract", "valid_since as datetime", "instrument_type"), 
                              json_cols = c("active_contract"), ...) {
   instruments <- parse_symbols(instruments) # TODO: WHY nm = "instrument_id"
   r <- query_quant_data(instruments$instrument_id, "quant_data.smart_instruments", nm = "instrument_id", fields=fields, json_cols=json_cols, ...)
-  if(!is.null(dt)) {
+  if(!is.null(dt) && nrow(r)>0) {
     # FIX HACK: No support for changing insturment metadata for now
     r <- r %>% group_by(instrument_id) %>% arrange(datetime) %>% filter(datetime<=dt) %>% filter(row_number()==n()) %>% as_data_frame() %>% select(-datetime)
   }
