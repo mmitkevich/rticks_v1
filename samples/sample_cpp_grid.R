@@ -15,7 +15,7 @@ cfg <- config(backtest) %>% modifyList(list(
   perfs_freq = as.numeric(minutes(1)),
   perfs_tz = as.integer(16),
   roll_same_day_all_legs=F,
-  roll_price="mid"
+  roll_price="best"
 ))
 
 # init logging, see rticks.log
@@ -76,13 +76,14 @@ params <- bind_rows(params, data_frame(
 
 
 
-r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
+r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
 bt_reports(r)
+bt_plot(r, no_gaps=F)
+
 #bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 #r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% filter_date("2016-01-01","2016-05-01") %>% View()
-bt_plot(r,no_gaps=F)
 
-r$metrics %>% filter(!is.na(rtn)) %>% mutate(cumrtn = cumsum(rtn)) %>% plot_bt(metrics=c("price","pnl","pos","drisk","cumrtn"))
+#r$metrics %>% filter(!is.na(rtn)) %>% mutate(cumrtn = cumsum(rtn)) %>% plot_bt(metrics=c("price","pnl","pos","drisk","cumrtn"))
 #print(bt_summaries(r))
 
 #r$metrics %>% filter_date("2015-12-18") %>% filter(bid!=lead(bid)|ask!=lead(ask)|pos!=lead(pos)) %>% View()
