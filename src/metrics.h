@@ -122,6 +122,7 @@ struct Metrics : public MarketAlgo,
   virtual void on_next(TSessionMessage e) {
     on_clock(e.rtime);
     dlog<debug>(e);
+    xlog<info>("Metrics.Session",e.symbol);
     set_flush_time();
     if(!e.is_active())
         flush_perfs();
@@ -141,8 +142,8 @@ struct Metrics : public MarketAlgo,
       }
       //if(next_flush_dt<datetime()+eps())
       next_flush_dt += perfs_interval;  // only future
-      if(logger)
-        logger->warn("next_flush_dt {}",Datetime(next_flush_dt));
+//      if(logger)
+//        logger->warn("next_flush_dt {}",Datetime(next_flush_dt));
     }
   }
 
@@ -255,7 +256,7 @@ struct Metrics : public MarketAlgo,
   void flush_perfs() {
     for(int s=0;s<symbols.size();s++) {
       update_hl(s);
-      xlog<info>("PNL.FLUSH",SymbolId(symbols[s],s));
+      xlog<debug>("PNL.FLUSH",SymbolId(symbols[s],s));
     }
     std::string name;
     double initial;
@@ -282,7 +283,7 @@ struct Metrics : public MarketAlgo,
     }
     next_flush_dt = next_flush_dt + perfs_interval;
     if(logger)
-      logger->info("{} | PNL.NXT {}", Datetime(dt), Datetime(next_flush_dt));
+      logger->debug("{} | PNL.NXT {}", Datetime(dt), Datetime(next_flush_dt));
   }
 
   List toR() {
@@ -291,12 +292,20 @@ struct Metrics : public MarketAlgo,
     //if(index>0)
     perfs.attr("names") = CharacterVector::create("datetime", "symbol", "metric", "value");
     //perfs.attr("class") = "data.frame";
-    result.push_back(pos,"pos");
+    std::string name;
+    double initial;
+    NumericVector *metric;
+    for(auto tup : metrics) {
+      std::tie(name, initial, metric) = tup;
+      result.push_back(*metric, name);
+    }
+    /*result.push_back(pos,"pos");
     result.push_back(pnl, "pnl");
     result.push_back(cash,"cash");
-    result.push_back(perfs, "perfs");
     result.push_back(qty_buy, "qty_buy");
-    result.push_back(qty_sell, "qty_sell");
+    result.push_back(qty_sell, "qty_sell");*/
+    
+    result.push_back(perfs, "perfs");    
     return result;
   }
 

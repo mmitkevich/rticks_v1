@@ -19,7 +19,8 @@ template<typename TOrderMessage = OrderMessage>
 struct GammaAlgo : public MarketAlgo,
                      // inputs -> on_next(T)
                      public IObserver<QuoteMessage>,
-                     public IObserver<ExecutionMessage>
+                     public IObserver<ExecutionMessage>,
+                     public IObserver<SessionMessage>
 {
   typedef TOrderMessage order_message_type;
 
@@ -46,7 +47,10 @@ struct GammaAlgo : public MarketAlgo,
             required<NumericVector>(params, "gamma.sell")),
       spread(required<NumericVector>(params, "spread"))
       //offset(params.nrows(), NAN)
-  {  }
+  {  
+    quotes.buy = required<NumericVector>(params, "bid");
+    quotes.sell = required<NumericVector>(params, "ask");
+  }
 
   int size() {
     return symbols.size();
@@ -57,6 +61,7 @@ struct GammaAlgo : public MarketAlgo,
       // wire up algo
       mkt.$quotes >>= *this;
       mkt.$execs >>= *this;
+      mkt.$session >>= *this;
       $orders >>= mkt.$orders;
   }
 
@@ -107,6 +112,7 @@ struct GammaAlgo : public MarketAlgo,
     price = round_price(s, price);
     double stop_price = stops.sell[s];
   
+  
     if(pos[s]<eps()) { // have short position or nothing
       price = std::max<double>(price, limits.sell[s]); // no short-enters under sell limit price
       if(price>stops.sell[s])
@@ -147,7 +153,17 @@ struct GammaAlgo : public MarketAlgo,
       $orders.on_next(e);
     }
   }
-
+  
+  virtual void on_next(SessionMessage e) {
+    on_clock(e.rtime);
+    dlog<debug>(e);
+    auto s = e.symbol;
+    quote_buy(s, quotes.buy[s]);
+    quote_sell(s, quotes.sell[s]);
+    xlog<warn>("S.OPEN", s);
+  }
+  
+  
   virtual void on_next(ExecutionMessage e) {
     on_clock(e.rtime);
     dlog<debug>(e);

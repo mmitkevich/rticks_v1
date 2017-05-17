@@ -68,7 +68,7 @@ struct Backtester : public Algo
     lows = optional<NumericVector>(data, "low");
     virtual_symbol = required<CharacterVector>(data, "virtual_id");
     
-    logger->warn("rticks::Backtester::process {}", Datetime(datetimes[0]));
+//    logger->warn("rticks::Backtester::process {}", Datetime(datetimes[0]));
     
     index = 0;
     stop = data.nrows();
@@ -78,10 +78,13 @@ struct Backtester : public Algo
 
     size_t sent_events = 0;
     
-    SessionMessage ses;
-    ses.ctime = ses.rtime = dt;
-    ses.set_flag(Message::IS_SESSION_OPENED);
-    market.on_next(ses);
+    for(int i=0;i<symbols.size();i++) {
+      SessionMessage ses;
+      ses.ctime = ses.rtime = dt;
+      ses.set_flag(Message::IS_SESSION_OPENED);
+      ses.symbol = to_symbol_id(symbols[i]);
+      market.on_next(ses);
+    }
       
     while(index < stop) {
       dt = datetimes[index] - close_time_fix;
@@ -151,9 +154,13 @@ struct Backtester : public Algo
     } // while
 
     dt+=1e-6;
-    ses.ctime = ses.rtime = dt;
-    ses.clear_flag(Message::IS_SESSION_OPENED);
-    market.on_next(ses);
+    for(int i=0;i<symbols.size();i++) {
+      SessionMessage ses;
+      ses.ctime = ses.rtime = dt;
+      ses.clear_flag(Message::IS_SESSION_OPENED);
+      ses.symbol = to_symbol_id(symbols[i]);
+      market.on_next(ses);
+    }
     dt+=MAX_LATENCY;
     market.notify(dt); // flush the time, allow 1 second latency to deliver everything
   }
