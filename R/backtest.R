@@ -463,6 +463,7 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
     write.csv(r$schedule, file=paste(fn, dt, "schedule.csv", sep="."))
     write.csv(r$metrics, file=paste(fn, dt, "csv", sep="."))
   }
+  r
 }
 
 #' view metrics
