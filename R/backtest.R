@@ -273,6 +273,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       }else {
         gap <- data_frame(datetime=ch$datetime, gap = 0)
       }
+      old.bid <- params$bid
+      old.ask <- params$ask
       if(isTRUE(params$bid<params$limit.buy)) {
         params$bid <- params$bid+gap$gap
         params$ask <- params$ask+gap$gap
@@ -298,7 +300,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       price.new <- ifelse(config$roll_price=="mid" || !is_roll,  0.5*(ch$ask+ch$bid), ifelse(params$pos>0, ch$ask, ch$bid))
       if(is_roll) {
         wlog("ROLL", "from=", ct$bid,ct$ask,"into=",ch$bid, ch$ask, "gap=",gap$gap)      
-        wlog("SPREAD", "old=",params$bid-gap$gap, params$ask-gap$gap, "new=",params$bid,params$ask)
+        wlog("SPREAD", "old=",old.bid, old.ask, "new=",params$bid,params$ask)
         
         wlog("POS old=",pos.old, "new=",params$pos)
         wlog("PRICE old=",price.old, "new=",price.new)
