@@ -246,7 +246,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     } else {
       ch = head(chunk,1)
       is_roll <- !is.null(ct) && ch$exante_id!=ct$exante_id
-      if(!is.null(ct)) {
+      if(!is_null(ct)) {
         price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
         params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
       }
@@ -304,8 +304,8 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         
         wlog("POS old=",pos.old, "new=",params$pos)
         wlog("PRICE old=",price.old, "new=",price.new)
-        params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
       }
+      params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
       #browser()
       
       #browser
