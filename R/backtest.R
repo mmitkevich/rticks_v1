@@ -439,12 +439,15 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
     cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
       reduce(bind_rows)
     cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
+    r$currency <- cur
     r$metrics <- r$metrics %>% inner_join(cur, by="datetime") %>% mutate(
       cur = ifelse(pos>0, cur_bid, cur_ask)) %>% 
       filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
       cur = cur,
       commission = cur^currency_power*commission,
-      pnl = cur^currency_power*pnl, 
+      cash = cumsum((cash-lag(cash,default=0))*cur^currency_power),
+      #pnl = cur^currency_power*(pnl-cash)+cash, 
+      pnl = cumsum((pnl-lag(pnl,default=0))*cur^currency_power),
       pnl_high=cur^currency_power*pnl_high, 
       pnl_low=cur^currency_power*pnl_low,
       drisk = cur^currency_power*drisk,
