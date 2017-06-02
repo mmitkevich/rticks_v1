@@ -47,3 +47,5 @@ params <- data_frame(
 
 r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
 bt_reports(r, save = F, currency="EUR/USD.E", currency_power = 1)
+
+bt_plot(r)
