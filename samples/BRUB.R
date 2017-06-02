@@ -13,17 +13,17 @@ cfg <- config(backtest) %>% modifyList(list(
   zero_position_freq = as.numeric(months(3)),#as.numeric(months(1)), 
   custom_roll = roll_day(day_of_month=1), # at 1st of the month, at least 1 month ahead of expiration  
   perfs_freq = as.numeric(days(1)),
-  perfs_tz = as.integer(16),
+  perfs_tz = as.integer(15),
   roll_same_day_all_legs=F,
   mpi=1, # overrides spread's
   multiplier=1000 # overrides spread's
-))
+))e
 
 # init logging, see rticks.log
 init_spd_log(cfg)
 
 start <- as_datetime("2011-01-01")
-stop  <- as_datetime("2016-02-20")
+stop  <- as_datetime("2017-02-20")
 
 params <- data_frame(
   # limits

@@ -445,11 +445,12 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
       filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
       cur = cur,
       commission = cur^currency_power*commission,
+      assets = pnl-cash, assets_high=pnl_high-cash, assets_low=pnl_low-cash,
       cash = cumsum((cash-lag(cash,default=0))*cur^currency_power),
       #pnl = cur^currency_power*(pnl-cash)+cash, 
-      pnl = cumsum((pnl-lag(pnl,default=0))*cur^currency_power),
-      pnl_high=cur^currency_power*pnl_high, 
-      pnl_low=cur^currency_power*pnl_low,
+      pnl = cash + assets*cur^currency_power,
+      pnl_high = cash + assets_high*cur^currency_power,
+      pnl_low = cash + assets_llow*cur^currency_power,
       drisk = cur^currency_power*drisk,
       rpnl = cumsum((rpnl-lag(rpnl,default=0))*cur^currency_power)
     )
