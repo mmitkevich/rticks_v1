@@ -20,7 +20,7 @@ cfg <- config(backtest) %>% modifyList(list(
 init_spd_log(cfg)
 
 # period of backtest
-start <- as_datetime("2015-01-01")
+start <- as_datetime("2011-01-01")
 stop  <- as_datetime("2017-03-01")
 
 params <- data_frame(
@@ -39,12 +39,12 @@ params <- data_frame(
   gamma.sell    = 1,       # size to sell on each mpi (number of contracts)
   
   symbol        = "VIX.CBOE",   # exante prefix of contract series
-  
+
   # roll_pattern  = list(list(7,12)),
   min_active_contract = 6,
   active_contract = 6             # which month to trade
 )
-
-r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg)
+r <- list(data=NULL)
+r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg, data=r$data)
 bt_reports(r, save = F)
 bt_plot(r, maxpoints = 1000)
