@@ -159,6 +159,12 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
     params$bid <- rep(NA, nrow(params))
   if(!has_name(params,"ask"))
     params$ask <- rep(NA, nrow(params))
+  if(!has_name(params,"pos"))
+    params$pos <- rep(NA, nrow(params))
+  if(!has_name(params,"weight")) {
+    wlog("All weights to 1")
+    params$weight <- seq(1, nrow(params))
+  }
   
   if(is.null(instruments)) {
     instruments <- params$symbol
@@ -178,6 +184,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   cash.old<-NA
   vids <- to_virtual_id(params)$virtual_id 
   #browser()
+  q <- new.env() %>% structure(class="reuters")
   if(is.null(data)) {
     schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
     q <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
@@ -188,11 +195,10 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
                                                 schedule=schedule,
                                                 config=config)
     data <- q$data
-    
   }
 
   more_params <- instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier, commission=commission)
-  if(nrow(params) > 1) {
+  #if(nrow(params) > 1) {
     sp <- T
     weights.spread <- params$weight %>% setNames(vids) # paste0(params$symbol,".", params$active_contract)
     powers.spread <- params$power %>% setNames(vids)
@@ -211,14 +217,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       params$multiplier <- config$multiplier
     if(!is.null(config$mpi))
       params$mpi <- config$mpi
-  } else {
-    sp <- F
-    params <- as_data_frame(params) %>% 
-      left_join(more_params, by="symbol")
-    params <-  params %>% to_virtual_id() %>% mutate(symbol=virtual_id)
-  }
+  #} else {
+  #  sp <- F
+  #  params <- as_data_frame(params) %>% 
+  #    left_join(more_params, by="symbol")
+  #    params <-  params %>% to_virtual_id() %>% mutate(symbol=virtual_id)
+  #}
   perfs <- NULL
-  params <- params %>% mutate(pos=0, cash=0, qty_buy=0, qty_sell=0)
+  params <- params %>% mutate(cash=0, qty_buy=0, qty_sell=0)
   #browser()
   nrows <- data %>% map_dbl(nrow) %>% sum()
   log_perf(timer, nrows, "data loading speed ")
@@ -237,10 +243,10 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   price.old <- NA
   for(chunk in data) {
     # open positions in the chunk
-    if (sp == TRUE && nrow(chunk)>0) {
-      chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
-      data.spread<-c(data.spread,list(chunk))
-    }
+    #if (sp == TRUE && nrow(chunk)>0) {
+    chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
+    data.spread <- c(data.spread,list(chunk))
+    #}
     if(nrow(chunk)==0) {
       wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     } else {
@@ -249,6 +255,9 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       if(!is_null(ct)) {
         price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
         params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
+      }else if(is.na(params$pos)) { # first
+        params$pos <- ((params$limit.buy-ch$ask)/params$mpi+1)*params$gamma.buy
+        wlog("START POS=",params$pos)
       }
 
       # FIXME: we need virtual_id=LH.CME.3/5 instead
@@ -450,7 +459,7 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
       #pnl = cur^currency_power*(pnl-cash)+cash, 
       pnl = cash + assets*cur^currency_power,
       pnl_high = cash + assets_high*cur^currency_power,
-      pnl_low = cash + assets_llow*cur^currency_power,
+      pnl_low = cash + assets_low*cur^currency_power,
       drisk = cur^currency_power*drisk,
       rpnl = cumsum((rpnl-lag(rpnl,default=0))*cur^currency_power)
     )
