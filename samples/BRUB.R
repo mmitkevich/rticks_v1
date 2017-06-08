@@ -17,13 +17,13 @@ cfg <- config(backtest) %>% modifyList(list(
   roll_same_day_all_legs=F,
   mpi=1, # overrides spread's
   multiplier=1000 # overrides spread's
-))e
+))
 
 # init logging, see rticks.log
 init_spd_log(cfg)
 
 start <- as_datetime("2011-01-01")
-stop  <- as_datetime("2017-02-20")
+stop  <- as_datetime("2017-06-08")
 
 params <- data_frame(
   # limits
@@ -36,7 +36,7 @@ params <- data_frame(
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = +Inf,    # FIXME: no sell above 19
   
-  pos           = 0,     # initial position
+  pos           = NA,     # initial position or NA 
   
   spread        = 50,  # take profit
   
@@ -62,7 +62,7 @@ params <- bind_rows(params, data_frame(
   limit.sell    = +Inf,  # sell when price>=sell only
   stop.sell     = NA,    # FIXME: no sell above 19
   
-  pos           = 0,     # initial position
+  pos           = NA,     # initial position
   
   spread        = NA,  # take profit
   
@@ -78,8 +78,8 @@ params <- bind_rows(params, data_frame(
   min_active_contract = 1,
   active_contract = 1
 ))
-
-r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg) 
+r <- list(data=NULL)
+r <- params %>% backtest("gamma", start=start, stop=stop, config=cfg, data=r$data) 
 bt_reports(r, no_commission=T, currency="USD/RUB.MOEX", currency_power = -1)
 #bt_view_metrics(r, start="2015-09-23 15:48:00", stop="2015-09-25")
 #r$metrics %>% filter(pos!=lag(pos) | pos!=lead(pos)|bid!=lag(bid)|ask!=lag(ask)|bid!=lead(bid)|ask!=lead(ask)) %>% filter_date("2016-01-01","2016-05-01") %>% View()
