@@ -64,7 +64,7 @@ synthetic.chunk <- function(chunk, weights, powers, currencies, mpi=NULL) {
     bids <- trunc(bids/mpi)*mpi
     asks <- trunc((asks*(1-1e-6))/mpi)*mpi+mpi
   }
-  cat("merged ", nrow(quotes[[1]]), nrow(quotes[[2]]), "into", nrow(bids),"\n")
+  cat("merged ", nrow(quotes%>%head(1)), nrow(quotes%>%tail(1)), "into", nrow(bids),"\n")
   
 
   if(length(bids)==0)
