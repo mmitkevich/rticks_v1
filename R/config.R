@@ -52,6 +52,19 @@ cfg.set <- function(cfg) {
   options(rticks.config = cfg)
 }
 
+
+#' reload config
+#'
+#' @export
+cfg.reload <- function() {
+  url <- getOption("rticks.config.url", "~/.rticks.yaml")
+  cat(0, "cfg.load(", url,")")
+  c<-cfg.load(url)
+  cfg.set(c)
+  c
+}
+
+
 #' gets global cfg and optionally returns additional transient fields
 #' @examples 
 #'   cfg.get(some_addition=1)
