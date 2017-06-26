@@ -13,7 +13,7 @@ cfg <- config(backtest) %>% modifyList(list(
 # init logging, see rticks.log
 init_spd_log(cfg)
 
-start <- as_datetime("2015-01-01")
+start <- as_datetime("2011-01-01")
 stop  <- as_datetime("2015-01-10")
 
 params <- data_frame(

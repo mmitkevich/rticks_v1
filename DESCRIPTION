@@ -23,6 +23,8 @@ Depends:
     DBI,
     jsonlite,
     functional,
-    scales
+    scales,
+    doParallel,
+    PortfolioAnalytics
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
