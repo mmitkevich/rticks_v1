@@ -125,3 +125,25 @@ ilog <- function(...) {
 wlog <- function(...) {
   spd_log(LOG$WARN, as.character(c(...)))
 }
+
+#' 
+#' 
+#' @export
+parse_periods <- function(config, names) {
+  for(n in names) {
+    if(n %in% names(config))
+      config[[n]] <- ifnull(config[[n]], NULL, as.numeric(as.period(config[[n]])))
+  }
+  config
+}
+
+#' 
+#' 
+#' @export
+parse_dates <- function(config, names ){
+  for(n in names){ 
+    if(n %in% names(config))
+      config[[n]] <- ifnull(config[[n]], NULL, as_datetime(config[[n]]))
+  }
+  config
+}
