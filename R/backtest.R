@@ -257,7 +257,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
         price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
         params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
       }else if(is.na(params$pos)) { # first
-        params$pos <- ((params$limit.buy-ch$ask)/params$mpi+1)*params$gamma.buy
+        params$pos <- (max(params$limit.buy-ch$ask,0)/params$mpi+1)*params$gamma.buy
         wlog("START POS=",params$pos)
       }
 
