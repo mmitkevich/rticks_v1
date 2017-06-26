@@ -61,7 +61,8 @@ backtest_config_default = list(
   no_clean=F, 
   no_save=T, 
   
-  zero_position=NULL,
+  zero_position_on_rolls=F,
+  zero_position_freq=NULL,
   custom_roll=NULL,
   
   roll_price="best",
@@ -230,7 +231,7 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   log_perf(timer, nrows, "data loading speed ")
   timer <- Sys.time()
   #browser()
-  if(config$zero_position_freq) {
+  if(!is.null(config$zero_position_freq)) {
     data0 <- data
     data <- data %>% keep(~ nrow(.)>0) %>% map(function(d) (d %>% group_by(time_frame_index(datetime, config$zero_position_freq)) %>% by_slice(~ ., .labels=F))$.out) %>% 
       purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
@@ -244,12 +245,12 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   for(chunk in data) {
     # open positions in the chunk
     #if (sp == TRUE && nrow(chunk)>0) {
-    chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
-    data.spread <- c(data.spread,list(chunk))
     #}
     if(nrow(chunk)==0) {
       wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
     } else {
+      chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
+      data.spread <- c(data.spread,list(chunk))
       ch = head(chunk,1)
       is_roll <- !is.null(ct) && ch$exante_id!=ct$exante_id
       if(!is_null(ct)) {
@@ -262,19 +263,20 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
 
       # FIXME: we need virtual_id=LH.CME.3/5 instead
       #chunk$virtual_id <- params$virtual_id
-      if(!is.null(ct)) {
-        tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
-        if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
+      if(!is.null(config$zero_position_freq))
+        if(!is.null(ct)) {
+          tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
+          if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
+              params$pos <- 0
+              tf_index <- tf_index1
+              wlog("ZERO POS (MONTHLY) ",as.character(as_datetime(ch$datetime)))
+          }else if(is_roll && config$zero_position_on_rolls) {
             params$pos <- 0
-            tf_index <- tf_index1
-            wlog("ZERO POS (MONTHLY) ",as.character(as_datetime(ch$datetime)))
-        }else if(is_roll && config$zero_position_on_rolls) {
-          params$pos <- 0
-          wlog("ZERO POS (ROLL) ",as.character(as_datetime(ch$datetime)))
+            wlog("ZERO POS (ROLL) ",as.character(as_datetime(ch$datetime)))
+          }
+        }else {
+          tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
         }
-      }else {
-        tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
-      }
       
       if(is_roll) {
         gap <- data_frame(datetime=ch$datetime, gap = ifelse(params$pos>=0,ch$bid-ct$bid, ch$ask-ct$ask), roll_from=ct$exante_id, roll_into=ch$exante_id)
@@ -293,14 +295,14 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       }
       
       pos.old <- params$pos      
-      if(is_roll && !is.na(params$limit.buy) && !is.infinite(params$limit.buy) && params$pos>0) {
+      if(is_roll && !is.na(params$limit.buy) && !is.infinite(params$limit.buy) && isTRUE(params$pos>0)) {
         pos.max <- trunc(max(0,((params$limit.buy+params$spread-params$ask)/params$mpi+1.00001)*params$gamma.buy))
-        if(params$pos>pos.max) {
+        if(isTRUE(params$pos>pos.max)) {
           params$pos <- pos.max
           
         }
       }
-      if(is_roll && !is.na(params$limit.sell) && !is.infinite(params$limit.sell) && params$pos<0) {
+      if(is_roll && !is.na(params$limit.sell) && !is.infinite(params$limit.sell) && isTRUE(params$pos<0)) {
         pos.min <- trunc(min(0,((params$limit.sell-params$spread-params$bid)/params$mpi-1.0001)*params$gamma.sell))
         if(params$pos<pos.min) {
           params$pos <- pos.min
