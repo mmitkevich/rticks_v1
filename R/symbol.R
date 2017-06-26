@@ -127,7 +127,7 @@ query_symbols <- function(instruments = NULL,
   # prepare WHERE
   w <- c(
     instruments[["instrument_id"]] %>% nnmap( ~ .sql.match_id(.x, "instrument_id", f.prefix)), # exante_id = 'XYZ' or exante_id = 'ABC' ...
-    start %>% nnmap( ~ paste("(first_notice_day IS NULL OR first_notice_day", ">=", trunc(as.numeric(.x)*1000),")")), # start date
+    start %>% nnmap( ~ paste("(first_notice_day IS NULL OR first_notice_day", ">=", na_replace(trunc(as.numeric(.x)*1000),0),")")), # start date
     stop %>% nnmap( ~ paste("first_notice_day", "<", trunc(as.numeric(.x)*1000))), # stop date
     where
     ) %>% reduce(sql.and)
