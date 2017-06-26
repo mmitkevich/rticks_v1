@@ -78,7 +78,7 @@ roll_schedule <- function(instruments,
       sym$first_notice_day <- as_function(custom_roll)(sym$first_notice_day)
     }
     sym <- sym %>% arrange(first_notice_day)
-    if(nrow(sym)==1 && is.na(sym$month)) { # is_spot TODO FIXME
+    if(nrow(sym)==0 || nrow(sym)==1 && is.na(sym$month)) { # is_spot TODO FIXME
       return(sym %>% mutate(active_contract=1, datetime=start))
     }
       
