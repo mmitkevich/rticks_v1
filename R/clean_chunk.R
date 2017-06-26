@@ -23,7 +23,7 @@ load_trade_schedule <- function(instrument_id,
                             substr(future_part, 0, 2),"/X0000-X0000^"), 
                      paste0(instrument_id,".X0000^"))
   mappingFile <- fromJSON(paste0(path,".mapping"))
-  fileName <- head(mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(x, exanteID, perl = T))], 1)
+  fileName <- head(mappingFile$mapping$schedule[sapply(mappingFile$mapping$match, function(x) grepl(paste0("^",x), exanteID, perl = T))], 1)
   fullFileName <- paste0(path, fileName, ".json")
   wlog("load_trade_schedule from", fullFileName)
   rawHistoricalSchedule <- fromJSON(fullFileName)
@@ -85,6 +85,7 @@ clean.chunk <- function(chunk,
     }
     schedules <- unique(schedule_list)
   }
+  l.orig = nrow(chunk)
   for (w in 1:length(schedules)) {
     start <- schedules[[w]]$start + minutes(cut_minutes)
     end <- schedules[[w]]$end - minutes(cut_minutes)
@@ -98,7 +99,7 @@ clean.chunk <- function(chunk,
     
     chunk <- chunk_filtered
   }
-  
+  wlog("clean.chunk ",exante_ids, "from", l.orig, "to",nrow(chunk),"rows")
   ########################################################################################################################
   # NEGATIVE BID-ASK SPREAD
   if (negative_bidask == TRUE) {
