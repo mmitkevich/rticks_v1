@@ -113,6 +113,7 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
       if(is.null(schedule)) {
         schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
       }
+      q$sessions <- schedule
       data<-data %>% map(~ clean.chunk(., schedules=list(schedule), cut_minutes=0, negative_bidask=T))
       if(!config$no_save) {
         ilog("cleaned saved ", path)
