@@ -116,7 +116,9 @@ struct GammaSimulator : public MarketAlgo,
       pos[s] +=e.qty;
       xlog<info>("SIM.SELL", s, e.fill_price, e.qty);
       // move up sell quote since it got filled
+      market.buy[s] = quotes.sell[s] - pi;  // for new quotes market spread should widen or infinite loop occurs
       quotes.sell[s] = m.buy + pi;
+
       if(!std::isnan(stop_quotes.sell[s]) && quotes.sell[s]>stop_quotes.sell[s]+eps()) {
         quotes.sell[s] = NAN;
         stop_quotes.sell[s] = NAN;
@@ -137,6 +139,7 @@ struct GammaSimulator : public MarketAlgo,
       
       xlog<info>("SIM.BUY ", s, e.fill_price, e.qty);
 
+      market.sell[s] = quotes.buy[s] + pi;  // for new quotes market spread should widen or infinite loop occurs
       // move down buy quote since it got filled
       quotes.buy[s] = m.sell - pi;
       
