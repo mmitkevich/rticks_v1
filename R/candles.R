@@ -111,10 +111,10 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
     if(!config$no_clean) {
       # FIXME: load_trade_schedule will FAIL if nrow(instruments)>1
       if(is.null(schedule)) {
-        schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
+        schedule <- load_trade_schedules(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
       }
       q$sessions <- schedule
-      data<-data %>% map(~ clean.chunk(., schedules=list(schedule), cut_minutes=0, negative_bidask=T))
+      data<-data %>% map(~ clean.chunk(., schedules=schedule, cut_minutes=0, negative_bidask=T))
       if(!config$no_save) {
         ilog("cleaned saved ", path)
         saveRDS(data, path)

@@ -145,7 +145,7 @@ time_frame_index <- function(datetime, freq) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
   timer <- Sys.time()
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
@@ -181,13 +181,11 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
   
   #cat("ORIGINAL PARAMS\n")
   #print(params)
-  price.old<-NA
-  cash.old<-NA
   vids <- to_virtual_id(params)$virtual_id 
   #browser()
   q <- new.env() %>% structure(class="reuters")
   if(is.null(data)) {
-    schedule <- load_trade_schedule(instruments$instrument_id, start = start, end=stop, exclude = FALSE)
+    schedule <- load_trade_schedules(instruments, start = start, end=stop, exclude = FALSE)
     q <- instruments %>% query_candles_cache(active_contract = params$active_contract %>% setNames(params$symbol), 
                                              min_active_contract =params$min_active_contract %>% setNames(params$symbol),
                                                 roll_pattern=params$roll_pattern[1],
@@ -218,130 +216,141 @@ backtest <- function(params, algo, start=NULL, stop=lubridate::now(), instrument
       params$multiplier <- config$multiplier
     if(!is.null(config$mpi))
       params$mpi <- config$mpi
-  #} else {
-  #  sp <- F
-  #  params <- as_data_frame(params) %>% 
-  #    left_join(more_params, by="symbol")
-  #    params <-  params %>% to_virtual_id() %>% mutate(symbol=virtual_id)
-  #}
-  perfs <- NULL
-  params <- params %>% mutate(cash=0, qty_buy=0, qty_sell=0)
-  #browser()
+    
+  
   nrows <- data %>% map_dbl(nrow) %>% sum()
-  log_perf(timer, nrows, "data loading speed ")
-  timer <- Sys.time()
-  #browser()
   if(!is.null(config$zero_position_freq)) {
     data0 <- data
     data <- data %>% keep(~ nrow(.)>0) %>% map(function(d) (d %>% group_by(time_frame_index(datetime, config$zero_position_freq)) %>% by_slice(~ ., .labels=F))$.out) %>% 
       purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   }
-  gaps = data_frame()
-  ct = NULL
-  tf_index <- -1
-  data.spread<-list()
-  is_roll<-F
-  price.old <- NA
-  for(chunk in data) {
-    # open positions in the chunk
-    #if (sp == TRUE && nrow(chunk)>0) {
-    #}
-    if(nrow(chunk)==0) {
-      wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
-    } else {
-      chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
-      data.spread <- c(data.spread,list(chunk))
-      ch = head(chunk,1)
-      is_roll <- !is.null(ct) && ch$exante_id!=ct$exante_id
-      if(!is_null(ct)) {
-        price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
-        params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
-      }else if(is.na(params$pos)) { # first
-        params$pos <- (max(params$limit.buy-ch$ask,0)/params$mpi+1)*params$gamma.buy
-        wlog("START POS=",params$pos)
-      }
-
-      # FIXME: we need virtual_id=LH.CME.3/5 instead
-      #chunk$virtual_id <- params$virtual_id
-      if(!is.null(config$zero_position_freq))
-        if(!is.null(ct)) {
-          tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
-          if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
-              params$pos <- 0
-              tf_index <- tf_index1
-              wlog("ZERO POS (MONTHLY) ",as.character(as_datetime(ch$datetime)))
-          }else if(is_roll && config$zero_position_on_rolls) {
-            params$pos <- 0
-            wlog("ZERO POS (ROLL) ",as.character(as_datetime(ch$datetime)))
-          }
-        }else {
-          tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
-        }
-      
-      if(is_roll) {
-        gap <- data_frame(datetime=ch$datetime, gap = ifelse(params$pos>=0,ch$bid-ct$bid, ch$ask-ct$ask), roll_from=ct$exante_id, roll_into=ch$exante_id)
-        gaps <- bind_rows(gaps,gap)
-      }else {
-        gap <- data_frame(datetime=ch$datetime, gap = 0)
-      }
-      old.bid <- params$bid
-      old.ask <- params$ask
-      if(isTRUE(params$bid<params$limit.buy)) {
-        params$bid <- params$bid+gap$gap
-        params$ask <- params$ask+gap$gap
-      }else if(isTRUE(params$bid==params$limit.buy)) {
-        params$bid <- min(params$limit.buy, ch$bid)
-        params$ask <- NA
-      }
-      
-      pos.old <- params$pos      
-      if(is_roll && !is.na(params$limit.buy) && !is.infinite(params$limit.buy) && isTRUE(params$pos>0)) {
-        pos.max <- trunc(max(0,((params$limit.buy+params$spread-params$ask)/params$mpi+1.00001)*params$gamma.buy))
-        if(isTRUE(params$pos>pos.max)) {
-          params$pos <- pos.max
-          
-        }
-      }
-      if(is_roll && !is.na(params$limit.sell) && !is.infinite(params$limit.sell) && isTRUE(params$pos<0)) {
-        pos.min <- trunc(min(0,((params$limit.sell-params$spread-params$bid)/params$mpi-1.0001)*params$gamma.sell))
-        if(params$pos<pos.min) {
-          params$pos <- pos.min
-        }
-      }
-      price.new <- ifelse(config$roll_price=="mid" || !is_roll,  0.5*(ch$ask+ch$bid), ifelse(params$pos>0, ch$ask, ch$bid))
-      if(is_roll) {
-        wlog("ROLL", "from=", ct$bid,ct$ask,"into=",ch$bid, ch$ask, "gap=",gap$gap)      
-        wlog("SPREAD", "old=",old.bid, old.ask, "new=",params$bid,params$ask)
-        
-        wlog("POS old=",pos.old, "new=",params$pos)
-        wlog("PRICE old=",price.old, "new=",price.new)
-      }
-      params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
-      #browser()
-      
-      #browser
-      r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
-      perfs <- perfs %>% bind_rows(r$perfs)
-      params$pos  <- r$pos
-      params$cash <- r$cash
-      params$qty_buy <- r$qty_buy
-      params$qty_sell <- r$qty_sell
-      params$bid <- r$bid 
-      params$ask <- r$ask
-      ct = tail(chunk,1)
+  log_perf(timer, nrows, "data loading speed ")
+  runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
+    
+    timer <- Sys.time()
+    
+    price.old<-NA
+    cash.old<-NA
+    perfs <- NULL
+    params <- params %>% mutate(cash=0, qty_buy=0, qty_sell=0, bid=NA, ask=NA)
+    
+    for(op in names(stparams[istpar,])) {
+      params[op] <- stparams[istpar,op]
     }
     
-  }
-  log_perf(timer, nrows, "average data processing speed")
-  flush_spd_log()
-  perfs$datetime <- as_datetime(perfs$datetime)
-  q$perfs<-perfs
-  q$gaps<-gaps
-  q$config <- config
-  q$data<-data
-  q$data.spread<-data.spread
-  q$params<-params
-  q
+    wlog("USING strategy parameters")
+    print(stparams[istpar,])
+    
+    gaps = data_frame()
+    ct = NULL
+    tf_index <- -1
+    data.spread<-list()
+    is_roll<-F
+    price.old <- NA
+    # data loaded into memory. So can use a lot of params here
+    for(chunk in data) {
+      # open positions in the chunk
+      #if (sp == TRUE && nrow(chunk)>0) {
+      #}
+      if(nrow(chunk)==0) {
+        wlog("backtest empty chunk "); #, as.character(as_datetime(attr(chunk,"start"))), as.character(as_datetime(attr(chunk,"stop"))))
+      } else {
+        chunk <- chunk %>% synthetic.chunk(weights=weights.spread, powers=powers.spread, currencies=currency.spread, mpi=config$mpi)
+        data.spread <- c(data.spread,list(chunk))
+        ch = head(chunk,1)
+        is_roll <- !is.null(ct) && ch$exante_id!=ct$exante_id
+        if(!is_null(ct)) {
+          price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
+          params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
+        }else if(is.na(params$pos)) { # first
+          params$pos <- (max(params$limit.buy-ch$ask,0)/params$mpi+1)*params$gamma.buy
+          wlog("START POS=",params$pos)
+        }
+  
+        # FIXME: we need virtual_id=LH.CME.3/5 instead
+        #chunk$virtual_id <- params$virtual_id
+        if(!is.null(config$zero_position_freq))
+          if(!is.null(ct)) {
+            tf_index1 <- time_frame_index(ch$datetime,config$zero_position_freq)
+            if(!is.null(config$zero_position_freq) && tf_index1 != tf_index) {
+                params$pos <- 0
+                tf_index <- tf_index1
+                wlog("ZERO POS (MONTHLY) ",as.character(as_datetime(ch$datetime)))
+            }else if(is_roll && config$zero_position_on_rolls) {
+              params$pos <- 0
+              wlog("ZERO POS (ROLL) ",as.character(as_datetime(ch$datetime)))
+            }
+          }else {
+            tf_index <- time_frame_index(ch$datetime,config$zero_position_freq)
+          }
+        
+        if(is_roll) {
+          gap <- data_frame(datetime=ch$datetime, gap = ifelse(params$pos>=0,ch$bid-ct$bid, ch$ask-ct$ask), roll_from=ct$exante_id, roll_into=ch$exante_id)
+          gaps <- bind_rows(gaps,gap)
+        }else {
+          gap <- data_frame(datetime=ch$datetime, gap = 0)
+        }
+        old.bid <- params$bid
+        old.ask <- params$ask
+        if(isTRUE(params$bid<params$limit.buy)) {
+          params$bid <- params$bid+gap$gap
+          params$ask <- params$ask+gap$gap
+        }else if(isTRUE(params$bid==params$limit.buy)) {
+          params$bid <- min(params$limit.buy, ch$bid)
+          params$ask <- NA
+        }
+        
+        pos.old <- params$pos      
+        if(is_roll && !is.na(params$limit.buy) && !is.infinite(params$limit.buy) && isTRUE(params$pos>0)) {
+          pos.max <- trunc(max(0,((params$limit.buy+params$spread-params$ask)/params$mpi+1.00001)*params$gamma.buy))
+          if(isTRUE(params$pos>pos.max)) {
+            params$pos <- pos.max
+            
+          }
+        }
+        if(is_roll && !is.na(params$limit.sell) && !is.infinite(params$limit.sell) && isTRUE(params$pos<0)) {
+          pos.min <- trunc(min(0,((params$limit.sell-params$spread-params$bid)/params$mpi-1.0001)*params$gamma.sell))
+          if(params$pos<pos.min) {
+            params$pos <- pos.min
+          }
+        }
+        price.new <- ifelse(config$roll_price=="mid" || !is_roll,  0.5*(ch$ask+ch$bid), ifelse(params$pos>0, ch$ask, ch$bid))
+        if(is_roll) {
+          wlog("ROLL", "from=", ct$bid,ct$ask,"into=",ch$bid, ch$ask, "gap=",gap$gap)      
+          wlog("SPREAD", "old=",old.bid, old.ask, "new=",params$bid,params$ask)
+          
+          wlog("POS old=",pos.old, "new=",params$pos)
+          wlog("PRICE old=",price.old, "new=",price.new)
+        }
+        params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
+        #browser()
+        
+        #browser
+        r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
+        perfs <- perfs %>% bind_rows(r$perfs)
+        params$pos  <- r$pos
+        params$cash <- r$cash
+        params$qty_buy <- r$qty_buy
+        params$qty_sell <- r$qty_sell
+        params$bid <- r$bid 
+        params$ask <- r$ask
+        ct = tail(chunk,1)
+      }
+    }
+    log_perf(timer, nrows, "average data processing speed")
+    perfs$datetime <- as_datetime(perfs$datetime)
+    flush_spd_log()
+    qq<-new.env(parent=q)
+    qq$perfs <- perfs
+    qq$gaps <- gaps
+    qq$config <- config
+    qq$data <- data
+    qq$data.spread <- data.spread
+    qq$params <- params
+    qq$stparams <- params
+    qq
+  })
+  runs
 }
 
 #' 

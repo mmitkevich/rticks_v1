@@ -1,3 +1,16 @@
+#' load_trade_schedules
+#' @export
+load_trade_schedules <- function(instruments, start=NULL, end=NULL, exclude=F){
+  schedule_list <- list()
+  instr_ids <- unique(instruments$instrument_id)
+  for (i in 1:length(instr_ids)) {
+    schedule_list[[i]] <- load_trade_schedule(instr_ids[i], start=start, end=end, exclude = exclude)
+  }
+  schedules <- unique(schedule_list)
+  schedules
+}
+ 
+
 #' load_trade_schedule
 #' 
 #' @examples 
@@ -11,7 +24,7 @@ load_trade_schedule <- function(instrument_id,
                                      #path="~/exante-stat-schedule-data/"
                                 ) {
 
-  stopifnot(nrow(instrument_id)==1)
+  stopifnot(nrow(instrument_id)==1 || is.character(instrument_id) & length(instrument_id)==1)
   wlog("load_trade_schedule", paste(as.character(instrument_id)), "start", as.character(start), "end", as.character(end), "path", path)
   q <- strsplit(instrument_id, "\\.")
   ticker <- q %>% map_chr(~ .x[1])
@@ -78,12 +91,7 @@ clean.chunk <- function(chunk,
   if(nrow(chunk)==0)
     return(chunk)
   if(is.null(schedules)) {
-    schedule_list <- list()
-    instr_ids <- unique(parse_exante_id(exante_ids)$instrument_id)
-    for (i in 1:length(instr_ids)) {
-      schedule_list[[i]] <- load_trade_schedule(instr_ids[i], start, end, exclude = FALSE)
-    }
-    schedules <- unique(schedule_list)
+    schedules <- load_trade_schedules(parse_exante_id(exante_ids),start=start,end=end,exclude=F)
   }
   l.orig = nrow(chunk)
   for (w in 1:length(schedules)) {

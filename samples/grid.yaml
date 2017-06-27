@@ -17,7 +17,7 @@ config:
   log_level: 2
 
   start: "2011-01-01"
-  stop: "2017-08-01"
+  stop: "2017-07-01"
   
 #  disabled: 
 #   - "BRUB"
@@ -33,7 +33,7 @@ config:
 #   - "PL-GC"
    
 #  enabled:
-#   - "PL-GC"
+#   - "W"
 
 strategies:
   - name: "W"
@@ -41,7 +41,7 @@ strategies:
       "limit.buy": 500
       "stop.buy": 350
       "risk.buy": 300
-      "spread": 9
+      "spread": [3, 10, 50]
     legs:
     - symbol: "W.LIFFE"
       weight: 1

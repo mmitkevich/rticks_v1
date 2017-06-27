@@ -5,6 +5,6 @@ library(grid)
 options(debug=T)
 cfg.reload()
 
-r <- run_all.gamma(enabled="SB", run_name=run_name_today())
+r <- run_all.gamma(enabled = "BRUB", run_name=run_name_today(), parallel=T)
 
 last_plot()
