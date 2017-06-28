@@ -95,6 +95,8 @@ clean.chunk <- function(chunk,
   }
   l.orig = nrow(chunk)
   for (w in 1:length(schedules)) {
+    if(nrow(chunk)==0)
+      return(chunk)
     start <- schedules[[w]]$start + minutes(cut_minutes)
     end <- schedules[[w]]$end - minutes(cut_minutes)
     unique_schedule_with_minutes <- data_frame(start, end)
