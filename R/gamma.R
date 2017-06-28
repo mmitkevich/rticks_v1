@@ -146,10 +146,10 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$results$returns_file <- paste0(stfname,".returns.csv")
           r$results$metrics_file <- paste0(stfname,".metrics.csv")
           r$results$name <- st$name
-          r$metrics %>% write.csv(r$results$metrics_file, row.names=F)
+          r$metrics %>% write.csv(paste0(bt$config$outdir, run_name,"/", r$results$metrics_file), row.names=F)
           returns.xts <- r$metrics %>%
             select(datetime, rtn) %>%
-            write.csv(file = r$results$returns_file, row.names = F)
+            write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
           r$params %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
           r$name <- st$name
           r
