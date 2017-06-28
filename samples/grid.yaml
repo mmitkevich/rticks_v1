@@ -19,18 +19,20 @@ config:
   start: "2011-01-01"
   stop: "2017-07-01"
   
-#  disabled: 
+  disabled: 
+#   - "W"
 #   - "BRUB"
+#   - "PL-GC"
 #   - "C"
 #   - "CC"
 #   - "CL"
+#  - "PL-GC"
 #   - "CT"
 #   - "GC"
 #   - "GE.CS"
 #   - "KC"
 #   - "NG"
 #   - "FVS"
-#   - "PL-GC"
    
 #  enabled:
 #   - "W"
@@ -158,7 +160,7 @@ strategies:
       "risk.buy": 25
       "spread": 0.25
     legs:
-    - symbol: "CL.NYMEX"
+    - symbol: "CT.ICE"
       weight: 1
       active_contract: 2
       min_active_contract: 2
