@@ -49,12 +49,12 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
 #'
 #'
 #' @export
-leg_defaults <- list(symbol=NA, weight=0, power=1, active_contract=1, min_active_contract=1)
+leg_defaults <- list(symbol=NA, weight=1, power=1, active_contract=0, min_active_contract=0)
 
 #'
 #'
 #' @export
-params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, stop.buy=NA, limit.sell=+Inf, stop.sell=+Inf, spread=1, pos=NA)
+params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, stop.buy=NA, limit.sell=+Inf, stop.sell=+Inf, spread=1, pos=NA, active_contract=1)
 
 #'
 #'
@@ -68,6 +68,27 @@ run_name_unique <- function(fmt="%Y%m%d_%H%M%S") paste0(strftime(Sys.time(), fmt
 
 all_permutations <- function(params) {
   
+}
+
+#'
+#'
+#' @export
+df_chr <-function(df){
+  capture.output(print(df))  %>% reduce(function(x,y) paste(x,y,sep="\n"))
+}
+
+#'
+#' @export
+listify <- function(l, ns=NULL) {
+  if(is.null(ns))
+    ns<-names(l)
+  for(n in ns) {
+    if(length(l[[n]])>1)
+      l[[n]] <- list(l[[n]])
+#    else
+#      l[[n]] <- NULL
+  }
+  l
 }
 
 #'
@@ -90,7 +111,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                     custom_roll = NULL,
                     perfs_freq = as.numeric(days(1)),
                     perfs_tz = as.integer(15),
-                    roll_same_day_all_legs=F,
+                    roll_same_day_all_legs=T,
                     start=as_datetime("2011-01-01"), 
                     stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% parse_periods(c("zero_position_freq", "perfs_freq"))  %>% parse_dates(c("start","stop"))
   bt$config$log_path <- paste0(bt$config$outdir,run_name, "/rticks.log") %>% path.expand()
@@ -106,55 +127,63 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
     #tryCatch({
        {  
         wlog("*******************  B A C K T E S T ***********", st$name, "now", as.character(Sys.time()), "disabled", isTRUE((st$name %in% bt$config$disabled)))
-        st$legs = st$legs %>% map(function(l) {  
-          if(length(l$roll_pattern)>0)
-            l$roll_pattern <- list(l$roll_pattern)
-          else
-            l$roll_pattern <- NULL
-          leg_defaults %>% modifyList(l)
-        })
-        
+        st$legs = st$legs %>% map(function(l) modifyList(leg_defaults, listify(l)))
 
-                params <- st$legs %>% map(~ as_data_frame(.)) %>% bind_rows()
-        stparams <- params_defaults %>% modifyList(st$params) %>% expand.grid(stringsAsFactors=F)
-        wlog("PARAMS:")
-        print(stparams)
-        
-      
+        params <- st$legs %>% map(~ as_data_frame(.)) %>% bind_rows()
+     
         cfg <- backtest_config_default %>% modifyList(bt$config)
+        
         if(!is.null(st$config))
           cfg <- cfg %>% modifyList(st$config)
-        runs <- params %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg) 
-        
-        runs <- runs %>% map(function(r){
-          uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
-          stpuniq <-  r$stparams[uniq_pars]
-          parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
-          #browser()
-          stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
-          outfile <- paste0(bt$config$outdir, run_name,"/", stfname)
-          #pp <- params
-          #pp$roll_pattern <- NULL
-          #pp %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
+        if(!cfg$roll_months_ahead)
+          cfg$roll_months_ahead<-NA
+        if(!cfg$roll_day_of_month)
+          cfg$roll_day_of_month<-NA
+
+      
+        if(!is.na(cfg$roll_months_ahead) || !is.na(cfg$roll_day_of_month))
+          cfg$custom_roll <- roll_day(day_of_month=cfg$roll_day_of_month, months_ahead = cfg$roll_months_ahead)
+        ifnull(st$params$active_contract,1) %>% map(function(ac) {
+          wlog("CFG:\n", as.yaml(cfg))
+          stparams <- params_defaults %>% modifyList(st$params)
+          stparams$active_contract<-ac
+          stparams<-stparams %>% expand.grid(stringsAsFactors=F)
+          wlog("STPARAMS:\n", df_chr(stparams))
+          params_ac <- params %>% mutate(active_contract=active_contract+ac, min_active_contract=min_active_contract+ac)
+          wlog("LEGS:\n", df_chr(params_ac))
+                    
+          runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg) 
           
-          #runs[[st$name]] <- r
-          bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
-          plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
-          ggsave(paste0(outfile,".png"), plot=plt)
-          wlog("saved ", paste0(outfile,".png"))
-          r$results <- r$stparams %>% cbind(tail(r$metrics,1))
-          r$results$returns_file <- paste0(stfname,".returns.csv")
-          r$results$metrics_file <- paste0(stfname,".metrics.csv")
-          r$results$name <- st$name
-          r$metrics %>% write.csv(paste0(bt$config$outdir, run_name,"/", r$results$metrics_file), row.names=F)
-          returns.xts <- r$metrics %>%
-            select(datetime, rtn) %>%
-            write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
-          r$params %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
-          r$name <- st$name
-          r
-        })
-        runs %>% map(~as.list(.)) 
+          runs <- runs %>% map(function(r){
+            uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
+            stpuniq <-  r$stparams[uniq_pars]
+            parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
+            #browser()
+            stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
+            outfile <- paste0(bt$config$outdir, run_name,"/", stfname)
+            #pp <- params
+            #pp$roll_pattern <- NULL
+            #pp %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
+            
+            #runs[[st$name]] <- r
+            bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+            plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
+            ggsave(paste0(outfile,".png"), plot=plt)
+            wlog("saved ", paste0(outfile,".png"))
+            r$results <- r$stparams %>% cbind(tail(r$metrics,1))
+            r$results$returns_file <- paste0(stfname,".returns.csv")
+            r$results$metrics_file <- paste0(stfname,".metrics.csv")
+            r$results$name <- st$name
+            r$metrics %>% write.csv(paste0(bt$config$outdir, run_name,"/", r$results$metrics_file), row.names=F)
+            returns.xts <- r$metrics %>%
+              select(datetime, rtn) %>%
+              write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
+            r$params %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
+            r$name <- st$name
+            r
+          })
+          runs %>% map(~as.list(.)) 
+        }) %>% reduce(c)
       }
     #}, error = browser())
     #function(e){ 
