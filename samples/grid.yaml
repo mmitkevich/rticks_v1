@@ -38,8 +38,8 @@ config:
 #   - "NG"
 #   - "FVS"
    
-  enabled:
-  - "W"
+#  enabled:
+#  - "W"
 
 strategies:
   - name: "W"
@@ -80,10 +80,12 @@ strategies:
         weight: 0.001
         currency: "Si.FORTS.1"
         active_contract: 3
-
+        min_active_contract: 3
+        
       - symbol: Si.FORTS
         weight: 0
         active_contract: 1
+        min_active_contract: 1
 
   - name: "PL-GC"
     params:
@@ -123,6 +125,7 @@ strategies:
       "stop.buy": 1500
       "risk.buy": 1000
       "spread": 30
+      active_contract: 1
     legs: 
       - symbol: "CC.ICE"
         weight: 1

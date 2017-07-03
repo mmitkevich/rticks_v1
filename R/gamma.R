@@ -54,7 +54,7 @@ leg_defaults <- list(symbol=NA, weight=1, power=1, active_contract=0, min_active
 #'
 #'
 #' @export
-params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, stop.buy=NA, limit.sell=+Inf, stop.sell=+Inf, spread=1, pos=NA, active_contract=1)
+params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, stop.buy=NA, limit.sell=+Inf, stop.sell=+Inf, spread=1, pos=NA, active_contract=0)
 
 #'
 #'
@@ -143,7 +143,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
       
         if(!is.na(cfg$roll_months_ahead) || !is.na(cfg$roll_day_of_month))
           cfg$custom_roll <- roll_day(day_of_month=cfg$roll_day_of_month, months_ahead = cfg$roll_months_ahead)
-        ifnull(st$params$active_contract,1) %>% map(function(ac) {
+        ifnull(st$params$active_contract,0) %>% map(function(ac) {
           wlog("CFG:\n", as.yaml(cfg))
           stparams <- params_defaults %>% modifyList(st$params)
           stparams$active_contract<-ac
