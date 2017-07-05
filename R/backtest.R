@@ -194,6 +194,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
                                                 schedule=schedule,
                                                 config=config)
     data <- q$data
+    #browser()
   }
 
   more_params <- instruments %>% transmute(symbol=instrument_id, mpi=mpi, multiplier=multiplier, commission=commission)
@@ -340,7 +341,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     log_perf(timer, nrows, "average data processing speed")
     perfs$datetime <- as_datetime(perfs$datetime)
     flush_spd_log()
-    qq<-new.env(parent=q)
+    qq <- new.env(); #as.environment(as.list(q, all.names=TRUE))
+    for(n in ls(q, all.names=TRUE)) assign(n, get(n, q), qq)
     qq$perfs <- perfs
     qq$gaps <- gaps
     qq$config <- config
