@@ -16,8 +16,11 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2011-01-01"
+  start: "2015-07-01"
   stop: "2017-07-01"
+
+  #start: "2011-01-01"
+  #stop: "2017-07-01"
   
   roll_day_of_month: 1
   roll_months_ahead: false
@@ -42,6 +45,22 @@ config:
 #  - "W"
 
 strategies:
+  - name: "W-SB"
+    params:
+      "limit.buy": 85
+      "stop.buy": 55
+      "risk.buy": 40
+      "spread": 1
+      active_contract: 3
+    legs: 
+      - symbol: "W.LIFFE"
+        weight: 1
+        roll_pattern: [3, 5, 10]
+        
+      - symbol: "SB.ICE"
+        weight: -22.04
+        roll_pattern: [3, 5, 10]
+
   - name: "W"
     params:
       "limit.buy": 500
@@ -233,22 +252,6 @@ strategies:
     - symbol: "VIX.CBOE"
 #      roll_pattern: [5, 10]
 
-  - name: "W-SB"
-    params:
-      "limit.buy": 85
-      "stop.buy": 55
-      "risk.buy": 40
-      "spread": 1
-      active_contract: 3
-    legs: 
-      - symbol: "W.LIFFE"
-        weight: 1
-        roll_pattern: [3, 5, 10]
-        
-      - symbol: "SB.ICE"
-        weight: -22.04
-        roll_pattern: [3, 5, 10]
- 
   - name: "ZC"
     params:
       "limit.buy": 385
