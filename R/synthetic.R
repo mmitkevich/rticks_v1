@@ -27,7 +27,6 @@ synthetic.chunk(chunk, weights)
 synthetic.chunk <- function(chunk, weights, powers, currencies, mpi=NULL) {
   quotes <- list()
   instruments <- names(weights)
-  
   for (i in 1:length(instruments)) {
     quotes[[i]] <- chunk %>% filter(virtual_id == instruments[i]) %>% select(datetime,bid,ask)
     p <- powers[instruments[i]] 
@@ -65,7 +64,7 @@ synthetic.chunk <- function(chunk, weights, powers, currencies, mpi=NULL) {
     asks <- trunc((asks*(1-1e-6))/mpi)*mpi+mpi
   }
   cat("merged ", nrow(quotes%>%head(1)), nrow(quotes%>%tail(1)), "into", nrow(bids),"\n")
-  
+
 
   if(length(bids)==0)
     return(data_frame())
