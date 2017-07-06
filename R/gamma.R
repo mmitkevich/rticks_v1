@@ -59,7 +59,7 @@ params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, st
 #'
 #'
 #' @export
-run_name_today <- function(fmt="%Y%m%d/%H%M%S") strftime(Sys.time(), fmt)
+run_name_today <- function(fmt="%Y%m%d/%H%M%S") paste0(strftime(Sys.time(), fmt),"-",paste.list(sample(LETTERS,5)))
 
 #'
 #'
@@ -94,9 +94,17 @@ listify <- function(l, ns=NULL) {
 #'
 #'
 #' @export
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=F) {
+run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
+
+  `%fun%` <- `%do%`
+  if (parallel == TRUE){
+    require(doParallel)
+    cl <- makePSOCKcluster(detectCores())
+    registerDoParallel(cl)
+    `%fun%` <- `%dopar%`
+  }
   
   mkdirs(paste0(bt$config$outdir, run_name))
   as.yaml(bt) %>% write(file=paste0(bt$config$outdir,run_name,"/", "grid.yaml"))
@@ -114,18 +122,19 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                     roll_same_day_all_legs=T,
                     start=as_datetime("2011-01-01"), 
                     stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% parse_periods(c("zero_position_freq", "perfs_freq"))  %>% parse_dates(c("start","stop"))
-  bt$config$log_path <- paste0(bt$config$outdir,run_name, "/rticks.log") %>% path.expand()
-  # init logging, see rticks.log
-  init_spd_log(bt$config)
   
   enabled <- ifnull(enabled, bt$config$enabled)
   status_file = paste0(bt$config$outdir,run_name,"/", "errors.log")
   strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   
-  all_runs <- #foreach::foreach(st = iterators::iter(bt$strategies), .errorhandling = "pass") %do% {
-    strats %>% map(function(st) { 
+  all_runs <- foreach::foreach(st = iterators::iter(strats), .errorhandling = "pass",  .packages = "ggplot2") %fun%  {
+#    strats %>% map(function(st) { 
     #tryCatch({
        {  
+        bt$config$log_path <- paste0(bt$config$outdir,run_name, "/", st$name,".log") %>% path.expand()
+        # init logging, see rticks.log
+        init_spd_log(bt$config)
+         
         wlog("*******************  B A C K T E S T ***********", st$name, "now", as.character(Sys.time()), "disabled", isTRUE((st$name %in% bt$config$disabled)))
         st$legs = st$legs %>% map(function(l) modifyList(leg_defaults, listify(l)))
 
@@ -152,8 +161,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           params_ac <- params %>% mutate(active_contract=active_contract+ac, min_active_contract=min_active_contract+ac)
           wlog("LEGS:\n", df_chr(params_ac))
                     
-          runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg) 
-          
+          runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = T) 
+          cur<-cfg$currency
           runs <- runs %>% map(function(r){
             uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
             stpuniq <-  r$stparams[uniq_pars]
@@ -166,7 +175,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             #pp %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
             
             #runs[[st$name]] <- r
-            bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+            bt_reports(r, no_commission=bt$config$no_commission, currency=cur, currency_power = cfg$currency_power)
+            cur<-r$currency
             plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
             ggsave(paste0(outfile,".png"), plot=plt)
             wlog("saved ", paste0(outfile,".png"))
@@ -194,11 +204,13 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
     #  browser()
       #runs[[st$name]] <- e
     #  e
-  })
-  all_runs <- c(all_runs)[[1]]
+  }
+  browser()
+  #all_runs <- c(all_runs)[[1]]
   #
   #
-  all_results <- all_runs %>% map(~ .$results) %>% reduce(bind_rows)
+  
+  
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   wlog("ALL RESULTS", all_res_file, "rows=", nrow(all_results))
   all_results %>% write.csv(file=all_res_file, row.names=F)

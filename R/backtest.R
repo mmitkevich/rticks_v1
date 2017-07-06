@@ -145,8 +145,16 @@ time_frame_index <- function(datetime, freq) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, parallel=F) {
   timer <- Sys.time()
+  
+  `%fun%` <- `%do%`
+  if (parallel == TRUE){
+    require(doParallel)
+    cl <- makePSOCKcluster(detectCores())
+    registerDoParallel(cl)
+    `%fun%` <- `%dopar%`
+  }
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
   config$perfs_freq <- as.numeric(config$perfs_freq)
@@ -226,7 +234,11 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
       purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   }
   log_perf(timer, nrows, "data loading speed ")
-  runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
+  
+  runs <- foreach::foreach(istpar = iterators::iter(seq(1, nrow(stparams))), .errorhandling = "pass") %fun% {
+  #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
+    
+    init_spd_log(paste0(config$log_path,"-",Sys.getpid()))
     
     timer <- Sys.time()
     
@@ -351,7 +363,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     qq$params <- params
     qq$stparams <- params
     qq
-  })
+  }
   runs
 }
 
@@ -458,10 +470,15 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
   r$metrics <- metrics %>% spread(metric,value)
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
-    cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
-      reduce(bind_rows)
-    cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
-    r$currency <- cur
+    if(!is.data.frame(currency)) {
+      cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
+        reduce(bind_rows)
+      cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
+      r$currency <- cur
+    }else{
+      r$currency <- currency
+    }
+    
     r$metrics <- r$metrics %>% inner_join(cur, by="datetime") %>% mutate(
       cur = ifelse(pos>0, cur_bid, cur_ask)) %>% 
       filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
