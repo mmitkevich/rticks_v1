@@ -173,14 +173,14 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             r$results <- r$stparams %>% cbind(tail(r$metrics,1))
             r$results$returns_file <- paste0(stfname,".returns.csv")
             r$results$metrics_file <- paste0(stfname,".metrics.csv")
-            r$resutls$schedule_file <- paste0(stfname,".schedule.csv")
+            r$results$schedule_file <- paste0(st$name,".",ifnull(r$stparams$active_contract,0),".schedule.csv")
             r$results$name <- st$name
             r$metrics %>% write.csv(paste0(bt$config$outdir, run_name,"/", r$results$metrics_file), row.names=F)
             returns.xts <- r$metrics %>%
               select(datetime, rtn) %>%
               write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
             r$params %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
-            r$schedule %>% write.csv(paste0(outfile,".schedule.csv"), row.names=F)
+            r$schedule %>% write.csv(paste0(bt$config$outdir,run_name,"/",r$results$schedule_file), row.names=F)
             r$name <- st$name
             r
           })
