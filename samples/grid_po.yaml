@@ -314,10 +314,7 @@ strategies:
       active_contract: 1
     legs: 
       - symbol: "BND.ARCA"
-        weight: -0.5
-        
-      - symbol: "BND.ARCA"
-        weight: 0
+        weight: -1
 
   - name: "FVS"
     config:
