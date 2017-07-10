@@ -40,7 +40,8 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
                     ) 
               + pos * (price-pmin(p$risk.buy,price))) # pos*(price-risk)
           * p$multiplier,
-    rtn = (pnl-lag(pnl))/lag(drisk))
+    rtn = (pnl-lag(pnl))/lag(drisk),
+    returns = cumsum(na_replace(rtn,0)))
   qtys<- qtys %>% select(-spread,-multiplier) %>% gather(metric, value, -datetime, -symbol)
   qtys
 }
@@ -126,6 +127,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   enabled <- ifnull(enabled, bt$config$enabled)
   status_file = paste0(bt$config$outdir,run_name,"/", "errors.log")
   strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
+  all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   
   all_runs <- foreach::foreach(st = iterators::iter(strats), .errorhandling = "pass",  .packages = "ggplot2") %fun%  {
 #    strats %>% map(function(st) { 
@@ -192,6 +194,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             r$params %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
             r$schedule %>% write.csv(paste0(bt$config$outdir,run_name,"/",r$results$schedule_file), row.names=F)
             r$name <- st$name
+            r$results %>% write.csv(file=paste0(all_res_file,".tmp"), row.names=F, append = T)
             r
           })
           runs %>% map(~as.list(.)) 
@@ -205,14 +208,13 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
       #runs[[st$name]] <- e
     #  e
   }
-  browser()
   #all_runs <- c(all_runs)[[1]]
   #
   #
-  
-  
-  all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
+  all_runs <- all_runs %>% reduce(c)
+  all_results <- all_runs %>% map_df(~ .$results)
   wlog("ALL RESULTS", all_res_file, "rows=", nrow(all_results))
   all_results %>% write.csv(file=all_res_file, row.names=F)
-  all_runs %>% setNames(all_runs%>%map(~.$name))
+  #all_runs %>% setNames(all_runs%>%map(~.$name))
+  all_runs
 }

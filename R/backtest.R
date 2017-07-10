@@ -412,7 +412,7 @@ scale_x_datetime_smart <- function(plt, dur) {
 #' plot backtest results
 #' 
 #' @export
-plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl","pos"), maxrows=400) {
+plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl","pos"), maxrows=400) {
   #browser()
   perfs <- perfs %>% arrange(datetime)
   perfs <- ifnull(start, perfs, perfs %>% filter(datetime>=start))
@@ -422,7 +422,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   timeframe <- lower_timeframe(timeframe, nrow(perfs), maxrows=maxrows)
   
   df <- data_frame()
-  for(m in metrics) {
+  for(m in enabled) {
     ml = paste(m, "low", sep="_")
     mh = paste(m, "high", sep="_")
     d <- perfs %>% select_(.dots=c("datetime", "symbol", m, ml, mh) %>% intersect(names(perfs))) %>% 
@@ -524,7 +524,7 @@ bt_view_metrics <- function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, maxpoints=400, no_gaps=F) {
+bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, enabled=c("price","pnl","rpnl","pos"), maxpoints=400, no_gaps=F) {
   metrics <- r[[what]]
   if(no_gaps) {
     metrics$chunk <- metrics$datetime %>% findInterval(r$gaps$datetime)+1
@@ -534,7 +534,7 @@ bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, maxpoints=400, no_ga
       metrics$price_high[metrics$chunk<=i] <- metrics$price_high[metrics$chunk<=i] + r$gaps$gap[i] 
     }
   }
-  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints)
+  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints, enabled=enabled)
 }
 
 bt_summaries <- function(r, start=NULL, stop=NULL) {
