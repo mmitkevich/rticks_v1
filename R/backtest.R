@@ -145,8 +145,16 @@ time_frame_index <- function(datetime, freq) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default) {
+backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, parallel=F) {
   timer <- Sys.time()
+  
+  `%fun%` <- `%do%`
+  if (parallel == TRUE){
+    require(doParallel)
+    cl <- makePSOCKcluster(detectCores())
+    registerDoParallel(cl)
+    `%fun%` <- `%dopar%`
+  }
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
   config$perfs_freq <- as.numeric(config$perfs_freq)
@@ -226,7 +234,11 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
       purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   }
   log_perf(timer, nrows, "data loading speed ")
-  runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
+  
+  runs <- foreach::foreach(istpar = iterators::iter(seq(1, nrow(stparams))), .errorhandling = "pass") %fun% {
+  #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
+    
+    init_spd_log(paste0(config$log_path,"-",Sys.getpid()))
     
     timer <- Sys.time()
     
@@ -351,7 +363,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     qq$params <- params
     qq$stparams <- params
     qq
-  })
+  }
   runs
 }
 
@@ -400,7 +412,7 @@ scale_x_datetime_smart <- function(plt, dur) {
 #' plot backtest results
 #' 
 #' @export
-plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl","pos"), maxrows=400) {
+plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl","pos"), maxrows=400) {
   #browser()
   perfs <- perfs %>% arrange(datetime)
   perfs <- ifnull(start, perfs, perfs %>% filter(datetime>=start))
@@ -410,7 +422,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, metrics=c("price","pnl","rpnl"
   timeframe <- lower_timeframe(timeframe, nrow(perfs), maxrows=maxrows)
   
   df <- data_frame()
-  for(m in metrics) {
+  for(m in enabled) {
     ml = paste(m, "low", sep="_")
     mh = paste(m, "high", sep="_")
     d <- perfs %>% select_(.dots=c("datetime", "symbol", m, ml, mh) %>% intersect(names(perfs))) %>% 
@@ -458,10 +470,15 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
   r$metrics <- metrics %>% spread(metric,value)
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
-    cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
-      reduce(bind_rows)
-    cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
-    r$currency <- cur
+    if(!is.data.frame(currency)) {
+      cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
+        reduce(bind_rows)
+      cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
+      r$currency <- cur
+    }else{
+      r$currency <- currency
+    }
+    
     r$metrics <- r$metrics %>% inner_join(cur, by="datetime") %>% mutate(
       cur = ifelse(pos>0, cur_bid, cur_ask)) %>% 
       filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
@@ -507,7 +524,7 @@ bt_view_metrics <- function(r, start=NULL, stop=NULL) {
 #' bt_plot
 #'
 #' @export
-bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, maxpoints=400, no_gaps=F) {
+bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, enabled=c("price","pnl","rpnl","pos"), maxpoints=400, no_gaps=F) {
   metrics <- r[[what]]
   if(no_gaps) {
     metrics$chunk <- metrics$datetime %>% findInterval(r$gaps$datetime)+1
@@ -517,7 +534,7 @@ bt_plot<-function(r, what="metrics", start=NULL, stop=NULL, maxpoints=400, no_ga
       metrics$price_high[metrics$chunk<=i] <- metrics$price_high[metrics$chunk<=i] + r$gaps$gap[i] 
     }
   }
-  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints)
+  metrics %>% plot_bt(start=start,stop=stop,maxrows=maxpoints, enabled=enabled)
 }
 
 bt_summaries <- function(r, start=NULL, stop=NULL) {
