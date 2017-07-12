@@ -16,8 +16,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-07-07"
-  stop: "2017-07-07"
+  start: "2015-07-01"
+  stop: "2017-07-01"
   
   roll_day_of_month: 1
   roll_months_ahead: false
@@ -45,8 +45,8 @@ config:
 strategies:
   - name: "W"
     params:
-      "limit.buy": 500
-      "stop.buy": 350
+      "limit.buy": 600
+      "stop.buy": 300
       "risk.buy": 300
       "spread": 9
       "active_contract": 3
@@ -56,7 +56,7 @@ strategies:
 
   - name: "KC"
     params:
-      "limit.buy": 141
+      "limit.buy": 200
       "stop.buy": 100
       "risk.buy": 90
       "spread": 1.5
@@ -67,7 +67,7 @@ strategies:
 
   - name: "BRUB"
     params:
-      "limit.buy": 3300.0
+      "limit.buy": 3700.0
       "stop.buy": 2100.0
       "risk.buy": 1500.0
       "spread": 50.0
@@ -91,8 +91,8 @@ strategies:
 
   - name: "PL-GC"
     params:
-      "limit.buy": -280.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-      "stop.buy": -360.0    # FIXME: no buy lower than 18
+      "limit.buy": -80.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "stop.buy": -400.0    # FIXME: no buy lower than 18
       "risk.buy": -400.0
       "spread": 10.0
       active_contract: 1
@@ -110,10 +110,10 @@ strategies:
       currency: "EUR/USD.E"
       currency_power: 1
     params:
-      "limit.buy": 5.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "limit.buy": 9    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
-      "spread": 0.15
+      "spread": 0.2
       active_contract: 2
     legs: 
       - symbol: "C.ICE"
@@ -121,7 +121,7 @@ strategies:
 
   - name: "CC"
     params:
-      "limit.buy": 2100
+      "limit.buy": 3500
       "stop.buy": 1500
       "risk.buy": 1000
       "spread": 30
@@ -132,7 +132,7 @@ strategies:
 
   - name: "CL"
     params:
-      "limit.buy": 50
+      "limit.buy": 60
       "stop.buy": 30
       "risk.buy": 20
       "spread": 0.25
@@ -143,7 +143,7 @@ strategies:
 
   - name: "CT"
     params:
-      "limit.buy": 75
+      "limit.buy": 80
       "stop.buy": 50
       "risk.buy": 25
       "spread": 0.25
@@ -155,7 +155,7 @@ strategies:
 
   - name: "GE.CS"
     params:
-      "limit.buy": 0.25
+      "limit.buy": 0.45
       "stop.buy": 0.1
       "risk.buy": 0
       "spread": 0.015
@@ -166,7 +166,7 @@ strategies:
 
   - name: "GC"
     params:
-      "limit.buy": 1250
+      "limit.buy": 1400
       "stop.buy": 1000
       "risk.buy": 700
       "spread": 10
@@ -189,9 +189,9 @@ strategies:
 
   - name: "NG"
     params:
-      "limit.buy": 3.5
-      "stop.buy": 2.5
-      "risk.buy": 1.5
+      "limit.buy": 4
+      "stop.buy": 1.5
+      "risk.buy": 1.0
       "spread": 0.05
       active_contract: 3
     legs:
@@ -201,7 +201,7 @@ strategies:
 
   - name: "SB"
     params:
-      "limit.buy": 16
+      "limit.buy": 26
       "stop.buy": 10
       "risk.buy": 8
       "spread": 0.25
@@ -223,8 +223,8 @@ strategies:
 
   - name: "VIX"
     params:
-      "limit.buy": 20.5
-      "stop.buy": 17.5
+      "limit.buy": 25
+      "stop.buy": 15
       "risk.buy": 15.0
       "spread": 0.25
       active_contract: 6
@@ -233,7 +233,7 @@ strategies:
 
   - name: "W-SB"
     params:
-      "limit.buy": 85
+      "limit.buy": 115
       "stop.buy": 55
       "risk.buy": 40
       "spread": 1
@@ -249,10 +249,10 @@ strategies:
 
   - name: "KC-RC"
     config:
-      roll_months_ahead: 1
+      roll_months_ahead: 2
     params:
-      "limit.buy": -200
-      "stop.buy": -500
+      "limit.buy": 200
+      "stop.buy": -600
       "risk.buy": -600
       "spread": 30
       active_contract: 1
@@ -269,7 +269,7 @@ strategies:
     config:
       roll_months_ahead: 3
     params:
-      "limit.buy": 385
+      "limit.buy": 450
       "stop.buy": 325
       "risk.buy": 220
       "spread": 3
@@ -283,8 +283,8 @@ strategies:
     config:
       roll_months_ahead: 3
     params:
-      "limit.buy": 36.8
-      "stop.buy": 30
+      "limit.buy": 40
+      "stop.buy": 25
       "risk.buy": 23
       "spread": 0.2
       active_contract: 1
@@ -297,7 +297,7 @@ strategies:
     config:
       roll_months_ahead: 3
     params:
-      "limit.buy": 540
+      "limit.buy": 600
       "stop.buy": 400
       "risk.buy": 300
       "spread": 6
@@ -322,8 +322,8 @@ strategies:
       currency: "EUR/USD.E"
       currency_power: 1
     params:
-      "limit.buy": 23
-      "stop.buy": 19
+      "limit.buy": 30
+      "stop.buy": 17
       "risk.buy": 15
       "spread": 0.4
       active_contract: 5

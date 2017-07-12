@@ -38,8 +38,16 @@ config:
 #   - "NG"
 #   - "FVS"
    
-#  enabled:
-#  - "W"
+  enabled:
+#  - "C"
+#  - "CC"
+#  - "KC"
+#  - "ZW"
+#  - "ZL"
+#  - "ZC"
+#  - "PL-GC"
+#  - "CT"
+  - "CL"
 
 strategies:
   - name: "W"
@@ -55,14 +63,14 @@ strategies:
 
   - name: "KC"
     params:
-      "limit.buy": 141
-      "stop.buy": 100
-      "risk.buy": 90
-      "spread": 1.5
-      active_contract: 2
+      "limit.buy": 200
+      "stop.buy": 50
+      "risk.buy": 50
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3]
+      active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "KC.ICE"
-      roll_pattern: [5, 12]
+      #roll_pattern: [5, 12]
 
   - name: "BRUB"
     params:
@@ -90,10 +98,10 @@ strategies:
 
   - name: "PL-GC"
     params:
-      "limit.buy": -280.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-      "stop.buy": -360.0    # FIXME: no buy lower than 18
+      "limit.buy": -200.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "stop.buy": -400.0    # FIXME: no buy lower than 18
       "risk.buy": -400.0
-      "spread": 10.0
+      "spread": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
       active_contract: 1
     legs: 
       - symbol: "PL.NYMEX"
@@ -109,7 +117,7 @@ strategies:
       currency: "EUR/USD.E"
       currency_power: 1
     params:
-      "limit.buy": 5.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "limit.buy": 6.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
       "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
@@ -120,45 +128,45 @@ strategies:
 
   - name: "CC"
     params:
-      "limit.buy": 2100
-      "stop.buy": 1500
+      "limit.buy": 3000
+      "stop.buy": 1000
       "risk.buy": 1000
       "spread": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50]
       active_contract: [1, 2, 3, 4, 5, 6]
     legs: 
       - symbol: "CC.ICE"
-        roll_pattern: [5, 12]
+#        roll_pattern: [5, 12]
 
   - name: "CL"
     params:
-      "limit.buy": 50
-      "stop.buy": 30
+      "limit.buy": 100
+      "stop.buy": 25
       "risk.buy": 20
-      "spread": 0.25
-      active_contract: 5
+      "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
       
     legs:
     - symbol: "CL.NYMEX"
 
   - name: "CT"
     params:
-      "limit.buy": 75
-      "stop.buy": 50
+      "limit.buy": 80
+      "stop.buy": 40
       "risk.buy": 25
-      "spread": 0.25
-      active_contract: 2
+      "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      active_contract: [1, 2, 3, 4, 5]
       
     legs:
     - symbol: "CT.ICE"
-      roll_pattern: [5, 12]
+#      roll_pattern: [5, 12]
 
   - name: "GE.CS"
     params:
-      "limit.buy": 0.25
-      "stop.buy": 0.1
+      "limit.buy": 0.35
+      "stop.buy": 0
       "risk.buy": 0
-      "spread": 0.015
-      active_contract: 4
+      "spread": [0.005, 0.010, 0.015, 0.020, 0.025, 0.030, 0.035, 0.040, 0.045, 0.050, 0.055, 0.060, 0.065, 0.070]
+      active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "GE.CME.CS12M"
       roll_pattern: [12]
@@ -265,45 +273,40 @@ strategies:
         roll_pattern: [3, 9]
         
   - name: "ZC"
-    config:
-      roll_months_ahead: 3
     params:
-      "limit.buy": 385
-      "stop.buy": 325
+      "limit.buy": 500
+      "stop.buy": 250
       "risk.buy": 220
-      "spread": 3
-      active_contract: 1
+      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+      active_contract: [1, 2, 3, 4, 5]
 
     legs:
     - symbol: "ZC.CBOT"
-      roll_pattern: [5, 12]       
+#      roll_pattern: [1, 2, 3, 4, 5]       
 
   - name: "ZL"
-    config:
-      roll_months_ahead: 3
     params:
-      "limit.buy": 36.8
-      "stop.buy": 30
+      "limit.buy": 40
+      "stop.buy": 23
       "risk.buy": 23
-      "spread": 0.2
-      active_contract: 1
+      "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "ZL.CBOT"
       weight: 1
-      roll_pattern: [7, 12]       
+#      roll_pattern: [7, 12]       
 
   - name: "ZW"
-    config:
-      roll_months_ahead: 3
+
     params:
-      "limit.buy": 540
-      "stop.buy": 400
+      "limit.buy": 650
+      "stop.buy": 350
       "risk.buy": 300
-      "spread": 6
-      active_contract: 1
+      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+      active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "ZW.CBOT"
-      roll_pattern: [5, 12]       
+#      roll_pattern: [5, 12]       
 
   - name: "BND"
     params:
