@@ -60,7 +60,7 @@ params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, st
 #'
 #'
 #' @export
-run_name_today <- function(fmt="%Y%m%d/%H%M%S") paste0(strftime(Sys.time(), fmt),"-",paste.list(sample(LETTERS,5)))
+run_name_today <- function(comment="",fmt="%Y%m%d/%H%M%S") paste0(strftime(Sys.time(), fmt),"-",comment,"-",paste.list(sample(LETTERS,5)))
 
 #'
 #'
