@@ -47,7 +47,7 @@ config:
 #  - "ZC"
 #  - "PL-GC"
 #  - "CT"
-  - "CL"
+#  - "CL"
 
 strategies:
   - name: "W"
@@ -331,4 +331,15 @@ strategies:
       active_contract: 5
     legs: 
     - symbol: "FVS.EUREX"
+
+  - name: "FSTE"
+    params:
+      "limit.buy": 400
+      "stop.buy": 200
+      "risk.buy": 200
+      "spread": [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5]
+      active_contract: 1
+    legs:
+    - symbol: "FSTE.EUREX"
+
  
