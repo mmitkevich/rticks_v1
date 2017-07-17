@@ -163,7 +163,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           params_ac <- params %>% mutate(active_contract=active_contract+ac, min_active_contract=min_active_contract+ac)
           wlog("LEGS:\n", df_chr(params_ac))
                     
-          runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = T) 
+          runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = parallel) 
           cur<-cfg$currency
           runs <- runs %>% map(function(r){
             uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)

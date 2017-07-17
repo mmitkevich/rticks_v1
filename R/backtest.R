@@ -64,6 +64,7 @@ backtest_config_default = list(
   zero_position_on_rolls=F,
   zero_position_freq=NULL,
   custom_roll=NULL,
+  start_full_pos=T,
   
   roll_price="best",
   
@@ -238,7 +239,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
   runs <- foreach::foreach(istpar = iterators::iter(seq(1, nrow(stparams))), .errorhandling = "pass") %fun% {
   #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
     
-    init_spd_log(paste0(config$log_path,"-",Sys.getpid()))
+    config$log_path <- paste0(config$log_path,"-",Sys.getpid())
+    init_spd_log(config)
     
     timer <- Sys.time()
     
@@ -275,7 +277,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         if(!is_null(ct)) {
           price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
           params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
-        }else if(is.na(params$pos)) { # first
+        }
+        if(is.na(params$pos)||config$start_full_pos) { # first
           params$pos <- (max(params$limit.buy-ch$ask,0)/params$mpi+1)*params$gamma.buy
           wlog("START POS=",params$pos)
         }
@@ -314,14 +317,14 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         }
         
         pos.old <- params$pos      
-        if(is_roll && !is.na(params$limit.buy) && !is.infinite(params$limit.buy) && isTRUE(params$pos>0)) {
+        if(is_roll && !config$start_full_pos && !is.na(params$limit.buy) && !is.infinite(params$limit.buy) && isTRUE(params$pos>0)) {
           pos.max <- trunc(max(0,((params$limit.buy+params$spread-params$ask)/params$mpi+1.00001)*params$gamma.buy))
           if(isTRUE(params$pos>pos.max)) {
             params$pos <- pos.max
             
           }
         }
-        if(is_roll && !is.na(params$limit.sell) && !is.infinite(params$limit.sell) && isTRUE(params$pos<0)) {
+        if(is_roll && !config$start_full_pos && !is.na(params$limit.sell) && !is.infinite(params$limit.sell) && isTRUE(params$pos<0)) {
           pos.min <- trunc(min(0,((params$limit.sell-params$spread-params$bid)/params$mpi-1.0001)*params$gamma.sell))
           if(params$pos<pos.min) {
             params$pos <- pos.min
