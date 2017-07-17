@@ -16,8 +16,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-07-01"
-  stop: "2017-07-01"
+  start: "2015-07-07"
+  stop: "2017-07-07"
   
   roll_day_of_month: 1
   roll_months_ahead: false
@@ -38,8 +38,9 @@ config:
 #   - "NG"
 #   - "FVS"
    
-#  enabled:
-#  - "W"
+  enabled:
+#  - "BRUB"
+#  - "W-SB"
 
 strategies:
   - name: "W"
@@ -112,7 +113,7 @@ strategies:
       "limit.buy": 5.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
-      "spread": 0.2
+      "spread": 0.15
       active_contract: 2
     legs: 
       - symbol: "C.ICE"
@@ -190,7 +191,7 @@ strategies:
     params:
       "limit.buy": 3.5
       "stop.buy": 2.5
-      "risk.buy": 2.0
+      "risk.buy": 1.5
       "spread": 0.05
       active_contract: 3
     legs:
@@ -314,10 +315,7 @@ strategies:
       active_contract: 1
     legs: 
       - symbol: "BND.ARCA"
-        weight: -0.5
-        
-      - symbol: "BND.ARCA"
-        weight: 0
+        weight: -1
 
   - name: "FVS"
     config:
