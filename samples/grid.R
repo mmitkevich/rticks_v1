@@ -5,6 +5,6 @@ library(grid)
 options(debug=T)
 cfg.reload()
 
-r <- run_all.gamma(enabled=c("C","CC"), bt="samples/grid_bt.yaml", run_name = run_name_today("comment"))
+r <- run_all.gamma(enabled="LH", bt="samples/grid_bt.yaml", run_name = run_name_today("comment"), parallel=T)
 
 last_plot()
