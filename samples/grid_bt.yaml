@@ -1,6 +1,6 @@
 config:
   log_path: "rticks.log"
-  outdir: "~/results/equity/"
+  outdir: "/opt/bt/results/"
 
   perfs_freq: "days"
   perfs_tz: 15
@@ -19,6 +19,7 @@ config:
   start: "2015-07-01"
   stop: "2017-07-01"
   
+  start_full_pos: T
   roll_day_of_month: 1
   roll_months_ahead: false
   roll_same_day_all_legs: T
@@ -70,7 +71,6 @@ strategies:
       active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "KC.ICE"
-      #roll_pattern: [5, 12]
 
   - name: "BRUB"
     params:
@@ -342,4 +342,3 @@ strategies:
     legs:
     - symbol: "FSTE.EUREX"
 
- 

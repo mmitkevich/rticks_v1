@@ -6,7 +6,10 @@ library(yaml)
 options(debug=T)
 cfg.reload()
 
-r <- run_all.gamma(enabled=c("LH"), bt="samples/grid_bt.yaml")
+r <- run_all.gamma(enabled=c("KC", "PL-GC", "C", "CC", "CL", "GE", "ZC", "ZL", "ZW", "FSTE"),
+                   bt="samples/grid_bt.yaml",
+                   run_name = run_name_today("Initial_BT_2Y"),
+                   parallel=F)
 
 path  <-  r[[1]]$config$log_path
 path <- paste(unlist(strsplit(path, '/'))[2:length(unlist(strsplit(path, '/'))) - 1], collapse = "/")
