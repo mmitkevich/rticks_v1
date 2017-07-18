@@ -95,6 +95,7 @@ listify <- function(l, ns=NULL) {
 #'
 #'
 #' @export
+
 run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
@@ -129,8 +130,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   
-  all_runs <- foreach::foreach(st = iterators::iter(strats), .errorhandling = "pass",  .packages = "ggplot2") %fun%  {
-#    strats %>% map(function(st) { 
+  all_runs <- foreach::foreach(st = iterators::iter(strats), .errorhandling = "stop",  .packages = "ggplot2") %fun%  {
+  #  for(st in strats) { 
     #tryCatch({
        {  
         bt$config$log_path <- paste0(bt$config$outdir,run_name, "/", st$name,".log") %>% path.expand()

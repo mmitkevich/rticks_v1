@@ -235,12 +235,15 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
       purrr::flatten() %>% purrr::sort_by(~ .$datetime[1])
   }
   log_perf(timer, nrows, "data loading speed ")
-  
-  runs <- foreach::foreach(istpar = iterators::iter(seq(1, nrow(stparams))), .errorhandling = "pass") %fun% {
+  log_path <- config$log_path
+  runs <- foreach::foreach(istpar = iterators::iter(seq(1, nrow(stparams))), .errorhandling = "stop") %fun% 
+  #for(istpar in seq(1,nrow(stparams)))
+    {
   #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
-    
-    config$log_path <- paste0(config$log_path,"-",Sys.getpid())
-    init_spd_log(config)
+    cfg<-config
+    cfg$log_path <- paste0(log_path,"-",Sys.getpid())
+    wlog("Logging into",cfg$log_path)
+    init_spd_log(cfg)
     
     timer <- Sys.time()
     
