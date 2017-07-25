@@ -23,6 +23,11 @@ results_csv <- read.csv(paste0(sources_path, "results.csv"))
 for (instrument in unique(results_csv$name)) {
   results  <- results_csv[which(results_csv$name == instrument), ]
   instrument <- substr(results$symbol[1],0,tail(gregexpr(pattern ='\\.',results$symbol[1])[[1]], 1) - 1)
+  limit.buy <- results$limit.buy[1]
+  stop.buy <- results$stop.buy[1]
+  risk.buy <- results$risk.buy[1]
+  mpi <- results$mpi[1]
+  multiplier <- results$multiplier[1]
   filename <- paste0(sources_path, instrument, '_', Sys.Date())
   time_from <- read.csv(paste0(sources_path,results$metrics_file[1]))$datetime[1]
   time_to <- tail(read.csv(paste0(sources_path,results$metrics_file[1]))$datetime,1)
@@ -33,6 +38,11 @@ for (instrument in unique(results_csv$name)) {
     instrument = instrument,
     time_from = time_from,
     time_to = time_to,
+    limit.buy = limit.buy,
+    stop.buy = stop.buy,
+    risk.buy = risk.buy,
+    mpi = mpi,
+    multiplier = multiplier,
     active_contracts = max(results$active_contract),
     split_period = "month"
   ))
