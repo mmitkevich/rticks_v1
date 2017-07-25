@@ -53,8 +53,8 @@ config:
 strategies:
   - name: "W"
     params:
-      "limit.buy": 500
-      "stop.buy": 350
+      "limit.buy": 650
+      "stop.buy": 300
       "risk.buy": 300
       "spread": [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5]
       "active_contract": [1, 2, 3, 4, 5]
@@ -128,7 +128,7 @@ strategies:
 
   - name: "CC"
     params:
-      "limit.buy": 3000
+      "limit.buy": 3500
       "stop.buy": 1000
       "risk.buy": 1000
       "spread": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50]
