@@ -96,7 +96,7 @@ listify <- function(l, ns=NULL) {
 #'
 #' @export
 
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T) {
+run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
 
@@ -134,7 +134,9 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   #  for(st in strats) { 
     #tryCatch({
        {  
-        bt$config$log_path <- paste0(bt$config$outdir,run_name, "/", st$name,".log") %>% path.expand()
+        ldir <- paste0(bt$config$outdir,run_name, "/",st$name,"/log")
+        bt$config$log_path <- paste0(ldir, "/", st$name, ".log") %>% path.expand()
+        mkdirs(ldir)
         # init logging, see rticks.log
         init_spd_log(bt$config)
          
@@ -170,9 +172,11 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
             stpuniq <-  r$stparams[uniq_pars]
             parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
-            #browser()
             stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
-            outfile <- paste0(bt$config$outdir, run_name,"/", stfname)
+            outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
+            mkdirs(outdir)
+            mkdirs(paste0(outdir,"/img"))
+            mkdirs(paste0(outdir,"/res"))
             #pp <- params
             #pp$roll_pattern <- NULL
             #pp %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
@@ -181,21 +185,24 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             bt_reports(r, no_commission=bt$config$no_commission, currency=cur, currency_power = cfg$currency_power)
             cur<-r$currency
             plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
-            ggsave(paste0(outfile,".png"), plot=plt)
-            wlog("saved ", paste0(outfile,".png"))
+            ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
             r$results <- r$stparams %>% cbind(tail(r$metrics,1))
-            r$results$returns_file <- paste0(stfname,".returns.csv")
-            r$results$metrics_file <- paste0(stfname,".metrics.csv")
-            r$results$schedule_file <- paste0(st$name,".",ifnull(r$stparams$active_contract,0),".schedule.csv")
+            #r$results$returns_file <- paste0(stfname,".returns.csv")
+            r$results$metrics_file <- paste0("res/",stfname,".metrics.csv")
+            r$results$schedule_file <- paste0("res/",st$name,".",ifnull(r$stparams$active_contract,0),".schedule.csv")
             r$results$name <- st$name
-            r$metrics %>% write.csv(paste0(bt$config$outdir, run_name,"/", r$results$metrics_file), row.names=F)
-            returns.xts <- r$metrics %>%
-              select(datetime, rtn) %>%
-              write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
-            r$params %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
-            r$schedule %>% write.csv(paste0(bt$config$outdir,run_name,"/",r$results$schedule_file), row.names=F)
+            r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+            #returns.xts <- r$metrics %>%
+            #  select(datetime, rtn) %>%
+            #  write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
+            #r$params %>% write.csv(paste0(outdir,"/results/",".params.csv"), row.names=F)
+            r$schedule %>% write.csv(paste0(outdir,"/",r$results$schedule_file), row.names=F)
             r$name <- st$name
             r$results %>% write.csv(file=paste0(all_res_file,".tmp"), row.names=F, append = T)
+            if(!keep_data) {
+              r$data<-NULL
+              r$data.spread<-NULL
+            }
             r
           })
           runs %>% map(~as.list(.)) 
