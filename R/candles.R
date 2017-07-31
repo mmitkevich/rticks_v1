@@ -95,6 +95,7 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
   }
   dir.create("~/bt_cache", showWarnings=F)
   cache_name <- paste0("~/bt_cache/", paste.list(unique(instruments$instrument_id), sep="_"))
+  cache_name <- gsub("/","_",cache_name)
   path <- cache_name
   #browser()
   ilog("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop))

@@ -30,4 +30,4 @@ path:
   rCommonsSourcesPath: "~/r-commons/exante_api.R"
   ramDiscPath: "~/Temp_Results/"
   expirationDatesFilePath: "~/ExpirationDates.csv"
-  gridPath: "~/rticks/samples/grid.yaml"
+  gridPath: "~/rticks/samples/grid_bt.yaml"

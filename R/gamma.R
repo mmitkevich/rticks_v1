@@ -131,7 +131,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   
   all_runs <- foreach::foreach(st = iterators::iter(strats), .errorhandling = "stop",  .packages = "ggplot2") %fun%  {
-  #  for(st in strats) { 
+  #for(st in strats) { 
     #tryCatch({
        {  
         ldir <- paste0(bt$config$outdir,run_name, "/",st$name,"/log")
@@ -163,7 +163,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           stparams$active_contract<-ac
           stparams<-stparams %>% expand.grid(stringsAsFactors=F)
           wlog("STPARAMS:\n", df_chr(stparams))
-          params_ac <- params %>% mutate(active_contract=active_contract+ac, min_active_contract=min_active_contract+ac)
+          params_ac <- params %>% mutate(active_contract=ifelse(active_contract==-1, 1, active_contract+ac), 
+                                         min_active_contract=ifelse(min_active_contract==-1, 1, min_active_contract+ac))
           wlog("LEGS:\n", df_chr(params_ac))
                     
           runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = parallel) 
@@ -188,8 +189,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
             r$results <- r$stparams %>% cbind(tail(r$metrics,1))
             #r$results$returns_file <- paste0(stfname,".returns.csv")
-            r$results$metrics_file <- paste0("res/",stfname,".metrics.csv")
-            r$results$schedule_file <- paste0("res/",st$name,".",ifnull(r$stparams$active_contract,0),".schedule.csv")
+            r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
+            r$results$schedule_file <- paste0("res/", st$name, ".", ifnull(r$stparams$active_contract, 0), ".schedule.csv")
             r$results$name <- st$name
             r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
             #returns.xts <- r$metrics %>%
@@ -225,4 +226,42 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   all_results %>% write.csv(file=all_res_file, row.names=F)
   #all_runs %>% setNames(all_runs%>%map(~.$name))
   all_runs
+}
+
+#' @export
+config.gamma <- function(file = config(path)$gridPath) {
+  yaml.load_file(file)
+}
+
+#' @export
+bt_list_runs <-function(bt = config.gamma()) {
+  #list.dirs(bt$config$outdir,full.names = F) %>% keep(~ nchar(.)>0)
+  src<-bt$config$outdir
+  list.dirs(src,full.names=F,recursive=F) %>% map(~ paste0(.,"/",list.dirs(paste0(src,.), full.names=F, recursive=F))) %>% reduce(c)
+}
+
+#' @export
+bt_load_results <- function(bt = config.gamma(), name = NULL) {
+  if(is.null(name))
+    name <- bt_list_runs(bt) %>% tail(1)
+  path <- paste0(bt$config$outdir, name, "/results.csv")
+  bt$results <- read.csv(path, stringsAsFactors = F) %>% as_data_frame()
+  bt$metrics <- (bt$results %>% by_row(function(rs) {
+    read.csv(paste0(bt$config$outdir, name,"/",rs$metrics_file), stringsAsFactors = F) %>% as_data_frame()
+  }))$.out
+  bt
+}
+
+
+#' @export
+str_left <- function(s, n=0) {
+  s %>% map(~ substr(., start=0,stop=nchar(.)-n))
+}
+
+#' @export
+as.equal.weights <- function(weights) {
+  weight.equal <- weights
+  for (i in 1:nrow(weight.equal)){
+    weight.equal[i,] <- apply(weight.equal[i,], 2, function(x) ifelse(x > 0, 1/sum(weight.equal[i,]!=0), 0))
+  }
 }

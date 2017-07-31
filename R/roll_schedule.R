@@ -119,7 +119,9 @@ roll_schedule <- function(instruments,
   result <- result %>% left_join(instruments%>%select(-exante_id, -active_contract), by="instrument_id") %>% 
     mutate(virtual_id=paste0(instrument_id,".",active_contract))
   if(nrow(result)!=1 || !is.na(result$month)) { # is_spot TODO
-    result2 <- schedule.roll.logic(result,instruments,min_active_contract,max_active_contract)
+    result_spot <- result %>% filter(is.na(month))
+    result_nspot <- result %>% filter(!is.na(month))
+    result2 <- result_nspot %>% schedule.roll.logic(instruments,min_active_contract,max_active_contract) %>% bind_rows(result_spot)
   }else {
     result2 <- result
   }
