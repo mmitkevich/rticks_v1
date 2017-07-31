@@ -1,6 +1,7 @@
 config:
   log_path: "rticks.log"
   outdir: "/opt/bt/results/"
+  #outdir: "~/results/"
 
   perfs_freq: "days"
   perfs_tz: 15
@@ -85,16 +86,14 @@ strategies:
       currency_power: -1
     
     legs: 
-      - symbol: B.ICE
-        weight: 0.001
-        currency: "Si.FORTS.1"
-#        active_contract: 3
-#        min_active_contract: 3
-        
-      - symbol: Si.FORTS
+      - symbol: "B.ICE"
+        weight: 1
+        currency: "USD/RUB.MOEX.1"
+
+      - symbol: "USD/RUB.MOEX"
         weight: 0
-        active_contract: 1
-        min_active_contract: 1
+        active_contract: -1
+        min_active_contract: -1
 
   - name: "PL-GC"
     params:
