@@ -17,7 +17,7 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2017-04-01"
+  start: "2015-07-01"
   stop: "2017-07-01"
   
   start_full_pos: true
@@ -55,9 +55,9 @@ strategies:
   - name: "W"
     params:
       "limit.buy": 650
-      "stop.buy": 300
-      "risk.buy": 300
-      "spread": [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5]
+      "stop.buy": 200
+      "risk.buy": 200
+      "spread": [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5, 5.2, 5.4, 5.6, 5.8, 6, 6.2, 6.4, 6.6, 6.8, 7]
       "active_contract": [1, 2, 3, 4, 5]
     legs:
     - symbol: "W.LIFFE"
@@ -82,8 +82,8 @@ strategies:
     config:
       mpi: 1
       multiplier: 1000.0
-      currency: "USD/RUB.MOEX"
-      currency_power: -1
+#      currency: "USD/RUB.MOEX"
+#      currency_power: -1
     
     legs: 
       - symbol: "B.ICE"
@@ -151,7 +151,7 @@ strategies:
       "limit.buy": 80
       "stop.buy": 40
       "risk.buy": 25
-      "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      "spread": [0.02, 0.06, 0.10, 0.14, 0.18, 0.22, 0.26, 0.30, 0.34, 0.38, 0.42, 0.46, 0.50, 0.54, 0.58, 0.62, 0.66, 0.70, 0.74, 0.78, 0.82, 0.86, 0.90]
       active_contract: [1, 2, 3, 4, 5]
       
     legs:
@@ -174,7 +174,7 @@ strategies:
       "stop.buy": 900
       "risk.buy": 700
       "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15]
-      active_contract: [1, 2, 3, 4, 5, 6]
+      active_contract: [1, 2, 3]
     legs:
     - symbol: "GC.COMEX"
 
