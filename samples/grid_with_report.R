@@ -6,7 +6,7 @@ library(yaml)
 options(debug=T)
 cfg.reload()
 
-r <- run_all.gamma(enabled=c("C","CC"),
+r <- run_all.gamma(enabled=c("I.CS"),
                    bt="samples/grid_bt.yaml",
                    run_name = run_name_today("test"),
                    parallel=T)
