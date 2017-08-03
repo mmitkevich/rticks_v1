@@ -17,8 +17,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2017-04-01"
-  stop: "2017-07-01"
+  start: "2015-08-01"
+  stop: "2017-08-01"
   
   start_full_pos: true
   roll_day_of_month: 1
@@ -403,3 +403,75 @@ strategies:
       active_contract: [1, 2]
     legs: 
       - symbol: "HO.NYMEX"
+      
+  - name: "RC"
+    params:
+      "limit.buy": 2600
+      "stop.buy": 1400
+      "risk.buy": 1400
+      "spread": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40]
+      "active_contract": [1, 2, 3, 4, 5, 6]
+    legs:
+    - symbol: "RC.LIFFE"
+    
+  - name: "C.LIFFE"
+    params:
+      "limit.buy": 2000
+      "stop.buy": 1300
+      "risk.buy": 1300
+      "spread": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40]
+      "active_contract": [1, 2, 3, 4, 5]
+    legs:
+    - symbol: "C.LIFFE"
+    
+  - name: "I.LIFFE"
+    params:
+      "limit.buy": 110
+      "stop.buy": 90
+      "risk.buy": 90
+      "spread": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2]
+      "active_contract": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    legs:
+    - symbol: "I.LIFFE"
+    
+  - name: "B"
+    params:
+      "limit.buy": 60
+      "stop.buy": 40
+      "risk.buy": 40
+      "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    legs:
+    - symbol: "B.ICE"
+
+  - name: "FGBS"
+    params:
+      "limit.buy": 120
+      "stop.buy": 100
+      "risk.buy": 100
+      "spread": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2]
+      active_contract: [1, 2, 3, 4]
+    legs: 
+      - symbol: "FGBS.EUREX"
+      
+  - name: "CONF"
+    params:
+      "limit.buy": -150
+      "stop.buy": -180
+      "risk.buy": -180
+      "spread": [0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      active_contract: [1, 2, 3, 4]
+    legs: 
+      - symbol: "CONF.EUREX"
+        weight: -1
+        
+  - name: "I.CS"
+    params:
+      "limit.buy": 0.35
+      "stop.buy": 0
+      "risk.buy": 0
+      "spread": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2]
+      active_contract: [1, 2, 3]
+    legs:
+    - symbol: "I.LIFFE.CS12M"
+      roll_pattern: [12]
