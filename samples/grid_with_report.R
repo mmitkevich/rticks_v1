@@ -6,10 +6,10 @@ library(yaml)
 options(debug=T)
 cfg.reload()
 
-r <- run_all.gamma(enabled=c("I.CS"),
+r <- run_all.gamma(enabled=c("C"),
                    bt="samples/grid_bt.yaml",
                    run_name = run_name_today("test"),
-                   parallel=T)
+                   parallel=F)
 
 path  <-  r[[1]]$config$log_path
 path <- paste(unlist(strsplit(path, '/'))[1:(length(unlist(strsplit(path, '/'))) - 3)], collapse = "/")
@@ -48,4 +48,11 @@ for (instrument in unique(results_csv$name)) {
     active_contracts = max(results$active_contract),
     split_period = "month"
   ))
+}
+
+if (!is.null(global_config$config$email)) {
+  if (exists("url_prefix") & exists("username")) {
+    sendmail(from='report@quant1.prod.ghcg.com',to=global_config$config$email, subject = 'Backtest report is ready', 
+             msg = paste0('Your backtest report is ready ',url_prefix, username, '/', substr(raw_data_path, 0, tail(gregexpr(pattern = '/', raw_data_path)[[1]],2))) )
+  }
 }
