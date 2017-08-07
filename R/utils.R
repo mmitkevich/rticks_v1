@@ -147,3 +147,30 @@ parse_dates <- function(config, names ){
   }
   config
 }
+
+#'
+#'
+#' @export
+in_knitr <- function() {
+  return(isTRUE(getOption('knitr.in.progress')))
+}
+
+#'
+#'
+#' @export
+knitr_to_pdf <- function(script=NULL, curdir=NULL, outdir=NULL) {
+  library(knitr)
+  if(!isTRUE(getOption('knitr.in.progress'))){
+    if(is.null(script))
+      script <- parent.frame(2)$ofile
+    stopifnot(!is.null(script))
+    if(is.null(curdir))
+      curdir <- getwd()
+    if(is.null(outdir))
+      outdir <- dirname(script)
+    knitr::opts_chunk$set(fig.width=12, fig.height=8, #fig.path='Figs/',
+                          echo=FALSE, warning=FALSE, message=FALSE)
+    cat("rmarkdown::render", script, "knit_root_dir", curdir, "output_dir", outdir)
+    rmarkdown::render(script, knit_root_dir = curdir, output_dir = outdir)
+  }
+}
