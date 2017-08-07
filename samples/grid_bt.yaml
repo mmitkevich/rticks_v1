@@ -554,4 +554,26 @@ strategies:
     legs:
     - symbol: "ZN.CBOT"
       weight: -1
+      
+  - name: "UB"
+    params:
+      "limit.buy": -140
+      "stop.buy": -180
+      "risk.buy": -180
+      "spread": [0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875, 0.75, 0.8125, 0.875, 0.9375, 1, 1.0625, 1.125, 1.1875, 1.25]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "UB.CBOT"
+      weight: -1
+      
+  - name: "ZB"
+    params:
+      "limit.buy": -140
+      "stop.buy": -170
+      "risk.buy": -170
+      "spread": [0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625, 0.625, 0.6875, 0.75, 0.8125, 0.875, 0.9375, 1, 1.0625, 1.125, 1.1875, 1.25]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "ZB.CBOT"
+      weight: -1
     
