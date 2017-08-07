@@ -190,6 +190,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             r$results <- r$stparams %>% cbind(tail(r$metrics,1))
             #r$results$returns_file <- paste0(stfname,".returns.csv")
             r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
+            cat("SAVING TO",r$results$metrics_file)
             r$results$schedule_file <- paste0("res/", st$name, ".", ifnull(r$stparams$active_contract, 0), ".schedule.csv")
             r$results$name <- st$name
             r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
@@ -241,13 +242,17 @@ bt_list_runs <-function(bt = config.gamma()) {
 }
 
 #' @export
-bt_load_results <- function(bt = config.gamma(), name = NULL) {
-  if(is.null(name))
-    name <- bt_list_runs(bt) %>% tail(1)
-  path <- paste0(bt$config$outdir, name, "/results.csv")
+bt_load_results <- function(bt, run_name = NULL) {
+  if(is.null(run_name))
+    run_name <- bt_list_runs(bt) %>% tail(1)
+  path <- paste0(bt$config$outdir, run_name, "/results.csv")
+  bt$path <- path
   bt$results <- read.csv(path, stringsAsFactors = F) %>% as_data_frame()
+  bt$results$datetime <- as_datetime(bt$results$datetime)
   bt$metrics <- (bt$results %>% by_row(function(rs) {
-    read.csv(paste0(bt$config$outdir, name,"/",rs$metrics_file), stringsAsFactors = F) %>% as_data_frame()
+    mt <- read.csv(paste0(bt$config$outdir, run_name,"/",rs$name,"/",rs$metrics_file), stringsAsFactors = F) %>% as_data_frame()
+    mt$datetime <- as_datetime(mt$datetime)
+    mt
   }))$.out
   bt
 }
