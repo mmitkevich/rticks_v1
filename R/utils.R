@@ -174,3 +174,48 @@ knitr_to_pdf <- function(script=NULL, curdir=NULL, outdir=NULL) {
     rmarkdown::render(script, knit_root_dir = curdir, output_dir = outdir)
   }
 }
+
+#'
+#'
+#' @export
+vplot <- function(...) {
+  plts <- list(...)
+  plts <- plts %>% map(ggplotGrob)
+  grid.newpage()
+  plt<-do.call(rbind,c(plts,size="last"))
+  plt %>% grid.draw()
+  plt
+}
+
+
+#'
+#' @export
+parinit <- function(.cores=detectCores(), .pkgs=NULL, .init=NULL) {
+  if(is.null(.pkgs))
+    .pkgs <- (.packages())
+  .cluster <- makePSOCKcluster(min(detectCores(),.cores))
+  clusterCall(.cluster, function(ps) { for(p in ps) library(p, character.only=TRUE) }, .pkgs)
+  if(!is.null(.init))
+    clusterEvalQ(.init())
+  options(cluster=.cluster)
+  .cluster
+}
+
+#'
+#' @export
+parstop <- function(.cluster=getOption("cluster")) {
+  if(!is.null(.cluster)) {
+    stopCluster(.cluster)
+  }
+}  
+
+
+#'
+#' @export
+parmap <- function(.xs, .f, .cluster=getOption("cluster")) {
+  if(is.null(.cluster))
+    map(.xs,.f)
+  else{
+    parLapply(.cluster, .xs, as_function(.f))
+  }
+}

@@ -149,14 +149,6 @@ time_frame_index <- function(datetime, freq) {
 backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, parallel=F) {
   timer <- Sys.time()
   
-  `%fun%` <- `%do%`
-  if (parallel == TRUE){
-    require(doParallel)
-    cl <- makePSOCKcluster(detectCores())
-    registerDoParallel(cl)
-    `%fun%` <- `%dopar%`
-  }
-  
   config <- backtest_config_default %>% modifyList(config) # merge with default config
   config$perfs_freq <- as.numeric(config$perfs_freq)
   if(!has_name(params,"min_active_contract"))
@@ -236,9 +228,9 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
   }
   log_perf(timer, nrows, "data loading speed ")
   log_path <- config$log_path
-  runs <- foreach::foreach(istpar = iterators::iter(seq(1, nrow(stparams))), .errorhandling = "stop") %fun% 
+  istpars <- seq(1, nrow(stparams))
+  runs <-  istpars %>% parmap( function(istpar) {
   #for(istpar in seq(1,nrow(stparams)))
-    {
   #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
     cfg<-config
     cfg$log_path <- paste0(log_path,"-",Sys.getpid())
@@ -369,7 +361,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     qq$params <- params
     qq$stparams <- params
     qq
-  }
+  })
   runs
 }
 

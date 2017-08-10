@@ -24,7 +24,7 @@ Depends:
     jsonlite,
     functional,
     scales,
-    doParallel,
+    parallel,
     PortfolioAnalytics
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
