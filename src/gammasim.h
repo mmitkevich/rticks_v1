@@ -16,7 +16,9 @@ struct GammaSimulator : public MarketAlgo,
                         // inputs
                         public IObserver<TQuoteMessage>,         // from market
                         public IObserver<TOrderMessage>,        // from algo
-                        public IObserver<TSessionMessage>      // from market
+                        public IObserver<TSessionMessage>
+// from market
+
 {
   typedef TOrderMessage order_message_type;
 

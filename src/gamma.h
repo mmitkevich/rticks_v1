@@ -20,7 +20,9 @@ struct GammaAlgo : public MarketAlgo,
                      // inputs -> on_next(T)
                      public IObserver<QuoteMessage>,
                      public IObserver<ExecutionMessage>,
-                     public IObserver<SessionMessage>
+                     public IObserver<SessionMessage>,
+                     public IObserver<ValueMessage<double>>
+
 {
   typedef TOrderMessage order_message_type;
 
@@ -68,6 +70,11 @@ struct GammaAlgo : public MarketAlgo,
 
   double round_price(SymbolId s, double price) {
       return roundl(price/mpi[s])*mpi[s];
+  }
+  
+  virtual void on_next(ValueMessage<double> e) {
+    on_clock(e.rtime);
+    as<NumericVector>(params[e.param])[e.symbol] = e.value;
   }
 
   virtual void on_next(QuoteMessage e) {

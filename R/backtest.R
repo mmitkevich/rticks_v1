@@ -17,11 +17,11 @@ trunc_freq <- function(dts,freq) {
 #' query_candles_cache("VIX.CBOE", active_contract=1, start=dt(2016)) %>% fetch() %>% bt.chunk(params=list(...))
 #' 
 #' @export
-backtest.chunk <- function(data, params, algo, config) {
+backtest.chunk <- function(data, params, algo, config, signals) {
   log_perfs("backtest.chunk in", data, params, params, 0.5*(head(data$bid,1)+head(data$ask,1)))
   
   timer <- Sys.time()
-  r <- bt_gamma(algo, data, params, config)
+  r <- bt_gamma(algo, data, params, config, signals)
   log_perf(timer, nrow(data), "data processing speed ")
   
   if(length(r$perfs$datetime)==0) {
@@ -29,6 +29,7 @@ backtest.chunk <- function(data, params, algo, config) {
          "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"))
     warning(paste("**** EMPTY PERFS ****",as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1))))
     return (r);
+    
   }
   
   #r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
@@ -146,7 +147,7 @@ time_frame_index <- function(datetime, freq) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, parallel=F) {
+backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, signals=NULL, parallel=F) {
   timer <- Sys.time()
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
@@ -337,7 +338,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         #browser()
         
         #browser
-        r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
+        signals.chunk <- signals %>% map(.x %>% filter(datetime>=ch$datetime))
+        r <- chunk %>% backtest.chunk(params, algo=algo, config=config, signals=signals.chunk)
         perfs <- perfs %>% bind_rows(r$perfs)
         params$pos  <- r$pos
         params$cash <- r$cash

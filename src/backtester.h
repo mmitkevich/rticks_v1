@@ -8,6 +8,44 @@ namespace Rcpp {
 
 const double MAX_LATENCY = 1; //second
 
+
+struct SignalPlayer {
+  std::vector<int> index;
+  List signals;  
+  typedef std::function<void(const DataFrame &df, int)> observer_type;
+  observer_type obs;
+  
+  SignalPlayer(List signals, observer_type obs):
+    signals(signals),
+    obs(obs)
+  {
+    index.resize(signals.size(), 0);
+  }
+  
+  void notify(double dt) {
+    for(;;) {
+      int min_index = -1;
+      double min_dt = +INFINITY;
+      for(int i=0; i < index.size(); i++) {
+        DataFrame df = as<List>(signals[i]);
+        if(index[i] < df.nrows()) {
+          auto dt1 = as<NumericVector>(df[0])[index[i]];
+          if(dt1 <= dt+eps()) {
+            min_dt = std::min(min_dt, dt1);
+            min_index = i;
+          }
+        }
+      }
+      if(min_index >= 0) {
+        DataFrame df = as<List>(signals[min_index]);
+        index[min_index]++;
+        obs(df, min_index);        
+      }else
+        break;
+    }
+  }
+};
+
 template<typename TAlgo,
          typename TMarket=GammaSimulator<typename TAlgo::order_message_type>>
 struct Backtester : public Algo
@@ -56,7 +94,9 @@ struct Backtester : public Algo
       Rcpp::stop(s.str());
   }
 
-  void process(DataFrame data)    // datetime, symbol, bid, ask, high, low
+  // data = datetime, symbol, bid, ask, high, low
+  // signals = List(DF(datetime,values))
+  void process(DataFrame data, List signals)    
   {
     datetimes = required<NumericVector>(data, "datetime");
     if(datetimes.size()==0)
@@ -85,10 +125,20 @@ struct Backtester : public Algo
       ses.symbol = to_symbol_id(symbols[i]);
       market.on_next(ses);
     }
-      
+    
+    SignalPlayer signal_player(signals, [&](const DataFrame &df, int index){
+      ValueMessage<double> msg;
+      msg.rtime = msg.ctime = as<NumericVector>(df[0])[index];
+      msg.value = as<NumericVector>(df[1])[index];
+      CharacterVector nms = df.names();
+      msg.param = SymbolId(nms[index], index);
+      msg.symbol = to_symbol_id(as<CharacterVector>(df[2])[index]);
+      algo.on_next(msg);
+    });
+    
     while(index < stop) {
       dt = datetimes[index] - close_time_fix;
-      
+
       market.notify(dt); // flush the time
       
       if(logger && debug>=log_level) {
@@ -111,6 +161,8 @@ struct Backtester : public Algo
           Rcpp::stop(s);
           continue;
       }
+
+      signal_player.notify(dt);
       
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
       double time2 = dt + 1e-6;

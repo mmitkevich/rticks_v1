@@ -36,8 +36,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // bt_gamma
-List bt_gamma(CharacterVector clazz, List data, List params, List config);
-RcppExport SEXP rticks_bt_gamma(SEXP clazzSEXP, SEXP dataSEXP, SEXP paramsSEXP, SEXP configSEXP) {
+List bt_gamma(CharacterVector clazz, List data, List params, List config, List signals);
+RcppExport SEXP rticks_bt_gamma(SEXP clazzSEXP, SEXP dataSEXP, SEXP paramsSEXP, SEXP configSEXP, SEXP signalsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -45,7 +45,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type data(dataSEXP);
     Rcpp::traits::input_parameter< List >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< List >::type config(configSEXP);
-    rcpp_result_gen = Rcpp::wrap(bt_gamma(clazz, data, params, config));
+    Rcpp::traits::input_parameter< List >::type signals(signalsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bt_gamma(clazz, data, params, config, signals));
     return rcpp_result_gen;
 END_RCPP
 }

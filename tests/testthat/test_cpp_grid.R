@@ -3,9 +3,8 @@ library(ggplot2)
 library(gridExtra)
 library(magrittr)
 library(testthat)
-cfg <- config(backtest) %>% modifyList(list(
-  no_cache = T, # всегда из базы
-  no_save = F, # не писать кэш на диск
+
+cfg <- backtest_config_default %>% modifyList(list(
   log_level = LOG$DEBUG,
   log_stdout = LOG$DEBUG, 
   zero_position_on_rolls = F,
@@ -37,7 +36,9 @@ params <- data_frame(
   qty_buy = 0,
   qty_sell = 0,
   multiplier = 1,
-  mpi = 1
+  mpi = 1,
+  bid = NA,
+  ask = NA
 )
 
 prices = c(
@@ -89,7 +90,11 @@ data <- data_frame(datetime = dt <- seq(1,length(prices)/2) %>% map_dbl( ~ as.nu
            ask = prices[seq(2,length(prices),2)],
            virtual_id = "TEST.1")
 
-rs <- backtest.chunk(data,params,"gamma",cfg)
+signals <- list(
+  data_frame(datetime=c(3,6,9) %>% map_dbl(~ data$datetime[.]), spread=c(3,6,9))
+)
+
+rs <- backtest.chunk(data,params,"gamma",cfg, signals=signals)
 r <- new.env()
 r$perfs <- rs$perfs
 r$perfs$datetime <- as_datetime(r$perfs$datetime)

@@ -173,6 +173,7 @@ std::ostream& operator<< (std::ostream &os, const QuoteMessage &e) {
 template<typename T>
 struct ValueMessage : public Message {
   T value;
+  SymbolId param;
   ValueMessage() { }
   ValueMessage(T value) : value(value) { }
   ValueMessage(const ValueMessage &rhs) = default;

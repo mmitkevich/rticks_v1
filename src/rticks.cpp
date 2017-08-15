@@ -107,7 +107,7 @@ void spd_log(IntegerVector lvl, CharacterVector s) {
 //' will backtest gamma scalping
 //' @export
 // [[Rcpp::export]]
-List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
+List bt_gamma(CharacterVector clazz,  List data, List params, List config, List signals) {
   List result;
 
   if(!logger)
@@ -122,7 +122,7 @@ List bt_gamma(CharacterVector clazz,  List data, List params, List config) {
     NewMetrics<> nm(params, config, "nmetrics");
     bt.market.$execs >>= nm;
     nm.pos >>= println<double>(std::cout);*/
-    bt.process(data);
+    bt.process(data, signals);
     result = bt.market.metrics.toR();
   }
   if(logger)

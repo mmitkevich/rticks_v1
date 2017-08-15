@@ -169,11 +169,10 @@ by_event.chunk <- function(df) {
 
 #' 
 #' @export
-data_holes <- function(ndays=5) {
+data_holes <- function(instruments=NULL, ndays=5) {
   z <- sql.select("quant_data.smart_quality",where="minutes_qty_actual<minutes_qty_expected") %>% mutate(datetime=as_datetime(date))
   z %>% group_by(exante_id) %>% 
     arrange(datetime) %>% 
-    mutate(prev=lag(datetime)) %>% 
     filter(datetime-prev>ddays(ndays)) %>% 
     rename(start=prev, stop=datetime) %>% 
     select(exante_id, instrument_id, start, stop) %>% 

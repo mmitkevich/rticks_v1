@@ -118,6 +118,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                     stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% parse_periods(c("zero_position_freq", "perfs_freq"))  %>% parse_dates(c("start","stop"))
   
   enabled <- ifnull(enabled, bt$config$enabled)
+  IIS <- ifnull(IIS, bt$config$IIS)
+  
   status_file = paste0(bt$config$outdir,run_name,"/", "errors.log")
   strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")

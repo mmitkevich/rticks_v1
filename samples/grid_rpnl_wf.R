@@ -25,16 +25,6 @@ options(debug=T)
 #  stop()
 #}
 
-
-vplot <- function(...) {
-  plts <- list(...)
-  plts <- plts %>% map(ggplotGrob)
-  grid.newpage()
-  plt<-do.call(rbind,c(plts,size="last"))
-  plt %>% grid.draw()
-  plt
-}
-
 #+ echo=T  
 objective = "rpnl"
 params = "spread"
