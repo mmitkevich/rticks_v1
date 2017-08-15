@@ -92,22 +92,14 @@ listify <- function(l, ns=NULL) {
   l
 }
 
+
 #'
 #'
 #' @export
-
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F) {
+run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F, IIS=NULL, IIS.plot=c()) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
 
-  `%fun%` <- `%do%`
-  if (parallel == TRUE){
-    require(doParallel)
-    cl <- makePSOCKcluster(detectCores())
-    registerDoParallel(cl)
-    `%fun%` <- `%dopar%`
-  }
-  
   mkdirs(paste0(bt$config$outdir, run_name))
   as.yaml(bt) %>% write(file=paste0(bt$config$outdir,run_name,"/", "grid.yaml"))
   
@@ -130,102 +122,169 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   
-  all_runs <- foreach::foreach(st = iterators::iter(strats), .errorhandling = "stop",  .packages = "ggplot2") %fun%  {
-  #for(st in strats) { 
-    #tryCatch({
-       {  
-        ldir <- paste0(bt$config$outdir,run_name, "/",st$name,"/log")
-        bt$config$log_path <- paste0(ldir, "/", st$name, ".log") %>% path.expand()
-        mkdirs(ldir)
-        # init logging, see rticks.log
-        init_spd_log(bt$config)
-         
-        wlog("*******************  B A C K T E S T ***********", st$name, "now", as.character(Sys.time()), "disabled", isTRUE((st$name %in% bt$config$disabled)))
-        st$legs = st$legs %>% map(function(l) modifyList(leg_defaults, listify(l)))
+  all_runs <- strats %>% map(function(st) { 
+      ldir <- paste0(bt$config$outdir,run_name, "/",st$name,"/log")
+      bt$config$log_path <- paste0(ldir, "/", st$name, ".log") %>% path.expand()
+      mkdirs(ldir)
+      # init logging, see rticks.log
+      init_spd_log(bt$config)
+       
+      wlog("*******************  B A C K T E S T ***********", st$name, "now", as.character(Sys.time()), "disabled", isTRUE((st$name %in% bt$config$disabled)))
+      st$legs = st$legs %>% map(function(l) modifyList(leg_defaults, listify(l)))
 
-        params <- st$legs %>% map(~ as_data_frame(.)) %>% bind_rows()
-     
-        cfg <- backtest_config_default %>% modifyList(bt$config)
-        
-        if(!is.null(st$config))
-          cfg <- cfg %>% modifyList(st$config)
-        if(!cfg$roll_months_ahead)
-          cfg$roll_months_ahead<-NA
-        if(!cfg$roll_day_of_month)
-          cfg$roll_day_of_month<-NA
-
+      params <- st$legs %>% map(~ as_data_frame(.)) %>% bind_rows()
+   
+      cfg <- backtest_config_default %>% modifyList(bt$config)
       
-        if(!is.na(cfg$roll_months_ahead) || !is.na(cfg$roll_day_of_month))
-          cfg$custom_roll <- roll_day(day_of_month=cfg$roll_day_of_month, months_ahead = cfg$roll_months_ahead)
-        ifnull(st$params$active_contract,0) %>% map(function(ac) {
-          wlog("CFG:\n", as.yaml(cfg))
-          stparams <- params_defaults %>% modifyList(st$params)
-          stparams$active_contract<-ac
-          stparams<-stparams %>% expand.grid(stringsAsFactors=F)
-          wlog("STPARAMS:\n", df_chr(stparams))
-          params_ac <- params %>% mutate(active_contract=ifelse(active_contract==-1, 1, active_contract+ac), 
-                                         min_active_contract=ifelse(min_active_contract==-1, 1, min_active_contract+ac))
-          wlog("LEGS:\n", df_chr(params_ac))
-                    
-          runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = parallel) 
-          cur<-cfg$currency
-          runs <- runs %>% map(function(r){
-            uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
-            stpuniq <-  r$stparams[uniq_pars]
-            parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
-            stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
-            outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
-            mkdirs(outdir)
-            mkdirs(paste0(outdir,"/img"))
-            mkdirs(paste0(outdir,"/res"))
-            #pp <- params
-            #pp$roll_pattern <- NULL
-            #pp %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
-            
-            #runs[[st$name]] <- r
-            bt_reports(r, no_commission=bt$config$no_commission, currency=cur, currency_power = cfg$currency_power)
-            cur<-r$currency
-            plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
-            ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
-            r$results <- r$stparams %>% cbind(tail(r$metrics,1))
-            #r$results$returns_file <- paste0(stfname,".returns.csv")
-            r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
-            r$results$schedule_file <- paste0("res/", st$name, ".", ifnull(r$stparams$active_contract, 0), ".schedule.csv")
-            r$results$name <- st$name
-            r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
-            #returns.xts <- r$metrics %>%
-            #  select(datetime, rtn) %>%
-            #  write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
-            #r$params %>% write.csv(paste0(outdir,"/results/",".params.csv"), row.names=F)
-            r$schedule %>% write.csv(paste0(outdir,"/",r$results$schedule_file), row.names=F)
-            r$name <- st$name
-            r$results %>% write.csv(file=paste0(all_res_file,".tmp"), row.names=F, append = T)
-            if(!keep_data) {
-              r$data<-NULL
-              r$data.spread<-NULL
-            }
-            r
-          })
-          runs %>% map(~as.list(.)) 
-        }) %>% reduce(c)
-      }
-    #}, error = browser())
-    #function(e){ 
-    #  wlog("ERROR!", e)
-    #  write(as.character(e), file=status_file, append=T)
-    #  browser()
-      #runs[[st$name]] <- e
-    #  e
-  }
-  #all_runs <- c(all_runs)[[1]]
-  #
-  #
+      if(!is.null(st$config))
+        cfg <- cfg %>% modifyList(st$config)
+      if(!cfg$roll_months_ahead)
+        cfg$roll_months_ahead<-NA
+      if(!cfg$roll_day_of_month)
+        cfg$roll_day_of_month<-NA
+
+    
+      if(!is.na(cfg$roll_months_ahead) || !is.na(cfg$roll_day_of_month))
+        cfg$custom_roll <- roll_day(day_of_month=cfg$roll_day_of_month, months_ahead = cfg$roll_months_ahead)
+      acs <- ifnull(st$params$active_contract,0)
+      rs <- acs %>% parmap(function(ac) {
+        wlog("CFG:\n", as.yaml(cfg))
+        stparams <- params_defaults %>% modifyList(st$params)
+        stparams$active_contract<-ac
+        stparams<-stparams %>% expand.grid(stringsAsFactors=F)
+        wlog("STPARAMS:\n", df_chr(stparams))
+        params_ac <- params %>% mutate(active_contract=ifelse(active_contract==-1, 1, active_contract+ac), 
+                                       min_active_contract=ifelse(min_active_contract==-1, 1, min_active_contract+ac))
+        wlog("LEGS:\n", df_chr(params_ac))
+                  
+        runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = parallel) 
+        cur<-cfg$currency
+        runs <- runs %>% map(function(r){
+          uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
+          stpuniq <-  r$stparams[uniq_pars]
+          parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
+          stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
+          outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
+          mkdirs(outdir)
+          mkdirs(paste0(outdir,"/img"))
+          mkdirs(paste0(outdir,"/res"))
+          #pp <- params
+          #pp$roll_pattern <- NULL
+          #pp %>% write.csv(paste0(outfile,".params.csv"), row.names=F)
+          
+          #runs[[st$name]] <- r
+          bt_reports(r, no_commission=bt$config$no_commission, currency=cur, currency_power = cfg$currency_power)
+          cur<-r$currency
+          plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
+          ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
+          r$results <- r$stparams %>% cbind(tail(r$metrics,1))
+          #r$results$returns_file <- paste0(stfname,".returns.csv")
+          r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
+          cat("SAVING TO",r$results$metrics_file)
+          r$results$schedule_file <- paste0("res/", st$name, ".", ifnull(r$stparams$active_contract, 0), ".schedule.csv")
+          r$results$name <- st$name
+          r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+          #returns.xts <- r$metrics %>%
+          #  select(datetime, rtn) %>%
+          #  write.csv(file = paste0(bt$config$outdir, run_name,"/", r$results$returns_file), row.names = F)
+          #r$params %>% write.csv(paste0(outdir,"/results/",".params.csv"), row.names=F)
+          r$schedule %>% write.csv(paste0(outdir,"/",r$results$schedule_file), row.names=F)
+          r$name <- st$name
+          r$results %>% write.csv(file=paste0(all_res_file,".tmp"), row.names=F, append = T)
+          if(!keep_data) {
+            r$data<-NULL
+            r$data.spread<-NULL
+          }
+          r
+        })
+        runs %>% map(~as.list(.)) 
+      })
+      rs %>% reduce(c)
+  })
   all_runs <- all_runs %>% reduce(c)
-  all_results <- all_runs %>% map_df(~ .$results)
-  wlog("ALL RESULTS", all_res_file, "rows=", nrow(all_results))
-  all_results %>% write.csv(file=all_res_file, row.names=F)
+  bt$results <- all_runs %>% map_df(~ .$results)
+  wlog("ALL RESULTS", all_res_file, "rows=", nrow(bt$results))
+  bt$results  %>% write.csv(file=all_res_file, row.names=F)
   #all_runs %>% setNames(all_runs%>%map(~.$name))
-  all_runs
+  bt$runs <- all_runs
+  bt$metrics <- all_runs %>% map(~ .$metrics)
+  if(length(IIS)>0){
+    walk_forward.gamma(bt, run_name, IIS=IIS)
+  }else {
+    bt
+  }
+}
+
+#' 
+#' @export
+walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plot=IIS, best_interval=1) {
+  if(is.character(bt))
+    bt <- config.gamma(bt)
+  if(is.null(bt$runs))
+    bt <- bt %>% bt_load_results(run_name = run_name)
+  stnames <- unique(bt$results$symbol)
+  start<-as_datetime("2015-01-01")
+  stop<-as_datetime("2017-12-01")
+  
+  bt$forward <- list()
+  
+  for(stname in stnames) {
+    indxs <- which(bt$results$symbol==stname)
+    metrics <- bt$metrics[indxs]
+    results <- bt$results[indxs,]
+    r1 <- metrics %>% map_df(~ .[best_interval*nrow(.),])
+    results$rpnl <- r1$rpnl
+    indx.max <- which.max(results$rpnl)
+    spread.max <- results[indx.max,]$spread
+    metrics.max <- metrics[[indx.max]] %>% mutate(iis=0, spread=spread.max)
+    all_metrics <- metrics.max
+    for(iis_days in IIS) {
+      R <- seq(1, length(metrics)) %>% map(function(i) {
+        mt <- metrics[[i]]
+        rs <- results[i,]
+        mt1 <- mt %>% mutate(is = rpnl - lag(rpnl, iis_days), 
+                             oos = lead(rpnl) - rpnl)
+        mt1$spread <- rs$spread
+        mt1
+      }) %>% bind_rows()
+      metrics.oos <- R %>% group_by(datetime) %>% arrange(-is) %>% filter(row_number()==1) %>% 
+        arrange(datetime)  %>% as_data_frame() %>% arrange(datetime)
+      metrics.oos <- metrics.oos %>% mutate(rpnl=cumsum(oos)) %>% mutate(iis=iis_days) %>% 
+        inner_join(metrics.max%>%transmute(datetime=datetime,rpnl.max=rpnl),by="datetime")  
+#      if(plot_delta)
+#        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
+      #browser()  
+      all_metrics <- bind_rows(all_metrics, metrics.oos)
+      
+      #print(ggplot(bind_rows(rpnl.oos,rpnl.max), aes(x=datetime, y=rpnl, colour=symbol))+geom_line()+ggtitle(paste(symbol, "iis",iis_days)))
+      
+      #    rpnl  <- rpnl.oos$rpnl[nrow(rpnl.oos)-1]
+      #    rpnls <- rpnls %>% bind_rows(data_frame(iis_days=iis_days, rpnl=rpnl))
+    }
+    all_metrics<-all_metrics %>% filter(datetime<max(all_metrics$datetime)-days(2))
+    
+    dt.max<-max(all_metrics$datetime)
+    all_metrics$iis <- as.integer(all_metrics$iis)  
+    best.iis <- ((all_metrics %>% filter(datetime==dt.max) %>% filter(iis!=0) %>% arrange(-rpnl) %>% select(rpnl, iis))%>%head(1))$iis
+    g1 <- ggplot(all_metrics, aes(x=datetime, y=rpnl, colour=factor(iis)))+geom_step()+ggtitle(stname)+theme_bw()+scale_colour_discrete(drop=TRUE)
+    g2 <- ggplot(all_metrics, aes(x=datetime, y=rpnl-rpnl.max, colour=factor(iis)))+geom_step()+ggtitle(stname)+theme_bw()+scale_colour_discrete(drop=TRUE)
+    g3 <- ggplot(all_metrics%>%filter(iis %in% IIS.plot | iis==best.iis | iis==0), aes(x=datetime, y=spread, colour=factor(iis)))+geom_step()+theme_bw()
+    g4 <- ggplot(all_metrics%>%filter(iis==0), aes(x=datetime, y=price, colour=symbol))+geom_step()+theme_bw()
+    g5 <- ggplot(all_metrics%>%filter(iis !=0), aes(x=datetime, y=spread, colour=factor(iis)))+geom_step()+theme_bw()+facet_grid(iis ~ ., scales = "free_y")
+    plt <-vplot(g1,g2,g3,g4)
+    #plt %>% print()
+    basedir <- paste0(bt$config$outdir,run_name,"/",results$name[1])
+    pngfile<-paste0(basedir,"/img/",results$name[1],".forward.active_contract~",results$active_contract[1],".png")
+    wlog("saving ",pngfile)
+    ggsave(pngfile, plot=plt)
+    pngfile_spread<-paste0(basedir,"/img/",results$name[1],".params~spread.active_contract~",results$active_contract[1],".png")
+    ggsave(pngfile_spread, plot=g5)
+    all_metrics %>% write.csv(file=paste0(basedir,"/res/",results$name[1],".forward.active_contract~",results$active_contract[1],".csv"))
+    #g4 <- qplot((all_metrics%>%filter(what==best.what))$spread, geom="histogram", title=paste0(stname," best spread"))
+    bt$forward <- c(bt$forward, list(all_metrics))
+  }
+  names(bt$forward) <- stnames
+  bt
 }
 
 #' @export
@@ -241,13 +300,17 @@ bt_list_runs <-function(bt = config.gamma()) {
 }
 
 #' @export
-bt_load_results <- function(bt = config.gamma(), name = NULL) {
-  if(is.null(name))
-    name <- bt_list_runs(bt) %>% tail(1)
-  path <- paste0(bt$config$outdir, name, "/results.csv")
+bt_load_results <- function(bt, run_name = NULL) {
+  if(is.null(run_name))
+    run_name <- bt_list_runs(bt) %>% tail(1)
+  path <- paste0(bt$config$outdir, run_name, "/results.csv")
+  bt$path <- path
   bt$results <- read.csv(path, stringsAsFactors = F) %>% as_data_frame()
+  bt$results$datetime <- as_datetime(bt$results$datetime)
   bt$metrics <- (bt$results %>% by_row(function(rs) {
-    read.csv(paste0(bt$config$outdir, name,"/",rs$metrics_file), stringsAsFactors = F) %>% as_data_frame()
+    mt <- read.csv(paste0(bt$config$outdir, run_name,"/",rs$name,"/",rs$metrics_file), stringsAsFactors = F) %>% as_data_frame()
+    mt$datetime <- as_datetime(mt$datetime)
+    mt
   }))$.out
   bt
 }
@@ -264,4 +327,14 @@ as.equal.weights <- function(weights) {
   for (i in 1:nrow(weight.equal)){
     weight.equal[i,] <- apply(weight.equal[i,], 2, function(x) ifelse(x > 0, 1/sum(weight.equal[i,]!=0), 0))
   }
+}
+
+#'
+#' @export
+all_metrics <- function(bt) {
+  seq(1, length(bt$results)) %>% map(function(i){
+    m <- bt$metrics[i]
+    m$spread <- bt$results$spread[i]
+    m
+  }) %>% reduce(bind_rows)
 }

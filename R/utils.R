@@ -147,3 +147,75 @@ parse_dates <- function(config, names ){
   }
   config
 }
+
+#'
+#'
+#' @export
+in_knitr <- function() {
+  return(isTRUE(getOption('knitr.in.progress')))
+}
+
+#'
+#'
+#' @export
+knitr_to_pdf <- function(script=NULL, curdir=NULL, outdir=NULL) {
+  library(knitr)
+  if(!isTRUE(getOption('knitr.in.progress'))){
+    if(is.null(script))
+      script <- parent.frame(2)$ofile
+    stopifnot(!is.null(script))
+    if(is.null(curdir))
+      curdir <- getwd()
+    if(is.null(outdir))
+      outdir <- dirname(script)
+    knitr::opts_chunk$set(fig.width=12, fig.height=8, #fig.path='Figs/',
+                          echo=FALSE, warning=FALSE, message=FALSE)
+    cat("rmarkdown::render", script, "knit_root_dir", curdir, "output_dir", outdir)
+    rmarkdown::render(script, knit_root_dir = curdir, output_dir = outdir)
+  }
+}
+
+#'
+#'
+#' @export
+vplot <- function(...) {
+  plts <- list(...)
+  plts <- plts %>% map(ggplotGrob)
+  grid.newpage()
+  plt<-do.call(rbind,c(plts,size="last"))
+  plt %>% grid.draw()
+  plt
+}
+
+
+#'
+#' @export
+parinit <- function(.cores=detectCores(), .pkgs=NULL, .init=NULL) {
+  if(is.null(.pkgs))
+    .pkgs <- (.packages())
+  .cluster <- makePSOCKcluster(min(detectCores(),.cores))
+  clusterCall(.cluster, function(ps) { for(p in ps) library(p, character.only=TRUE) }, .pkgs)
+  if(!is.null(.init))
+    clusterEvalQ(.init())
+  options(cluster=.cluster)
+  .cluster
+}
+
+#'
+#' @export
+parstop <- function(.cluster=getOption("cluster")) {
+  if(!is.null(.cluster)) {
+    stopCluster(.cluster)
+  }
+}  
+
+
+#'
+#' @export
+parmap <- function(.xs, .f, .cluster=getOption("cluster")) {
+  if(is.null(.cluster))
+    map(.xs,.f)
+  else{
+    parLapply(.cluster, .xs, as_function(.f))
+  }
+}
