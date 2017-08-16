@@ -609,3 +609,114 @@ strategies:
       active_contract: [1, 2, 3, 4, 5, 6]
     legs:
     - symbol: "RB.NYMEX"
+    
+  - name: "ZQ"
+    params:
+      "limit.buy": -80
+      "stop.buy": -110
+      "risk.buy": -110
+      "spread": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2]
+      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    legs:
+    - symbol: "ZQ.CBOT"
+      weight: -1
+      
+  - name: "EBM"
+    params:
+      "limit.buy": 210
+      "stop.buy": 150
+      "risk.buy": 150
+      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "EBM.EURONEXT"
+    
+  - name: "ECO"
+    params:
+      "limit.buy": 430
+      "stop.buy": 330
+      "risk.buy": 330
+      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "ECO.EURONEXT"
+    
+  - name: "EMA"
+    params:
+      "limit.buy": 190
+      "stop.buy": 130
+      "risk.buy": 130
+      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+      active_contract: [1, 2, 3, 4, 5]
+    legs:
+    - symbol: "EMA.EURONEXT"
+    
+  - name: "FDAX"
+    params:
+      "limit.buy": 13000
+      "stop.buy": 8500
+      "risk.buy": 8500
+      "spread": [8.0, 16.0, 24.0, 32.0, 40.0, 48.0, 56.0, 64.0, 72.0, 80.0, 88.0, 96.0, 104.0, 112.0, 120.0, 128.0, 136.0, 144.0, 152.0, 160.0]
+      active_contract: [1, 2]
+    legs: 
+      - symbol: "FDAX.EUREX"
+      
+  - name: "FESX"
+    params:
+      "limit.buy": 3700
+      "stop.buy": 2600
+      "risk.buy": 2600
+      "spread": [8.0, 16.0, 24.0, 32.0, 40.0, 48.0, 56.0, 64.0, 72.0, 80.0, 88.0, 96.0, 104.0, 112.0, 120.0, 128.0, 136.0, 144.0, 152.0, 160.0]
+      active_contract: [1, 2]
+    legs: 
+      - symbol: "FESX.EUREX"
+      
+  - name: "FSMI"
+    params:
+      "limit.buy": 9600
+      "stop.buy": 7400
+      "risk.buy": 7400
+      "spread": [8.0, 16.0, 24.0, 32.0, 40.0, 48.0, 56.0, 64.0, 72.0, 80.0, 88.0, 96.0, 104.0, 112.0, 120.0, 128.0, 136.0, 144.0, 152.0, 160.0]
+      active_contract: [1, 2]
+    legs: 
+      - symbol: "FSMI.EUREX"
+      
+  - name: "Z.LIFFE"
+    params:
+      "limit.buy": 7600
+      "stop.buy": 5400
+      "risk.buy": 5400
+      "spread": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+      "active_contract": [1, 2, 3, 4]
+    legs:
+    - symbol: "Z.LIFFE"
+    
+  - name: "NQ"
+    params:
+      "limit.buy": 6500
+      "stop.buy": 3500
+      "risk.buy": 3500
+      "spread": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0, 250.0, 260.0, 270.0, 280.0, 290.0, 300.0]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "NQ.CME"
+    
+  - name: "GD"
+    params:
+      "limit.buy": 5000
+      "stop.buy": 3500
+      "risk.buy": 3500
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: [1, 2, 3, 4, 5, 6]
+    legs:
+    - symbol: "GD.TOCOM"
+    
+  - name: "GS"
+    params:
+      "limit.buy": 60000
+      "stop.buy": 25000
+      "risk.buy": 25000
+      "spread": [200.0, 400.0, 600.0, 800.0, 1000.0, 1200.0, 1400.0, 1600.0, 1800.0, 2000.0, 2200.0, 2400.0, 2600.0, 2800.0, 3000.0, 3200.0, 3400.0, 3600.0, 3800.0, 4000.0]
+      active_contract: [1, 2, 3, 4, 5, 6]
+    legs:
+    - symbol: "GS.TOCOM"
