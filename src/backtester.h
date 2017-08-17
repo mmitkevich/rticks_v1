@@ -12,7 +12,7 @@ const double MAX_LATENCY = 1; //second
 struct SignalPlayer {
   std::vector<int> index;
   List signals;  
-  typedef std::function<void(const DataFrame &df, int)> observer_type;
+  typedef std::function<void(const char*signal, const DataFrame &df, int)> observer_type;
   observer_type obs;
   
   SignalPlayer(List signals, observer_type obs):
@@ -38,8 +38,9 @@ struct SignalPlayer {
       }
       if(min_index >= 0) {
         DataFrame df = as<List>(signals[min_index]);
-        index[min_index]++;
-        obs(df, min_index);        
+        CharacterVector nms = signals.names();
+        logger->log(spdlog::level::info, "Signal {}", nms[min_index]);
+        obs(nms[min_index], df, index[min_index]++);
       }else
         break;
     }
@@ -126,14 +127,13 @@ struct Backtester : public Algo
       market.on_next(ses);
     }
     
-    SignalPlayer signal_player(signals, [&](const DataFrame &df, int index){
+    SignalPlayer signal_player(signals, [&](const char*param, const DataFrame &df, int index) {
       ValueMessage<double> msg;
-      msg.rtime = msg.ctime = as<NumericVector>(df[0])[index];
+      msg.rtime = msg.ctime = as<NumericVector>(df[0])[index];//algo.datetime();
       msg.value = as<NumericVector>(df[1])[index];
-      CharacterVector nms = df.names();
-      msg.param = SymbolId(nms[index], index);
+      msg.param = SymbolId(param, -1); // TODO
       msg.symbol = to_symbol_id(as<CharacterVector>(df[2])[index]);
-      algo.on_next(msg);
+      market.on_next(msg);
     });
     
     while(index < stop) {

@@ -62,6 +62,7 @@ struct GammaAlgo : public MarketAlgo,
   void on_init(TMarket &mkt) {
       // wire up algo
       mkt.$quotes >>= *this;
+      mkt.$params >>= *this;
       mkt.$execs >>= *this;
       mkt.$session >>= *this;
       $orders >>= mkt.$orders;
@@ -74,7 +75,22 @@ struct GammaAlgo : public MarketAlgo,
   
   virtual void on_next(ValueMessage<double> e) {
     on_clock(e.rtime);
-    as<NumericVector>(params[e.param])[e.symbol] = e.value;
+    double old_value = params[e.param.id];
+    auto s = e.symbol;
+    log<info>("ALGO.SIG {} {} = {} ({}) spread={}", e.symbol, e.param.id, e.value, old_value, spread[s]);
+    as<NumericVector>(params[e.param.id])[e.symbol] = e.value;
+    if(!strcmp(e.param.id, "spread"))
+        spread[e.symbol] = e.value;
+
+    // TODO: if it is spread
+
+    auto m = market[s];
+    if(pos[s]>eps() && quotes[s].count_sell()) {
+        quote_sell(s, quotes[s].count_buy() ? std::max<double>(m.sell, quotes[s].buy + spread[s] + mpi[s]) : m.sell);
+    }
+    if(pos[s]<-eps() && quotes[s].count_buy()) {
+        quote_buy(s, quotes[s].count_sell() ? std::min<double>(m.buy, quotes[s].sell - spread[s] - mpi[s]) : m.buy);
+    }
   }
 
   virtual void on_next(QuoteMessage e) {

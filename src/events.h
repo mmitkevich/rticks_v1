@@ -125,6 +125,17 @@ struct MarketAlgo : public Algo {
         }
     }
 
+    template<int level, typename... Args>
+    void log(std::string what, const Args&... args) {
+        if(level>=log_level) {
+            if(logger) {
+              auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
+              std::string fmt = "{} |" + what;
+              logger->log(spdlog::level::info, fmt.c_str(), time, args...);
+            }
+        }
+    }
+
 };
 
 std::ostream& operator<< (std::ostream &os, const Message &e) {
