@@ -730,3 +730,13 @@ strategies:
       active_contract: [1, 2, 3, 4, 5, 6]
     legs: 
       - symbol: "PL.TOCOM"
+
+  - name: "CO.TOCOM"
+    params:
+      "limit.buy": 45000
+      "stop.buy": 14000
+      "risk.buy": 14000
+      "spread": [40.0, 80.0, 120.0, 160.0, 200.0, 240.0, 280.0, 320.0, 360.0, 400.0, 440.0, 480.0, 520.0, 560.0, 600.0, 640.0, 680.0, 720.0, 760.0, 800.0]
+      active_contract: [1, 2, 3, 4, 5, 6]
+    legs: 
+      - symbol: "CO.TOCOM"
