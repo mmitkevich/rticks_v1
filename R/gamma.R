@@ -226,24 +226,28 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
           #browser()  
           all_metrics <- bind_rows(all_metrics, metrics.oos)
+          signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
+          wfstparams <- head(stparams,1)
+          wfstparams$spread <- all_metrics$spread[1]
+          #browser()
+          r <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
+          r <- r[[1]]
+          bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+          r$metrics <- r$metrics %>% inner_join(metrics.oos%>%select(datetime,spread), by="datetime")
+          plt<-bt_plot(r, no_gaps=F, maxpoints = 1000, enabled = c("pnl","pos","rpnl","spread")) # PLOT IN USD
+          r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
+          r$results <- r$stparams %>% cbind(tail(r$metrics,1))
+          r$results$name<-r$name
+          r$results$IIS<-iis_days
+          r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+          #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
+          ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
+          r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+          runs <- c(runs,r)
         }
         #browser()
-        signal <- all_metrics %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
-        wfstparams <- head(stparams,1)
-        wfstparams$spread <- all_metrics$spread[1]
         #browser()
-        r <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
-        r <- r[[1]]
-        bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
-        plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
-        r$name <- paste0(st$name,".",ac,".OOS")
-        r$results <- r$stparams %>% cbind(tail(r$metrics,1))
-        r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
-        r$metrics <- r$metrics %>% inner_join(all_metrics%>%select(datetime,spread), by="datetime")
-        ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
-        r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
-        #browser()
-        c(runs, r)
+        runs
       })
       rs %>% reduce(c)
   })
