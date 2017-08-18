@@ -100,7 +100,10 @@ struct Algo : public IAlgo {
       if(std::isnan(dtime)) {
           throw new std::runtime_error("on_clock(NAN)");
       }else if(!std::isnan(dt) && dtime<dt-eps()) {
-          throw new std::runtime_error("on_clock("+name+", "+Datetime(dtime).format()+" is less than current "+Datetime(dt).format());
+          std::string msg = "on_clock("+name+", "+Datetime(dtime).format()+" is less than current "+Datetime(dt).format();
+          logger->warn(msg);
+          Rcpp::stop(msg);
+          throw new std::runtime_error(msg);
       }
       dt = dtime;
   }

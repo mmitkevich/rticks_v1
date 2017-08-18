@@ -94,7 +94,7 @@ data <- data_frame(datetime = dt <- seq(1,length(prices)/2) %>% map_dbl( ~ as.nu
 
 signals <- list(spread=data_frame(
     datetime = c(10,20,30) %>% map_dbl(~ data$datetime[.]),
-    value=c(3,6,9),
+    value=c(9,6,3),
     virtual_id="TEST.1"))
 
 

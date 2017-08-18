@@ -160,13 +160,14 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
         wlog("LEGS:\n", df_chr(params_ac))
                   
         runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg) 
+        data<-runs[[1]]$data
         cur<-cfg$currency
+        outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
         runs <- runs %>% map(function(r){
-          uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
+          uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1) %>% keep (~ .!="active_contract")
           stpuniq <-  r$stparams[uniq_pars]
           parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
-          stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
-          outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
+          stfname <- paste0(st$name,".", ac, ".",parvals %>% paste.list(sep="."))
           mkdirs(outdir)
           mkdirs(paste0(outdir,"/img"))
           mkdirs(paste0(outdir,"/res"))
@@ -201,7 +202,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
         })
         results <- runs %>% map_df(~ .$results)
         metrics <- runs %>% map(~ .$metrics)
-        browser()
+        #browser()
         r1 <- metrics %>% map_df(~ .[best_interval*nrow(.),])
         results$rpnl <- r1$rpnl
         indx.max <- which.max(results$rpnl)
@@ -226,12 +227,23 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #browser()  
           all_metrics <- bind_rows(all_metrics, metrics.oos)
         }
-        browser()
-        signal <- all_metrics %>% select(datetime, spread) %>% filter(spread!=lag(spread)) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
+        #browser()
+        signal <- all_metrics %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
         wfstparams <- head(stparams,1)
         wfstparams$spread <- all_metrics$spread[1]
-        browser()
-        wfrun <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal)) 
+        #browser()
+        r <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
+        r <- r[[1]]
+        bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+        plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
+        r$name <- paste0(st$name,".",ac,".OOS")
+        r$results <- r$stparams %>% cbind(tail(r$metrics,1))
+        r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+        r$metrics <- r$metrics %>% inner_join(all_metrics%>%select(datetime,spread), by="datetime")
+        ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
+        r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+        #browser()
+        c(runs, r)
       })
       rs %>% reduce(c)
   })
@@ -242,11 +254,6 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   #all_runs %>% setNames(all_runs%>%map(~.$name))
   bt$runs <- all_runs
   bt$metrics <- all_runs %>% map(~ .$metrics)
-  if(length(IIS)>0) {
-    bt <- walk_forward.gamma(bt, run_name, IIS=IIS)
-  }else {
-    bt
-  }
 }
 
 #' 

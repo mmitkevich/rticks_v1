@@ -17,8 +17,8 @@ bt <- config.gamma("samples/grid_bt.yaml") %>%   run_all.gamma(enabled="CL", run
 #par$symbol<-str_left(par$symbol,2)[[1]]
 #wfrun <- par %>% backtest(stparams=par, "gamma", start=bt$config$start, stop=bt$config$stop, config=bt$config) 
 
-run_name <- "20170809/092840-CL-WF-YZNHU"
-bt <- bt %>% walk_forward.gamma(run_name = run_name, IIS = c(3))
+#run_name <- "20170809/092840-CL-WF-YZNHU"
+#bt <- bt %>% walk_forward.gamma(run_name = run_name, IIS = c(3))
 
 
 parstop()

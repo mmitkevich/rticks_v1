@@ -138,6 +138,7 @@ struct Backtester : public Algo
     
     while(index < stop) {
       dt = datetimes[index] - close_time_fix;
+      signal_player.notify(dt);
 
       market.notify(dt); // flush the time
       
@@ -162,8 +163,7 @@ struct Backtester : public Algo
           continue;
       }
 
-      signal_player.notify(dt);
-      
+
       auto s = to_symbol_id(virtual_symbol[index]); //TODO: fix symbol search via hashmap
       double time2 = dt + 1e-6;
       if(s.index>=0) {
