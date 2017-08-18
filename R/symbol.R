@@ -77,7 +77,7 @@ parse_exante_id <- function(id, instruments=NULL) {
 #' @return (exante_id=VIX.CBOE.G2017, instrument_id=VIX.CBOE, exchange=CBOE, ticker=VIX, month=2, year=2017)
 #' @export
 parse_symbols <- function(instruments, nm="exante_id") {
-  instruments <- as.data.frame(instruments, nm=nm, stringsAsFactors=F)
+  instruments <- as.data.frame(instruments, nm=nm, stringsAsFactors=F) %>% as_data_frame()
   if(nrow(instruments)==0)
     return(instruments)
   id <- instruments[[nm]]
