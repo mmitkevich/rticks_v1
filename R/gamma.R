@@ -96,7 +96,7 @@ listify <- function(l, ns=NULL) {
 #'
 #'
 #' @export
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F, IIS=NULL, IIS.plot=c()) {
+run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F, IIS=NULL, IIS.plot=c(),best_interval=1) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
 
@@ -159,7 +159,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                                        min_active_contract=ifelse(min_active_contract==-1, 1, min_active_contract+ac))
         wlog("LEGS:\n", df_chr(params_ac))
                   
-        runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = parallel) 
+        runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg) 
         cur<-cfg$currency
         runs <- runs %>% map(function(r){
           uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
@@ -199,7 +199,39 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           }
           r
         })
-        runs %>% map(~as.list(.)) 
+        results <- runs %>% map_df(~ .$results)
+        metrics <- runs %>% map(~ .$metrics)
+        browser()
+        r1 <- metrics %>% map_df(~ .[best_interval*nrow(.),])
+        results$rpnl <- r1$rpnl
+        indx.max <- which.max(results$rpnl)
+        spread.max <- results[indx.max,]$spread
+        metrics.max <- metrics[[indx.max]] %>% mutate(iis=0, spread=spread.max)
+        all_metrics <- metrics.max
+        for(iis_days in IIS) {
+          R <- seq(1, length(metrics)) %>% map(function(i) {
+            mt <- metrics[[i]]
+            rs <- results[i,]
+            mt1 <- mt %>% mutate(is = rpnl - lag(rpnl, iis_days), 
+                                 oos = lead(rpnl) - rpnl)
+            mt1$spread <- rs$spread
+            mt1
+          }) %>% bind_rows()
+          metrics.oos <- R %>% group_by(datetime) %>% arrange(-is) %>% filter(row_number()==1) %>% 
+            arrange(datetime)  %>% as_data_frame() %>% arrange(datetime)
+          metrics.oos <- metrics.oos %>% mutate(rpnl=cumsum(oos)) %>% mutate(iis=iis_days) %>% 
+            inner_join(metrics.max%>%transmute(datetime=datetime,rpnl.max=rpnl),by="datetime")  
+          #      if(plot_delta)
+          #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
+          #browser()  
+          all_metrics <- bind_rows(all_metrics, metrics.oos)
+        }
+        browser()
+        signal <- all_metrics %>% select(datetime, spread) %>% filter(spread!=lag(spread)) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
+        wfstparams <- head(stparams,1)
+        wfstparams$spread <- all_metrics$spread[1]
+        browser()
+        wfrun <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal)) 
       })
       rs %>% reduce(c)
   })
@@ -210,8 +242,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   #all_runs %>% setNames(all_runs%>%map(~.$name))
   bt$runs <- all_runs
   bt$metrics <- all_runs %>% map(~ .$metrics)
-  if(length(IIS)>0){
-    walk_forward.gamma(bt, run_name, IIS=IIS)
+  if(length(IIS)>0) {
+    bt <- walk_forward.gamma(bt, run_name, IIS=IIS)
   }else {
     bt
   }
@@ -219,7 +251,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
 
 #' 
 #' @export
-walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plot=IIS, best_interval=1) {
+walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plot=c(), best_interval=1) {
   if(is.character(bt))
     bt <- config.gamma(bt)
   if(is.null(bt$runs))
@@ -229,7 +261,6 @@ walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plo
   stop<-as_datetime("2017-12-01")
   
   bt$forward <- list()
-  
   for(stname in stnames) {
     indxs <- which(bt$results$symbol==stname)
     metrics <- bt$metrics[indxs]

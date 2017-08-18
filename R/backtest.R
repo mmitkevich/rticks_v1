@@ -147,7 +147,7 @@ time_frame_index <- function(datetime, freq) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, signals=NULL, parallel=F) {
+backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, signals=list()) {
   timer <- Sys.time()
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
@@ -337,8 +337,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
         #browser()
         
-        #browser
-        signals.chunk <- signals %>% map(.x %>% filter(datetime>=ch$datetime))
+        signals.chunk <- signals %>% map(~ .x %>% filter(datetime>=ch$datetime))
         r <- chunk %>% backtest.chunk(params, algo=algo, config=config, signals=signals.chunk)
         perfs <- perfs %>% bind_rows(r$perfs)
         params$pos  <- r$pos
