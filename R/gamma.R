@@ -208,7 +208,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
         indx.max <- which.max(results$rpnl)
         spread.max <- results[indx.max,]$spread
         metrics.max <- metrics[[indx.max]] %>% mutate(iis=0, spread=spread.max)
-        all_metrics <- metrics.max
+        oos <- list()
         for(iis_days in IIS) {
           R <- seq(1, length(metrics)) %>% map(function(i) {
             mt <- metrics[[i]]
@@ -225,16 +225,17 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #      if(plot_delta)
           #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
           #browser()  
-          all_metrics <- bind_rows(all_metrics, metrics.oos)
           signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
           wfstparams <- head(stparams,1)
-          wfstparams$spread <- all_metrics$spread[1]
+          wfstparams$spread <- metrics.oos$spread[1]
           #browser()
           r <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
           r <- r[[1]]
           bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
           r$metrics <- r$metrics %>% inner_join(metrics.oos%>%select(datetime,spread), by="datetime")
-          plt<-bt_plot(r, no_gaps=F, maxpoints = 1000, enabled = c("pnl","pos","rpnl","spread")) # PLOT IN USD
+          const_spread <- runs[[1]]$params$spread
+          combined_metrics<-bind_rows(r$metrics, runs[[1]]$metrics %>% mutate(symbol=paste(symbol,const_spread)))
+          plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
           r$results <- r$stparams %>% cbind(tail(r$metrics,1))
           r$results$name<-r$name
@@ -244,6 +245,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
           runs <- c(runs,r)
+          oos <- c(oos, r$metrics)
         }
         #browser()
         #browser()
@@ -258,6 +260,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   #all_runs %>% setNames(all_runs%>%map(~.$name))
   bt$runs <- all_runs
   bt$metrics <- all_runs %>% map(~ .$metrics)
+  bt
 }
 
 #' 

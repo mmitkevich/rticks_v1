@@ -7,11 +7,11 @@ options(error = recover)
 
 cfg.reload()
 
-parinit(8)
+parinit(10)
 
-bt <- config.gamma("samples/grid_bt.yaml") %>%   run_all.gamma(enabled="CL", run_name = run_name_today("CL-WF"), keep_data = F,IIS = c(1,3,10,20))
+bt <- config.gamma("samples/grid_bt.yaml") %>%   run_all.gamma(enabled="PL-GC", run_name = run_name_today("PL-GC-WF"), keep_data = F,IIS = c(1,3,10,20))
 
-#sig <- bt$forward[[1]] %>% select(datetime, spread)
+
 #all_params <- bt$results %>% group_by(symbol) %>% filter(row_number()==1) %>% select(-weight)
 #par <- all_params[1,] %>% as_data_frame()
 #par$symbol<-str_left(par$symbol,2)[[1]]

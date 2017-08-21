@@ -416,7 +416,8 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl"
   perfs <- perfs %>% arrange(datetime)
   perfs <- ifnull(start, perfs, perfs %>% filter(datetime>=start))
   perfs <- ifnull(stop, perfs, perfs %>% filter(datetime<stop))
-  timeframe <- as.period(perfs$datetime[2]-perfs$datetime[1])
+  dt <- unique(perfs$datetime)
+  timeframe <- as.period(dt[2]-dt[1])
   timeframe.old <- timeframe
   timeframe <- lower_timeframe(timeframe, nrow(perfs), maxrows=maxrows)
   
@@ -446,7 +447,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl"
   #browser()
   plt <- ggplot(df1, aes(x=datetime, y=close, colour=symbol)) + 
     theme_bw() + 
-    theme(legend.position = "none") +
+#    theme(legend.position = "none") +
     geom_segment(aes(y=close, yend=close, xend=datetime+timeframe)) + 
     geom_linerange(aes(ymin=low, ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
