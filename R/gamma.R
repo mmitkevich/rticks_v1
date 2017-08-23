@@ -4,12 +4,15 @@
 metrics.gamma <- function(env, no_commission=F, currency=NULL) {
   #params = attr(perfs, "params")
   #browser()
-  qtys <- env$perfs %>% spread(metric, value) %>% as_data_frame()
+  qtys <- env$metrics
   if(has_name(qtys, "commission"))
     qtys <- qtys %>% select(-commission)
-  qtys <- qtys %>% inner_join(env$params %>% select(symbol, spread, multiplier, commission), by="symbol")
+  pars <- env$params %>% select(symbol, multiplier, commission, spread)
+  if(has_name(qtys, "spread"))
+    pars$spread <- NULL
+  qtys <- qtys %>% inner_join(pars, by="symbol")
   qtys <- qtys %>% mutate(
-    rpnl = pmin(qty_buy, qty_sell) * spread * multiplier)
+    rpnl = cumsum(pmin(qty_buy-lag(qty_buy,default=0), qty_sell-lag(qty_sell,default=0)) * spread * multiplier))
   
   if(!no_commission)
     qtys <- qtys %>% mutate(
@@ -42,7 +45,7 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
           * p$multiplier,
     rtn = (pnl-lag(pnl))/lag(drisk),
     returns = cumsum(na_replace(rtn,0)))
-  qtys<- qtys %>% select(-spread,-multiplier) %>% gather(metric, value, -datetime, -symbol)
+  qtys<- qtys %>% select(-multiplier)
   qtys
 }
 
@@ -96,7 +99,7 @@ listify <- function(l, ns=NULL) {
 #'
 #'
 #' @export
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F, IIS=NULL, IIS.plot=c(),best_interval=1) {
+run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), keep_data=F, IIS=NULL, IIS.plot=c(), best_interval=1) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
 
@@ -231,10 +234,9 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #browser()
           r <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
           r <- r[[1]]
-          bt_reports(r, no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
-          r$metrics <- r$metrics %>% inner_join(metrics.oos%>%select(datetime,spread), by="datetime")
-          const_spread <- runs[[1]]$params$spread
-          combined_metrics<-bind_rows(r$metrics, runs[[1]]$metrics %>% mutate(symbol=paste(symbol,const_spread)))
+          bt_reports(r, signals=metrics.oos %>% select(datetime, spread), no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+          const_spread <- runs[[indx.max]]$params$spread
+          combined_metrics<-bind_rows(r$metrics %>% mutate(symbol=paste0(symbol, ".OOS.",iis_days)), runs[[indx.max]]$metrics %>% mutate(symbol=paste0(symbol,".spread~",const_spread)))
           plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
           r$results <- r$stparams %>% cbind(tail(r$metrics,1))

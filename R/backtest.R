@@ -464,10 +464,12 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl"
 #' bt_report(r)
 #' "USD/RUB.MOEX" to divide by the currency rate
 #' @export
-bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1, save=F, ...) {
+bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1, save=F, signals=NULL,...) {
   # view data
-  metrics <- metrics.gamma(r, ...) # calculate additional metrics
-  r$metrics <- metrics %>% spread(metric,value)
+  r$metrics <- r$perfs %>% spread(metric, value) %>% as_data_frame()
+  if(!is.null(signals))
+    r$metrics <- r$metrics %>% inner_join(signals, by="datetime")
+  r$metrics <- r %>% metrics.gamma(...) # calculate additional metrics
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
     if(!is.data.frame(currency)) {

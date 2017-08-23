@@ -5,7 +5,7 @@ library(grid)
 options(debug=T)
 options(error = recover)
 cfg.reload()
-parinit(10)
+parinit(0)
 bt <- config.gamma("samples/grid_test.yaml")
 
 bt <- bt %>% run_all.gamma(enabled="PL-GC", run_name = run_name_today("PL-GC-WF"), keep_data = F, IIS = c(1,3,10,20))
