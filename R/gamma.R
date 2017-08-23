@@ -16,8 +16,8 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
   
   if(!no_commission)
     qtys <- qtys %>% mutate(
-      rpnl = rpnl - commission, 
       commission = commission*(qty_buy+qty_sell),
+      rpnl = rpnl - commission, 
       pnl = pnl - commission,
       pnl_high = pnl_high - commission,
       pnl_low = pnl_low - commission)
