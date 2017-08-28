@@ -911,3 +911,23 @@ strategies:
       active_contract: 1
     legs: 
       - symbol: "JPM.NYSE"
+      
+  - name: "PHAU.LSE"
+    params:
+      "limit.buy": 140
+      "stop.buy": 100
+      "risk.buy": 100
+      "spread": [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.2, 4.5, 4.8, 5.1, 5.4, 5.7, 6.0]
+      active_contract: 1
+    legs: 
+      - symbol: "PHAU.LSE"
+      
+  - name: "PHPT.LSE"
+    params:
+      "limit.buy": 110
+      "stop.buy": 80
+      "risk.buy": 80
+      "spread": [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.2, 4.5, 4.8, 5.1, 5.4, 5.7, 6.0]
+      active_contract: 1
+    legs: 
+      - symbol: "PHPT.LSE"
