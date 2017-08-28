@@ -850,3 +850,64 @@ strategies:
       active_contract: 1
     legs: 
       - symbol: "AVGO.NASDAQ"
+
+  - name: "INTC.NASDAQ"
+    params:
+      "limit.buy": 38
+      "stop.buy": 24
+      "risk.buy": 24
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "INTC.NASDAQ"
+
+  - name: "BAC.NYSE"
+    params:
+      "limit.buy": 28
+      "stop.buy": 10
+      "risk.buy": 10
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "BAC.NYSE"
+      
+  - name: "GE.NYSE"
+    params:
+      "limit.buy": 34
+      "stop.buy": 20
+      "risk.buy": 20
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "GE.NYSE"
+      
+  - name: "WFC.NYSE"
+    params:
+      "limit.buy": 60
+      "stop.buy": 40
+      "risk.buy": 40
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "WFC.NYSE"
+      
+  - name: "C.NYSE"
+    params:
+      "limit.buy": 70
+      "stop.buy": 30
+      "risk.buy": 30
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "C.NYSE"
+      
+      
+  - name: "JPM.NYSE"
+    params:
+      "limit.buy": 100
+      "stop.buy": 50
+      "risk.buy": 50
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "JPM.NYSE"
