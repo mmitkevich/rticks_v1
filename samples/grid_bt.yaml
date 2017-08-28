@@ -736,7 +736,117 @@ strategies:
       "limit.buy": 45000
       "stop.buy": 14000
       "risk.buy": 14000
-      "spread": [40.0, 80.0, 120.0, 160.0, 200.0, 240.0, 280.0, 320.0, 360.0, 400.0, 440.0, 480.0, 520.0, 560.0, 600.0, 640.0, 680.0, 720.0, 760.0, 800.0]
+      "spread": [60.0, 120.0, 180.0, 240.0, 300.0, 360.0, 420.0, 480.0, 540.0, 600.0, 660.0, 720.0, 780.0, 840.0, 900.0, 960.0, 1020.0, 1080.0, 1140.0, 1200.0]
       active_contract: [1, 2, 3, 4, 5, 6]
     legs: 
       - symbol: "CO.TOCOM"
+      
+  - name: "AAPL.NASDAQ"
+    params:
+      "limit.buy": 170
+      "stop.buy": 85
+      "risk.buy": 85
+      "spread": [0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.2, 4.8, 5.4, 6.0, 6.6, 7.2, 7.8, 8.4, 9.0, 9.6, 10.2, 10.8, 11.4, 12.0]
+      active_contract: 1
+    legs: 
+      - symbol: "AAPL.NASDAQ"
+      
+  - name: "TSLA.NASDAQ"
+    params:
+      "limit.buy": 400
+      "stop.buy": 120
+      "risk.buy": 120
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: 1
+    legs: 
+      - symbol: "TSLA.NASDAQ"
+      
+  - name: "CSCO.NASDAQ"
+    params:
+      "limit.buy": 36
+      "stop.buy": 20
+      "risk.buy": 20
+      "spread": [0.16, 0.32, 0.48, 0.64, 0.8, 0.96, 1.12, 1.28, 1.44, 1.6, 1.76, 1.92, 2.08, 2.24, 2.4, 2.56, 2.72, 2.88, 3.04, 3.2]
+      active_contract: 1
+    legs: 
+      - symbol: "CSCO.NASDAQ"
+
+  - name: "AMD.NASDAQ"
+    params:
+      "limit.buy": 18
+      "stop.buy": 1
+      "risk.buy": 1
+      "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
+      active_contract: 1
+    legs: 
+      - symbol: "AMD.NASDAQ"
+      
+  - name: "FB.NASDAQ"
+    params:
+      "limit.buy": 180
+      "stop.buy": 70
+      "risk.buy": 70
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "FB.NASDAQ"
+      
+  - name: "AMZN.NASDAQ"
+    params:
+      "limit.buy": 1100
+      "stop.buy": 200
+      "risk.buy": 200
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: 1
+    legs: 
+      - symbol: "AMZN.NASDAQ"
+      
+  - name: "NVDA.NASDAQ"
+    params:
+      "limit.buy": 180
+      "stop.buy": 15
+      "risk.buy": 15
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "NVDA.NASDAQ"
+      
+  - name: "GOOGL.NASDAQ"
+    params:
+      "limit.buy": 1100
+      "stop.buy": 500
+      "risk.buy": 500
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: 1
+    legs: 
+      - symbol: "GOOGL.NASDAQ"
+
+  - name: "MSFT.NASDAQ"
+    params:
+      "limit.buy": 80
+      "stop.buy": 35
+      "risk.buy": 35
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "MSFT.NASDAQ"
+      
+  - name: "ULTA.NASDAQ"
+    params:
+      "limit.buy": 320
+      "stop.buy": 115
+      "risk.buy": 115
+      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: 1
+    legs: 
+      - symbol: "ULTA.NASDAQ"
+      
+  - name: "AVGO.NASDAQ"
+    params:
+      "limit.buy": 280
+      "stop.buy": 80
+      "risk.buy": 80
+      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: 1
+    legs: 
+      - symbol: "AVGO.NASDAQ"
