@@ -21,6 +21,8 @@ backtest.chunk <- function(data, params, algo, config, signals) {
   log_perfs("backtest.chunk in", data, params, params, 0.5*(head(data$bid,1)+head(data$ask,1)))
   
   timer <- Sys.time()
+  
+  config$cookie <- paste0(params$symbol,".spread~",params$spread,".iis~",params$iis)
   r <- bt_gamma(algo, data, params, config, signals)
   log_perf(timer, nrow(data), "data processing speed ")
   
@@ -233,10 +235,10 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
   runs <-  istpars %>% parmap( function(istpar) {
   #for(istpar in seq(1,nrow(stparams)))
   #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
-    cfg<-config
-    cfg$log_path <- paste0(log_path,"-",Sys.getpid())
-    wlog("Logging into",cfg$log_path)
-    init_spd_log(cfg)
+    #cfg<-config
+    #cfg$log_path <- paste0(log_path,"-",Sys.getpid())
+    #wlog("Logging into",cfg$log_path)
+    #init_spd_log(cfg)
     
     timer <- Sys.time()
     

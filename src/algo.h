@@ -117,13 +117,13 @@ struct Algo : public IAlgo {
   };
   
   template<int level, typename TMessage>
-  void dlog(const TMessage &e) {
+  void dlog(const TMessage &e, std::string cookie="") {
       assert(!std::isnan(datetime()));
       if(level>=log_level) {
         if(logger) {
           auto my_time = std::isnan(datetime()) ? std::string("NA") : Datetime(datetime()).format();
           auto time = std::isnan(e.rtime) ? std::string("NA"): Datetime(e.rtime).format();
-          logger->log(spdlog::level::info, "{} | {} | {} | {}\n", my_time, name, time, e);//(spdlog::level::level_enum)level //FIXME
+          logger->log(spdlog::level::info, "{} | {} | {} | {} | {}\n", my_time, cookie, name, time, e);//(spdlog::level::level_enum)level //FIXME
           //if(level>=log_flush_level)
           //  logger->flush();
         }

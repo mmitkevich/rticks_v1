@@ -115,8 +115,9 @@ struct MarketAlgo : public Algo {
         if(level>=log_level) {
             if(logger) {
               auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-              logger->log(spdlog::level::info, "{} | {} | {}:{} | M={}, {} | Q={}, {} | S={}, {} | POS={} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
-                         time, what, s.id, s.index,
+              auto cookie = optional<CharacterVector>(config, "cookie");
+              logger->log(spdlog::level::info, "{} | {} | {} | {}:{} | M={}, {} | Q={}, {} | S={}, {} | POS={} | {} | {}", // FIXME ::(spdlog::level::level_enum)level
+                         time, what, cookie, s.id, s.index,
                          market.buy[s], market.sell[s], 
                          quotes.buy[s], quotes.sell[s], 
                          stop_quotes.buy[s], stop_quotes.sell[s],
@@ -130,8 +131,9 @@ struct MarketAlgo : public Algo {
         if(level>=log_level) {
             if(logger) {
               auto time = std::isnan(dt) ? std::string("NA") : Datetime(dt).format();
-              std::string fmt = "{} |" + what;
-              logger->log(spdlog::level::info, fmt.c_str(), time, args...);
+              std::string fmt = "{} | {} |" + what;
+              auto cookie = optional<CharacterVector>(config, "cookie", "");
+              logger->log(spdlog::level::info, fmt.c_str(), time, cookie, args...);
             }
         }
     }

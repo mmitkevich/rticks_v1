@@ -74,7 +74,7 @@ void init_spd_log(List config) {
           
         }
         ::logger =  std::make_shared<spdlog::logger>("rticks", begin(sinks), end(sinks));
-        ::logger->set_pattern("%l   %v");
+        ::logger->set_pattern("%Y-%m-%d %H:%M:%S | %t | %L | %v");
     }
     catch (const spdlog::spdlog_ex& ex)
     {
