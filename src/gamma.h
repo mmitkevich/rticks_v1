@@ -86,10 +86,10 @@ struct GammaAlgo : public MarketAlgo,
 
     auto m = market[s];
     if(pos[s]>eps() && quotes[s].count_sell()) {
-        quote_sell(s, quotes[s].count_buy() ? std::max<double>(m.sell, quotes[s].buy + spread[s] + mpi[s]) : m.sell);
+        quote_sell(s, quotes[s].count_buy() ? quotes[s].buy + spread[s] + mpi[s] : m.sell);
     }
     if(pos[s]<-eps() && quotes[s].count_buy()) {
-        quote_buy(s, quotes[s].count_sell() ? std::min<double>(m.buy, quotes[s].sell - spread[s] - mpi[s]) : m.buy);
+        quote_buy(s, quotes[s].count_sell() ? quotes[s].sell - spread[s] - mpi[s] : m.buy);
     }
   }
 
