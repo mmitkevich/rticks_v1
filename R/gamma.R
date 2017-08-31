@@ -12,7 +12,8 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
     pars$spread <- NULL
   qtys <- qtys %>% inner_join(pars, by="symbol")
   qtys <- qtys %>% mutate(
-    rpnl = cumsum(pmin(qty_buy-lag(qty_buy,default=0), qty_sell-lag(qty_sell,default=0)) * spread * multiplier))
+    rpnl = (pmin(qty_buy, qty_sell)-lag(pmin(qty_buy, qty_sell),default=0)) * spread * multiplier
+  ) %>% mutate(rpnl=cumsum(rpnl))
   
   if(!no_commission)
     qtys <- qtys %>% mutate(
@@ -102,9 +103,9 @@ listify <- function(l, ns=NULL) {
 run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), keep_data=F, IIS=NULL, IIS.plot=c(), best_interval=1) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
-
+  bt$run_name <- run_name
   mkdirs(paste0(bt$config$outdir, run_name))
-  as.yaml(bt) %>% write(file=paste0(bt$config$outdir,run_name,"/", "grid.yaml"))
+  list(config=bt$config,strategies=bt$strategies) %>% as.yaml() %>%  write(file=paste0(bt$config$outdir,run_name,"/", "grid.yaml"))
   
   bt$config <- list(no_commission=F, 
                     no_cache = T, # всегда из базы
@@ -232,11 +233,14 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           wfstparams <- head(stparams,1)
           wfstparams$spread <- metrics.oos$spread[1]
           #browser()
-          r <- params_ac %>% backtest(stparams=wfstparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
+          r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
           r <- r[[1]]
           bt_reports(r, signals=metrics.oos %>% select(datetime, spread), no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
-          const_spread <- runs[[indx.max]]$params$spread
-          combined_metrics<-bind_rows(r$metrics %>% mutate(symbol=paste0(symbol, ".OOS.",iis_days)), runs[[indx.max]]$metrics %>% mutate(symbol=paste0(symbol,".spread~",const_spread)))
+          indx.compare<-indx.max #1
+          const_spread <- runs[[indx.compare]]$params$spread
+          combined_metrics <- r$metrics %>% mutate(symbol=paste0(symbol, ".OOS.",iis_days)) %>% 
+            bind_rows(runs[[indx.compare]]$metrics %>% 
+            mutate(symbol=paste0(symbol,".spread~",const_spread)))
           plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
           r$results <- r$stparams %>% cbind(tail(r$metrics,1))
@@ -248,6 +252,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
           runs <- c(runs,r)
           oos <- c(oos, r$metrics)
+          gc()
         }
         #browser()
         #browser()

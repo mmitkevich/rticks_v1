@@ -98,6 +98,7 @@ fetch.reuters <- function(q) {
       arrange(datetime) %>%      # sort by datetime
       filter(row_number()==n()) #%>%  # and take last active_contract numbering 
     #  filter(active_contract %in% q$active_contract)
+  t = Sys.time()
   wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
   
   #browser()
@@ -144,7 +145,8 @@ fetch.reuters <- function(q) {
   
   #result<-structure(result, class="chunk")
   #row.names(df) <- NULL
-  wlog("fetch.reuters out", nrow(df),  "rows", as.character(head(df$datetime,1)), "..", as.character(tail(df$datetime,1)), "exante_id", head(df$exante_id,1), "virtual_id", head(df$virtual_id,1))
+  t = Sys.time()-t
+  wlog("fetch.reuters out", nrow(df),  "rows", as.character(head(df$datetime,1)), "..", as.character(tail(df$datetime,1)), "exante_id", head(df$exante_id,1), "virtual_id", head(df$virtual_id,1), " fetched in ",t, "s, ",nrow(df)/as.numeric(t),"rows/s")
   return(df)
 }
 
