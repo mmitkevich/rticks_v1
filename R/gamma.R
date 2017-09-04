@@ -235,7 +235,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #browser()
           r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
           r <- r[[1]]
-          bt_reports(r, signals=metrics.oos %>% select(datetime, spread), no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+          bt_reports(r, signals=metrics.oos %>% select(datetime, spread) %>% mutate(spread=lag(spread,default=0)), no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
           indx.compare<-indx.max #1
           const_spread <- runs[[indx.compare]]$params$spread
           combined_metrics <- r$metrics %>% mutate(symbol=paste0(symbol, ".OOS.",iis_days)) %>% 
