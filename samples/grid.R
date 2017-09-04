@@ -2,13 +2,11 @@ library(rticks)
 library(ggplot2)
 library(grid)
 
-options(debug=T)
-options(error = recover)
+options(debug=F)
+#options(error = recover)
 cfg.reload()
-parinit(0)
-bt <- config.gamma("samples/grid_test.yaml")
-
-bt <- bt %>% run_all.gamma(enabled="C", run_name = run_name_today("PL-GC-WF"), keep_data = F, IIS = c(1,3,10,20))
-
+parinit(8)
+bt <- config.gamma("samples/grid_bt.yaml")
+bt <- bt %>% run_all.gamma(enabled=c("C","BRUB","PL-GC"), run_name = run_name_today("C-BRUB-PLGC-test-WF"), keep_data = F, IIS = c(1,3,10,20))
 parstop()
 last_plot()
