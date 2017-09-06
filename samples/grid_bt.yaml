@@ -736,7 +736,770 @@ strategies:
       "limit.buy": 45000
       "stop.buy": 14000
       "risk.buy": 14000
-      "spread": [40.0, 80.0, 120.0, 160.0, 200.0, 240.0, 280.0, 320.0, 360.0, 400.0, 440.0, 480.0, 520.0, 560.0, 600.0, 640.0, 680.0, 720.0, 760.0, 800.0]
+      "spread": [60.0, 120.0, 180.0, 240.0, 300.0, 360.0, 420.0, 480.0, 540.0, 600.0, 660.0, 720.0, 780.0, 840.0, 900.0, 960.0, 1020.0, 1080.0, 1140.0, 1200.0]
       active_contract: [1, 2, 3, 4, 5, 6]
     legs: 
       - symbol: "CO.TOCOM"
+
+  - name: "AAPL.NASDAQ"
+    params:
+      "limit.buy": 170
+      "stop.buy": 85
+      "risk.buy": 85
+      "spread": [0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.2, 4.8, 5.4, 6.0, 6.6, 7.2, 7.8, 8.4, 9.0, 9.6, 10.2, 10.8, 11.4, 12.0]
+      active_contract: 1
+    legs: 
+      - symbol: "AAPL.NASDAQ"
+      
+  - name: "TSLA.NASDAQ"
+    params:
+      "limit.buy": 400
+      "stop.buy": 120
+      "risk.buy": 120
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: 1
+    legs: 
+      - symbol: "TSLA.NASDAQ"
+      
+  - name: "CSCO.NASDAQ"
+    params:
+      "limit.buy": 36
+      "stop.buy": 20
+      "risk.buy": 20
+      "spread": [0.16, 0.32, 0.48, 0.64, 0.8, 0.96, 1.12, 1.28, 1.44, 1.6, 1.76, 1.92, 2.08, 2.24, 2.4, 2.56, 2.72, 2.88, 3.04, 3.2]
+      active_contract: 1
+    legs: 
+      - symbol: "CSCO.NASDAQ"
+
+  - name: "AMD.NASDAQ"
+    params:
+      "limit.buy": 18
+      "stop.buy": 1
+      "risk.buy": 1
+      "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
+      active_contract: 1
+    legs: 
+      - symbol: "AMD.NASDAQ"
+      
+  - name: "FB.NASDAQ"
+    params:
+      "limit.buy": 180
+      "stop.buy": 70
+      "risk.buy": 70
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "FB.NASDAQ"
+      
+  - name: "AMZN.NASDAQ"
+    params:
+      "limit.buy": 1100
+      "stop.buy": 200
+      "risk.buy": 200
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: 1
+    legs: 
+      - symbol: "AMZN.NASDAQ"
+      
+  - name: "NVDA.NASDAQ"
+    params:
+      "limit.buy": 180
+      "stop.buy": 15
+      "risk.buy": 15
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "NVDA.NASDAQ"
+      
+  - name: "GOOGL.NASDAQ"
+    params:
+      "limit.buy": 1100
+      "stop.buy": 500
+      "risk.buy": 500
+      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
+      active_contract: 1
+    legs: 
+      - symbol: "GOOGL.NASDAQ"
+
+  - name: "MSFT.NASDAQ"
+    params:
+      "limit.buy": 80
+      "stop.buy": 35
+      "risk.buy": 35
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "MSFT.NASDAQ"
+      
+  - name: "ULTA.NASDAQ"
+    params:
+      "limit.buy": 320
+      "stop.buy": 115
+      "risk.buy": 115
+      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: 1
+    legs: 
+      - symbol: "ULTA.NASDAQ"
+      
+  - name: "AVGO.NASDAQ"
+    params:
+      "limit.buy": 280
+      "stop.buy": 80
+      "risk.buy": 80
+      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: 1
+    legs: 
+      - symbol: "AVGO.NASDAQ"
+
+  - name: "INTC.NASDAQ"
+    params:
+      "limit.buy": 38
+      "stop.buy": 24
+      "risk.buy": 24
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "INTC.NASDAQ"
+
+  - name: "BAC.NYSE"
+    params:
+      "limit.buy": 28
+      "stop.buy": 10
+      "risk.buy": 10
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "BAC.NYSE"
+      
+  - name: "GE.NYSE"
+    params:
+      "limit.buy": 34
+      "stop.buy": 20
+      "risk.buy": 20
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "GE.NYSE"
+      
+  - name: "WFC.NYSE"
+    params:
+      "limit.buy": 60
+      "stop.buy": 40
+      "risk.buy": 40
+      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1
+    legs: 
+      - symbol: "WFC.NYSE"
+      
+  - name: "C.NYSE"
+    params:
+      "limit.buy": 70
+      "stop.buy": 30
+      "risk.buy": 30
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "C.NYSE"
+      
+      
+  - name: "JPM.NYSE"
+    params:
+      "limit.buy": 100
+      "stop.buy": 50
+      "risk.buy": 50
+      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
+      active_contract: 1
+    legs: 
+      - symbol: "JPM.NYSE"
+      
+  - name: "PHAU.LSE"
+    params:
+      "limit.buy": 140
+      "stop.buy": 100
+      "risk.buy": 100
+      "spread": [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.2, 4.5, 4.8, 5.1, 5.4, 5.7, 6.0]
+      active_contract: 1
+    legs: 
+      - symbol: "PHAU.LSE"
+      
+  - name: "PHPT.LSE"
+    params:
+      "limit.buy": 110
+      "stop.buy": 80
+      "risk.buy": 80
+      "spread": [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.2, 4.5, 4.8, 5.1, 5.4, 5.7, 6.0]
+      active_contract: 1
+    legs: 
+      - symbol: "PHPT.LSE"
+
+  - name: LLOY.LSE
+    params:
+      limit.buy: 92.0
+      stop.buy: 42.0
+      risk.buy: 42.0
+      spread: [0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 3.6, 4.0, 4.4, 4.8, 5.2, 5.6, 6.0, 6.4, 6.8, 7.2, 7.6, 8.0]
+      active_contract: 1.0
+    legs:
+    - symbol: LLOY.LSE
+    
+  - name: VOD.LSE
+    params:
+      limit.buy: 234.0
+      stop.buy: 2.0
+      risk.buy: 2.0
+      spread: [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: 1.0
+    legs:
+    - symbol: VOD.LSE
+        
+  - name: MONI.LSEAIM
+    params:
+      limit.buy: 8.3
+      stop.buy: 1.5
+      risk.buy: 1.5
+      spread: [0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.22, 0.24, 0.26, 0.28, 0.3, 0.32, 0.34, 0.36, 0.38, 0.4]
+      active_contract: 1.0
+    legs:
+    - symbol: MONI.LSEAIM
+    
+  - name: GLEN.LSE
+    params:
+      limit.buy: 390.0
+      stop.buy: 60.0
+      risk.buy: 60.0
+      spread:
+      - 2.0
+      - 4.0
+      - 6.0
+      - 8.0
+      - 10.0
+      - 12.0
+      - 14.0
+      - 16.0
+      - 18.0
+      - 20.0
+      - 22.0
+      - 24.0
+      - 26.0
+      - 28.0
+      - 30.0
+      - 32.0
+      - 34.0
+      - 36.0
+      - 38.0
+      - 40.0
+      active_contract: 1.0
+    legs:
+    - symbol: GLEN.LSE
+    
+  - name: BARC.LSE
+    params:
+      limit.buy: 320.0
+      stop.buy: 110.0
+      risk.buy: 110.0
+      spread:
+      - 1.0
+      - 2.0
+      - 3.0
+      - 4.0
+      - 5.0
+      - 6.0
+      - 7.0
+      - 8.0
+      - 9.0
+      - 10.0
+      - 11.0
+      - 12.0
+      - 13.0
+      - 14.0
+      - 15.0
+      - 16.0
+      - 17.0
+      - 18.0
+      - 19.0
+      - 20.0
+      active_contract: 1.0
+    legs:
+    - symbol: BARC.LSE
+    
+  - name: PSM.XETRA
+    params:
+      limit.buy: 52
+      stop.buy: 25.8
+      risk.buy: 25.8
+      spread: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+      active_contract: 1.0
+    legs:
+    - symbol: PSM.XETRA
+    
+  - name: DTE.XETRA
+    params:
+      limit.buy: 20.0
+      stop.buy: 12.0
+      risk.buy: 12.0
+      spread:
+      - 0.08
+      - 0.16
+      - 0.24
+      - 0.32
+      - 0.4
+      - 0.48
+      - 0.56
+      - 0.64
+      - 0.72
+      - 0.8
+      - 0.88
+      - 0.96
+      - 1.04
+      - 1.12
+      - 1.2
+      - 1.28
+      - 1.36
+      - 1.44
+      - 1.52
+      - 1.6
+      active_contract: 1.0
+    legs:
+    - symbol: DTE.XETRA
+      
+  - name: EOAN.XETRA
+    params:
+      limit.buy: 13.6
+      stop.buy: 5.4
+      risk.buy: 5.4
+      spread:
+      - 0.07
+      - 0.14
+      - 0.21
+      - 0.28
+      - 0.35
+      - 0.42
+      - 0.49
+      - 0.56
+      - 0.63
+      - 0.7
+      - 0.77
+      - 0.84
+      - 0.91
+      - 0.98
+      - 1.05
+      - 1.12
+      - 1.19
+      - 1.26
+      - 1.33
+      - 1.4
+      active_contract: 1.0
+    legs:
+    - symbol: EOAN.XETRA
+    
+  - name: CBK.XETRA
+    params:
+      limit.buy: 13.4
+      stop.buy: 4.6
+      risk.buy: 4.6
+      spread:
+      - 0.07
+      - 0.14
+      - 0.21
+      - 0.28
+      - 0.35
+      - 0.42
+      - 0.49
+      - 0.56
+      - 0.63
+      - 0.7
+      - 0.77
+      - 0.84
+      - 0.91
+      - 0.98
+      - 1.05
+      - 1.12
+      - 1.19
+      - 1.26
+      - 1.33
+      - 1.4
+      active_contract: 1.0
+    legs:
+    - symbol: CBK.XETRA
+
+
+  - name: DBK.XETRA
+    params:
+      limit.buy: 35.5
+      stop.buy: 8.9
+      risk.buy: 8.9
+      spread:
+      - 0.17
+      - 0.34
+      - 0.51
+      - 0.68
+      - 0.85
+      - 1.02
+      - 1.19
+      - 1.36
+      - 1.53
+      - 1.7
+      - 1.87
+      - 2.04
+      - 2.21
+      - 2.38
+      - 2.55
+      - 2.72
+      - 2.89
+      - 3.06
+      - 3.23
+      - 3.4
+      active_contract: 1.0
+    legs:
+    - symbol: DBK.XETRA
+    
+  - name: ACA.EURONEXT
+    params:
+      limit.buy: 17.0
+      stop.buy: 6.0
+      risk.buy: 6.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: ACA.EURONEXT    
+
+  - name: AGN.EURONEXT
+    params:
+      limit.buy: 7.9
+      stop.buy: 2.7
+      risk.buy: 2.7
+      spread:
+      - 0.04
+      - 0.08
+      - 0.12
+      - 0.16
+      - 0.2
+      - 0.24
+      - 0.28
+      - 0.32
+      - 0.36
+      - 0.4
+      - 0.44
+      - 0.48
+      - 0.52
+      - 0.56
+      - 0.6
+      - 0.64
+      - 0.68
+      - 0.72
+      - 0.76
+      - 0.8
+      active_contract: 1.0
+    legs:
+    - symbol: AGN.EURONEXT
+      
+  - name: INGA.EURONEXT
+    params:
+      limit.buy: 18.0
+      stop.buy: 8.0
+      risk.buy: 8.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: INGA.EURONEXT
+    
+  - name: CS.EURONEXT
+    params:
+      limit.buy: 29.0
+      stop.buy: 14.0
+      risk.buy: 14.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: CS.EURONEXT
+    
+  - name: RDSA.EURONEXT
+    params:
+      limit.buy: 30.0
+      stop.buy: 15.0
+      risk.buy: 15.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: RDSA.EURONEXT
+    
+  - name: KPN.EURONEXT
+    params:
+      limit.buy: 4.1
+      stop.buy: 2.3
+      risk.buy: 2.3
+      spread:
+      - 0.02
+      - 0.04
+      - 0.06
+      - 0.08
+      - 0.1
+      - 0.12
+      - 0.14
+      - 0.16
+      - 0.18
+      - 0.2
+      - 0.22
+      - 0.24
+      - 0.26
+      - 0.28
+      - 0.3
+      - 0.32
+      - 0.34
+      - 0.36
+      - 0.38
+      - 0.4
+      active_contract: 1.0
+    legs:
+    - symbol: KPN.EURONEXT
+    
+  - name: CSGN.SIX
+    params:
+      limit.buy: 32.0
+      stop.buy: 9.0
+      risk.buy: 9.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: CSGN.SIX
+    
+  - name: UBSG.SIX
+    params:
+      limit.buy: 19.0
+      stop.buy: 14.0
+      risk.buy: 14.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: UBSG.SIX    
+
+  - name: ABBN.SIX
+    params:
+      limit.buy: 27.0
+      stop.buy: 14.0
+      risk.buy: 14.0
+      spread:
+      - 0.1
+      - 0.2
+      - 0.3
+      - 0.4
+      - 0.5
+      - 0.6
+      - 0.7
+      - 0.8
+      - 0.9
+      - 1.0
+      - 1.1
+      - 1.2
+      - 1.3
+      - 1.4
+      - 1.5
+      - 1.6
+      - 1.7
+      - 1.8
+      - 1.9
+      - 2.0
+      active_contract: 1.0
+    legs:
+    - symbol: ABBN.SIX
+    
+  - name: 8306.TSE
+    params:
+      limit.buy: 860.0
+      stop.buy: 440.0
+      risk.buy: 440.0
+      spread:
+      - 4.0
+      - 8.0
+      - 12.0
+      - 16.0
+      - 20.0
+      - 24.0
+      - 28.0
+      - 32.0
+      - 36.0
+      - 40.0
+      - 44.0
+      - 48.0
+      - 52.0
+      - 56.0
+      - 60.0
+      - 64.0
+      - 68.0
+      - 72.0
+      - 76.0
+      - 80.0
+      active_contract: 1.0
+    legs:
+    - symbol: 8306.TSE
+    
+  - name: 8411.TSE
+    params:
+      limit.buy: 250.0
+      stop.buy: 150.0
+      risk.buy: 150.0
+      spread:
+      - 1.0
+      - 2.0
+      - 3.0
+      - 4.0
+      - 5.0
+      - 6.0
+      - 7.0
+      - 8.0
+      - 9.0
+      - 10.0
+      - 11.0
+      - 12.0
+      - 13.0
+      - 14.0
+      - 15.0
+      - 16.0
+      - 17.0
+      - 18.0
+      - 19.0
+      - 20.0
+      active_contract: 1.0
+    legs:
+    - symbol: 8411.TSE
+    
+  - name: 6723.TSE
+    params:
+      limit.buy: 1200
+      stop.buy: 400
+      risk.buy: 400
+      spread: [4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0, 52.0, 56.0, 60.0, 64.0, 68.0, 72.0, 76.0, 80.0]
+      active_contract: 1.0
+    legs:
+    - symbol: 6723.TSE
+    
+  - name: 6501.TSE
+    params:
+      limit.buy: 900
+      stop.buy: 350
+      risk.buy: 350
+      spread: [4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 28.0, 32.0, 36.0, 40.0, 44.0, 48.0, 52.0, 56.0, 60.0, 64.0, 68.0, 72.0, 76.0, 80.0]
+      active_contract: 1.0
+    legs:
+    - symbol: 6501.TSE
+
