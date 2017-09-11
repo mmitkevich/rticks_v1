@@ -4,17 +4,21 @@
 metrics.gamma <- function(env, no_commission=F, currency=NULL) {
   #params = attr(perfs, "params")
   #browser()
-  qtys <- env$perfs %>% spread(metric, value) %>% as_data_frame()
+  qtys <- env$metrics
   if(has_name(qtys, "commission"))
     qtys <- qtys %>% select(-commission)
-  qtys <- qtys %>% inner_join(env$params %>% select(symbol, spread, multiplier, commission), by="symbol")
+  pars <- env$params %>% select(symbol, multiplier, commission, spread)
+  if(has_name(qtys, "spread"))
+    pars$spread <- NULL
+  qtys <- qtys %>% inner_join(pars, by="symbol")
   qtys <- qtys %>% mutate(
-    rpnl = pmin(qty_buy, qty_sell) * spread * multiplier)
+    rpnl = (pmin(qty_buy, qty_sell)-lag(pmin(qty_buy, qty_sell),default=0)) * spread * multiplier
+  ) %>% mutate(rpnl=cumsum(rpnl))
   
   if(!no_commission)
     qtys <- qtys %>% mutate(
       commission = commission*(qty_buy+qty_sell),
-      rpnl = rpnl - commission,
+      rpnl = rpnl - commission, 
       pnl = pnl - commission,
       pnl_high = pnl_high - commission,
       pnl_low = pnl_low - commission)
@@ -42,7 +46,7 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
           * p$multiplier,
     rtn = (pnl-lag(pnl))/lag(drisk),
     returns = cumsum(na_replace(rtn,0)))
-  qtys<- qtys %>% select(-spread,-multiplier) %>% gather(metric, value, -datetime, -symbol)
+  qtys<- qtys %>% select(-multiplier)
   qtys
 }
 
@@ -96,12 +100,12 @@ listify <- function(l, ns=NULL) {
 #'
 #'
 #' @export
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), parallel=T, keep_data=F, IIS=NULL, IIS.plot=c()) {
+run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), keep_data=F, IIS=NULL, IIS.plot=c(), best_interval=1) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
-
+  bt$run_name <- run_name
   mkdirs(paste0(bt$config$outdir, run_name))
-  as.yaml(bt) %>% write(file=paste0(bt$config$outdir,run_name,"/", "grid.yaml"))
+  list(config=bt$config,strategies=bt$strategies) %>% as.yaml() %>%  write(file=paste0(bt$config$outdir,run_name,"/", "grid.yaml"))
   
   bt$config <- list(no_commission=F, 
                     no_cache = T, # всегда из базы
@@ -115,9 +119,16 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                     perfs_tz = as.integer(15),
                     roll_same_day_all_legs=T,
                     start=as_datetime("2011-01-01"), 
-                    stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% parse_periods(c("zero_position_freq", "perfs_freq"))  %>% parse_dates(c("start","stop"))
+                    stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% 
+              parse_periods(c("zero_position_freq", "perfs_freq"))  %>% 
+              parse_dates(c("start","stop"))
+  
+  init_spd_log(bt$config)
+  wlog("LOG INITIALIZED")
   
   enabled <- ifnull(enabled, bt$config$enabled)
+  IIS <- ifnull(IIS, bt$config$IIS)
+  
   status_file = paste0(bt$config$outdir,run_name,"/", "errors.log")
   strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
@@ -148,6 +159,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
         cfg$custom_roll <- roll_day(day_of_month=cfg$roll_day_of_month, months_ahead = cfg$roll_months_ahead)
       acs <- ifnull(st$params$active_contract,0)
       rs <- acs %>% parmap(function(ac) {
+        init_spd_log(bt$config)
         wlog("CFG:\n", as.yaml(cfg))
         stparams <- params_defaults %>% modifyList(st$params)
         stparams$active_contract<-ac
@@ -157,14 +169,15 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                                        min_active_contract=ifelse(min_active_contract==-1, 1, min_active_contract+ac))
         wlog("LEGS:\n", df_chr(params_ac))
                   
-        runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, parallel = parallel) 
+        runs <- params_ac %>% backtest(stparams=stparams, "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg) 
+        data<-runs[[1]]$data
         cur<-cfg$currency
+        outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
         runs <- runs %>% map(function(r){
-          uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1)
+          uniq_pars <- names(st$params) %>% keep(~ length(st$params[[.]])>1) %>% keep (~ .!="active_contract")
           stpuniq <-  r$stparams[uniq_pars]
           parvals <- map2(stpuniq,names(stpuniq), ~ paste0(.y,"~",.x))
-          stfname <- paste0(st$name,".", parvals %>% paste.list(sep="."))
-          outdir <- paste0(bt$config$outdir, run_name, "/",st$name) # "/", stfname
+          stfname <- paste0(st$name,".", ac, ".",parvals %>% paste.list(sep="."))
           mkdirs(outdir)
           mkdirs(paste0(outdir,"/img"))
           mkdirs(paste0(outdir,"/res"))
@@ -197,7 +210,60 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           }
           r
         })
-        runs %>% map(~as.list(.)) 
+        results <- runs %>% map_df(~ .$results)
+        metrics <- runs %>% map(~ .$metrics)
+        #browser()
+        r1 <- metrics %>% map_df(~ .[best_interval*nrow(.),])
+        results$rpnl <- r1$rpnl
+        indx.max <- which.max(results$rpnl)
+        spread.max <- results[indx.max,]$spread
+        metrics.max <- metrics[[indx.max]] %>% mutate(iis=0, spread=spread.max)
+        oos <- list()
+        for(iis_days in IIS) {
+          R <- seq(1, length(metrics)) %>% map(function(i) {
+            mt <- metrics[[i]]
+            rs <- results[i,]
+            mt1 <- mt %>% mutate(is = rpnl - lag(rpnl, iis_days), 
+                                 oos = lead(rpnl) - rpnl)
+            mt1$spread <- rs$spread
+            mt1
+          }) %>% bind_rows()
+          metrics.oos <- R %>% group_by(datetime) %>% arrange(-is) %>% filter(row_number()==1) %>% 
+            arrange(datetime)  %>% as_data_frame() %>% arrange(datetime)
+          metrics.oos <- metrics.oos %>% mutate(rpnl=cumsum(oos)) %>% mutate(iis=iis_days) %>% 
+            inner_join(metrics.max%>%transmute(datetime=datetime,rpnl.max=rpnl),by="datetime")  
+          #      if(plot_delta)
+          #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
+          #browser()  
+          signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
+          wfstparams <- head(stparams,1)
+          wfstparams$spread <- metrics.oos$spread[1]
+          #browser()
+          r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
+          r <- r[[1]]
+          bt_reports(r, signals=metrics.oos %>% select(datetime, spread) %>% mutate(spread=lag(spread,default=0)), no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
+          indx.compare<-indx.max #1
+          const_spread <- runs[[indx.compare]]$params$spread
+          combined_metrics <- r$metrics %>% mutate(symbol=paste0(symbol, ".OOS.",iis_days)) %>% 
+            bind_rows(runs[[indx.compare]]$metrics %>% 
+            mutate(symbol=paste0(symbol,".spread~",const_spread)))
+          plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
+          r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
+          r$results <- r$stparams %>% cbind(tail(r$metrics,1))
+          r$results$name<-r$name
+          r$results$IIS<-iis_days
+          r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+          #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
+          ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
+          r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+          runs <- c(runs,r)
+          oos <- c(oos, r$metrics)
+          gc()
+        }
+        #browser()
+        #browser()
+        flush_spd_log()
+        runs #%>% map(~as.list(.)) 
       })
       rs %>% reduce(c)
   })
@@ -208,16 +274,12 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   #all_runs %>% setNames(all_runs%>%map(~.$name))
   bt$runs <- all_runs
   bt$metrics <- all_runs %>% map(~ .$metrics)
-  if(length(IIS)>0){
-    walk_forward.gamma(bt, run_name, IIS=IIS)
-  }else {
-    bt
-  }
+  bt
 }
 
 #' 
 #' @export
-walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plot=IIS, best_interval=1) {
+walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plot=c(), best_interval=1) {
   if(is.character(bt))
     bt <- config.gamma(bt)
   if(is.null(bt$runs))
@@ -227,7 +289,6 @@ walk_forward.gamma <- function(bt=config(gamma)$gridPath, run_name, IIS, IIS.plo
   stop<-as_datetime("2017-12-01")
   
   bt$forward <- list()
-  
   for(stname in stnames) {
     indxs <- which(bt$results$symbol==stname)
     metrics <- bt$metrics[indxs]

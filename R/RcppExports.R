@@ -28,7 +28,7 @@ spd_log <- function(lvl, s) {
 #'
 #' will backtest gamma scalping
 #' @export
-bt_gamma <- function(clazz, data, params, config) {
-    .Call('rticks_bt_gamma', PACKAGE = 'rticks', clazz, data, params, config)
+bt_gamma <- function(clazz, data, params, config, signals) {
+    .Call('rticks_bt_gamma', PACKAGE = 'rticks', clazz, data, params, config, signals)
 }
 

@@ -2,7 +2,7 @@ config:
   log_path: "rticks.log"
   outdir: "~/results/equity/"
 
-  perfs_freq: "days"
+  perfs_freq: "minutes"
   perfs_tz: 15
   
   no_cache: true
@@ -16,11 +16,11 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-07-01"
-  stop: "2017-07-01"
+#  start: "2015-07-01"
+#  stop: "2017-07-01"
 
-  #start: "2011-01-01"
-  #stop: "2017-07-01"
+  start: "2011-01-01"
+  stop: "2017-07-01"
   
   roll_day_of_month: 1
   roll_months_ahead: false

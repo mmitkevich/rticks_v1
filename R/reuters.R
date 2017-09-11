@@ -53,11 +53,11 @@ query_candles.reuters <- function(instruments = NULL,
                                        roll_same_day_all_legs=roll_same_day_all_legs,
                                        start=start, stop=stop)
                        ))
-  if(getOption("debug",F)){
+  #if(getOption("debug",F)){
     wlog("SCHEDULE")
-    print(schedule)
+    wlog(df_chr(schedule))
     #browser()
-  }
+  #}
   schedule <- schedule %>% .filter_schedule(start=start, stop=NULL) # FIXED FROM stop=stop
   q <- structure(new.env(), class="reuters")
   with(q, {
@@ -98,6 +98,7 @@ fetch.reuters <- function(q) {
       arrange(datetime) %>%      # sort by datetime
       filter(row_number()==n()) #%>%  # and take last active_contract numbering 
     #  filter(active_contract %in% q$active_contract)
+  t = Sys.time()
   wlog("fetch.reuters in", as.character(as_datetime(q$start)),"..", as.character(as_datetime(stop)), "exante_ids", paste.list(symbols$exante_id,sep=" "))
   
   #browser()
@@ -144,7 +145,8 @@ fetch.reuters <- function(q) {
   
   #result<-structure(result, class="chunk")
   #row.names(df) <- NULL
-  wlog("fetch.reuters out", nrow(df),  "rows", as.character(head(df$datetime,1)), "..", as.character(tail(df$datetime,1)), "exante_id", head(df$exante_id,1), "virtual_id", head(df$virtual_id,1))
+  t = Sys.time()-t
+  wlog("fetch.reuters out", nrow(df),  "rows", as.character(head(df$datetime,1)), "..", as.character(tail(df$datetime,1)), "exante_id", head(df$exante_id,1), "virtual_id", head(df$virtual_id,1), " fetched in ",t, "s, ",nrow(df)/as.numeric(t),"rows/s")
   return(df)
 }
 
@@ -169,11 +171,10 @@ by_event.chunk <- function(df) {
 
 #' 
 #' @export
-data_holes <- function(ndays=5) {
+data_holes <- function(instruments=NULL, ndays=5) {
   z <- sql.select("quant_data.smart_quality",where="minutes_qty_actual<minutes_qty_expected") %>% mutate(datetime=as_datetime(date))
   z %>% group_by(exante_id) %>% 
     arrange(datetime) %>% 
-    mutate(prev=lag(datetime)) %>% 
     filter(datetime-prev>ddays(ndays)) %>% 
     rename(start=prev, stop=datetime) %>% 
     select(exante_id, instrument_id, start, stop) %>% 

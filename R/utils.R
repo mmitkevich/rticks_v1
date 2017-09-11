@@ -191,14 +191,19 @@ vplot <- function(...) {
 #'
 #' @export
 parinit <- function(.cores=detectCores(), .pkgs=NULL, .init=NULL) {
-  if(is.null(.pkgs))
-    .pkgs <- (.packages())
-  .cluster <- makePSOCKcluster(min(detectCores(),.cores))
-  clusterCall(.cluster, function(ps) { for(p in ps) library(p, character.only=TRUE) }, .pkgs)
-  if(!is.null(.init))
-    clusterEvalQ(.init())
-  options(cluster=.cluster)
-  .cluster
+  if(!is.null(.cores) && .cores>0) {
+    if(is.null(.pkgs))
+      .pkgs <- (.packages())
+    .cluster <- makePSOCKcluster(min(detectCores(),.cores))
+    clusterCall(.cluster, function(ps) { for(p in ps) library(p, character.only=TRUE) }, .pkgs)
+    if(!is.null(.init))
+      clusterEvalQ(.init())
+    options(cluster=.cluster)
+    .cluster
+  }else{
+    options(cluster=NULL)
+    NULL
+  }
 }
 
 #'

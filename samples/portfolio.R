@@ -5,27 +5,7 @@ library(rticks)
 library(ggplot2)
 library(grid)
 
-bt_list_runs <-function(bt = yaml.load_file(config(path)$gridPath)) {
-  list.dirs(bt$config$outdir,full.names = F) %>% keep(~ nchar(.)>0)
-}
 
-bt_load_results <- function(name = NULL, bt = yaml.load_file(config(path)$gridPath)) {
-  if(is.null(name))
-    name <- bt_list_runs(bt) %>% tail(1)
-  path <- paste0(bt$config$outdir, name, "/results.csv")
-  read.csv(path, stringsAsFactors = F)
-}
-
-str_left <- function(s, n=0) {
-  s %>% map(~ substr(., start=0,stop=nchar(.)-n))
-}
-
-as.equal.weights <- function(weights) {
-  weight.equal <- weights
-  for (i in 1:nrow(weight.equal)){
-    weight.equal[i,] <- apply(weight.equal[i,], 2, function(x) ifelse(x > 0, 1/sum(weight.equal[i,]!=0), 0))
-  }
-}
 
 wf_portfolio <- function(R, 
   obj_type = "risk",
@@ -53,8 +33,7 @@ wf_portfolio <- function(R,
 
   start_t <- Sys.time()
 
-  #out_list <- foreach::foreach(ep = iterators::iter(ep.i), 
-  #                           .errorhandling = "pass", .packages = "PortfolioAnalytics") %do%  # %dopar%
+  #out_list <- foreach::foreach(ep = iterators::iter(ep.i),                            .errorhandling = "pass", .packages = "PortfolioAnalytics") %do%  # %dopar%
   for(ep in ep.i)
   {
                               browser()

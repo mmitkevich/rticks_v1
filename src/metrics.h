@@ -100,7 +100,7 @@ struct Metrics : public MarketAlgo,
       //  logger->flush();
       //}
       if(perfs_interval<1){
-        throw std::runtime_error("config$perfs freq should be like 1h=3600, 1d=86400");
+        throw std::runtime_error("config$perfs is less than 1. Valid values 3600(1h), 86400 (1d)");
       }
   }
 

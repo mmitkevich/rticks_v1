@@ -5,7 +5,7 @@ config:
   outdir: "/opt/bt/results/"
   #outdir: "~/results/"
 
-  perfs_freq: "days"
+  perfs_freq: "minutes"
   perfs_tz: 15
   
   no_cache: true
@@ -20,7 +20,7 @@ config:
   log_level: 2
 
   start: "2015-08-01"
-  stop: "2017-08-01"
+  stop: "2016-12-01"
 
   start_full_pos: true
   roll_day_of_month: 1

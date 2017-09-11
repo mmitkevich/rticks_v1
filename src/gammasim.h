@@ -10,13 +10,17 @@ template<typename TOrderMessage=OrderMessage,
          typename TQuoteMessage=QuoteMessage,
          typename TExecutionMessage=ExecutionMessage,
          typename TSessionMessage=SessionMessage,
+         typename TValueMessage=ValueMessage<double>,
          typename TMetrics=Metrics<TExecutionMessage>,
          typename TScheduler=Scheduler<Algo> >
 struct GammaSimulator : public MarketAlgo,
                         // inputs
                         public IObserver<TQuoteMessage>,         // from market
                         public IObserver<TOrderMessage>,        // from algo
-                        public IObserver<TSessionMessage>      // from market
+                        public IObserver<TSessionMessage>,
+                        public IObserver<TValueMessage>
+// from market
+
 {
   typedef TOrderMessage order_message_type;
 
@@ -28,6 +32,7 @@ struct GammaSimulator : public MarketAlgo,
   LatencyQueue<TQuoteMessage> $quotes;
   LatencyQueue<TExecutionMessage> $execs;
   LatencyQueue<TOrderMessage> $orders;
+  LatencyQueue<TValueMessage> $params;
   
   TScheduler scheduler;
   TMetrics metrics;
@@ -42,6 +47,7 @@ struct GammaSimulator : public MarketAlgo,
       $quotes(params, config, &scheduler, "$quotes "),
       $execs(params, config, &scheduler,  "$execs  "),
       $orders(params, config, &scheduler, "$orders "),
+      $params(params, config, &scheduler, "$params "),
       check_big_qty(optional<NumericVector>(config,"check_big_qty",1e6)[0])
   {
       //quotes.buy = quotes.sell = NAN; // FIXME: this is wrong. quotes.buy and quotes.sell will be SHARED NumVector.
@@ -68,6 +74,10 @@ struct GammaSimulator : public MarketAlgo,
     on_simulate(e.symbol);
     // forward to algorithms
     $quotes.on_next(std::move(e));
+  }
+
+  virtual void on_next(TValueMessage e) {
+    $params.on_next(std::move(e));
   }
 
   // quotes from the gamma strategy  -  receive the gamma

@@ -20,7 +20,9 @@ struct GammaAlgo : public MarketAlgo,
                      // inputs -> on_next(T)
                      public IObserver<QuoteMessage>,
                      public IObserver<ExecutionMessage>,
-                     public IObserver<SessionMessage>
+                     public IObserver<SessionMessage>,
+                     public IObserver<ValueMessage<double>>
+
 {
   typedef TOrderMessage order_message_type;
 
@@ -60,6 +62,7 @@ struct GammaAlgo : public MarketAlgo,
   void on_init(TMarket &mkt) {
       // wire up algo
       mkt.$quotes >>= *this;
+      mkt.$params >>= *this;
       mkt.$execs >>= *this;
       mkt.$session >>= *this;
       $orders >>= mkt.$orders;
@@ -68,6 +71,26 @@ struct GammaAlgo : public MarketAlgo,
 
   double round_price(SymbolId s, double price) {
       return roundl(price/mpi[s])*mpi[s];
+  }
+  
+  virtual void on_next(ValueMessage<double> e) {
+    on_clock(e.rtime);
+    double old_value = params[e.param.id];
+    auto s = e.symbol;
+    log<info>("ALGO.SIG {} {} = {} ({}) spread={}", e.symbol, e.param.id, e.value, old_value, spread[s]);
+    as<NumericVector>(params[e.param.id])[e.symbol] = e.value;
+    if(!strcmp(e.param.id, "spread"))
+        spread[e.symbol] = e.value;
+
+    // TODO: if it is spread
+
+    auto m = market[s];
+    if(pos[s]>eps() && quotes[s].count_sell()) {
+        quote_sell(s, quotes[s].count_buy() ? quotes[s].buy + spread[s] + mpi[s] : m.sell);
+    }
+    if(pos[s]<-eps() && quotes[s].count_buy()) {
+        quote_buy(s, quotes[s].count_sell() ? quotes[s].sell - spread[s] - mpi[s] : m.buy);
+    }
   }
 
   virtual void on_next(QuoteMessage e) {

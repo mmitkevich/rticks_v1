@@ -90,12 +90,11 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
                                 schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T, 
                                                            custom_roll=NULL, roll_same_day_all_legs=F)) {
   instruments <- query_instruments(instruments)
-  if(!is.null(roll_pattern)) {
+  if(!is.null(roll_pattern)&&!is.na(roll_pattern)) {
     instruments$active_contract <- roll_pattern
   }
   dir.create("~/bt_cache", showWarnings=F)
-  cache_name <- paste0("~/bt_cache/", paste.list(unique(instruments$instrument_id), sep="_"))
-  cache_name <- gsub("/","_",cache_name)
+  cache_name <- paste0("~/bt_cache/", gsub("/","_",paste.list(unique(instruments$instrument_id), sep="_")))
   path <- cache_name
   #browser()
   ilog("query_candles_cache  ", cache_name, "start", as.character(start), "stop", as.character(stop))

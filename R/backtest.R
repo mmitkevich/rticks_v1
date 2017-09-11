@@ -17,11 +17,13 @@ trunc_freq <- function(dts,freq) {
 #' query_candles_cache("VIX.CBOE", active_contract=1, start=dt(2016)) %>% fetch() %>% bt.chunk(params=list(...))
 #' 
 #' @export
-backtest.chunk <- function(data, params, algo, config) {
+backtest.chunk <- function(data, params, algo, config, signals) {
   log_perfs("backtest.chunk in", data, params, params, 0.5*(head(data$bid,1)+head(data$ask,1)))
   
   timer <- Sys.time()
-  r <- bt_gamma(algo, data, params, config)
+  
+  config$cookie <- paste0(params$symbol,".spread~",params$spread,".iis~",params$iis)
+  r <- bt_gamma(algo, data, params, config, signals)
   log_perf(timer, nrow(data), "data processing speed ")
   
   if(length(r$perfs$datetime)==0) {
@@ -29,6 +31,7 @@ backtest.chunk <- function(data, params, algo, config) {
          "..",data$datetime %>% tail(1) %>% as_datetime()%>% strftime("%y-%m-%d %H:%M:%S"))
     warning(paste("**** EMPTY PERFS ****",as.character(data$datetime[1]),"..",as.character(data$datetime%>%tail(1))))
     return (r);
+    
   }
   
   #r$perfs$datetime <-  r$perfs$datetime %>% trunc_freq(config$perfs_freq)
@@ -146,7 +149,7 @@ time_frame_index <- function(datetime, freq) {
 #' backtest list of chunks
 #' 
 #' @export
-backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, parallel=F) {
+backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::now(), instruments=NULL, data=NULL, config=backtest_config_default, signals=list()) {
   timer <- Sys.time()
   
   config <- backtest_config_default %>% modifyList(config) # merge with default config
@@ -232,10 +235,10 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
   runs <-  istpars %>% parmap( function(istpar) {
   #for(istpar in seq(1,nrow(stparams)))
   #runs <- seq(1, nrow(stparams)) %>% map(function(istpar) {  
-    cfg<-config
-    cfg$log_path <- paste0(log_path,"-",Sys.getpid())
-    wlog("Logging into",cfg$log_path)
-    init_spd_log(cfg)
+    #cfg<-config
+    #cfg$log_path <- paste0(log_path,"-",Sys.getpid())
+    #wlog("Logging into",cfg$log_path)
+    #init_spd_log(cfg)
     
     timer <- Sys.time()
     
@@ -249,7 +252,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     }
     
     wlog("USING strategy parameters")
-    print(stparams[istpar,])
+    wlog(df_chr(stparams[istpar,]))
     
     gaps = data_frame()
     ct = NULL
@@ -336,8 +339,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
         #browser()
         
-        #browser
-        r <- chunk %>% backtest.chunk(params, algo=algo, config=config)
+        signals.chunk <- signals %>% map(~ .x %>% filter(datetime>=ch$datetime))
+        r <- chunk %>% backtest.chunk(params, algo=algo, config=config, signals=signals.chunk)
         perfs <- perfs %>% bind_rows(r$perfs)
         params$pos  <- r$pos
         params$cash <- r$cash
@@ -415,7 +418,8 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl"
   perfs <- perfs %>% arrange(datetime)
   perfs <- ifnull(start, perfs, perfs %>% filter(datetime>=start))
   perfs <- ifnull(stop, perfs, perfs %>% filter(datetime<stop))
-  timeframe <- as.period(perfs$datetime[2]-perfs$datetime[1])
+  dt <- unique(perfs$datetime)
+  timeframe <- as.period(dt[2]-dt[1])
   timeframe.old <- timeframe
   timeframe <- lower_timeframe(timeframe, nrow(perfs), maxrows=maxrows)
   
@@ -445,7 +449,7 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl"
   #browser()
   plt <- ggplot(df1, aes(x=datetime, y=close, colour=symbol)) + 
     theme_bw() + 
-    theme(legend.position = "none") +
+    theme(legend.position = "bottom") +
     geom_segment(aes(y=close, yend=close, xend=datetime+timeframe)) + 
     geom_linerange(aes(ymin=low, ymax=high)) + guides(fill=FALSE) +
     facet_grid(metric ~ ., scales = "free_y")  + 
@@ -462,10 +466,12 @@ plot_bt <- function(perfs, start=NULL, stop=NULL, enabled=c("price","pnl","rpnl"
 #' bt_report(r)
 #' "USD/RUB.MOEX" to divide by the currency rate
 #' @export
-bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1, save=F, ...) {
+bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1, save=F, signals=NULL,...) {
   # view data
-  metrics <- metrics.gamma(r, ...) # calculate additional metrics
-  r$metrics <- metrics %>% spread(metric,value)
+  r$metrics <- r$perfs %>% spread(metric, value) %>% as_data_frame()
+  if(!is.null(signals))
+    r$metrics <- r$metrics %>% inner_join(signals, by="datetime")
+  r$metrics <- r %>% metrics.gamma(...) # calculate additional metrics
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
     if(!is.data.frame(currency)) {

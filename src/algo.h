@@ -100,7 +100,10 @@ struct Algo : public IAlgo {
       if(std::isnan(dtime)) {
           throw new std::runtime_error("on_clock(NAN)");
       }else if(!std::isnan(dt) && dtime<dt-eps()) {
-          throw new std::runtime_error("on_clock("+name+", "+Datetime(dtime).format()+" is less than current "+Datetime(dt).format());
+          std::string msg = "on_clock("+name+", "+Datetime(dtime).format()+" is less than current "+Datetime(dt).format();
+          logger->warn(msg);
+          Rcpp::stop(msg);
+          throw new std::runtime_error(msg);
       }
       dt = dtime;
   }
@@ -114,13 +117,13 @@ struct Algo : public IAlgo {
   };
   
   template<int level, typename TMessage>
-  void dlog(const TMessage &e) {
+  void dlog(const TMessage &e, std::string cookie="") {
       assert(!std::isnan(datetime()));
       if(level>=log_level) {
         if(logger) {
           auto my_time = std::isnan(datetime()) ? std::string("NA") : Datetime(datetime()).format();
           auto time = std::isnan(e.rtime) ? std::string("NA"): Datetime(e.rtime).format();
-          logger->log(spdlog::level::info, "{} | {} | {} | {}\n", my_time, name, time, e);//(spdlog::level::level_enum)level //FIXME
+          logger->log(spdlog::level::info, "{} | {} | {} | {} | {}\n", my_time, cookie, name, time, e);//(spdlog::level::level_enum)level //FIXME
           //if(level>=log_flush_level)
           //  logger->flush();
         }
