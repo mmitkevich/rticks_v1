@@ -18,8 +18,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-07-20"
-  stop: "2017-07-20"
+  start: "2015-08-04"
+  stop: "2017-08-04"
   
   roll_day_of_month: 1
   roll_months_ahead: false
@@ -50,7 +50,7 @@ strategies:
       "limit.buy": 500
       "stop.buy": 350
       "risk.buy": 300
-      "spread": 3
+      "spread": 5
       "active_contract": 3
     legs:
     - symbol: "W.LIFFE"
@@ -72,7 +72,20 @@ strategies:
       "limit.buy": 3300.0
       "stop.buy": 2100.0
       "risk.buy": 1500.0
-      "spread": 50.0
+      "spread": 90.0
+    config:
+      mpi: 1
+      multiplier: 1000.0
+      currency: "USD/RUB.MOEX"
+      currency_power: -1
+
+  - name: "BRUB1"
+    params:
+      "limit.buy": 3300.0
+      "stop.buy": 2100.0
+      "risk.buy": 1500.0
+      "spread": 40.0
+      active_contract: 5
     config:
       mpi: 1
       multiplier: 1000.0
@@ -80,16 +93,16 @@ strategies:
       currency_power: -1
     
     legs: 
-      - symbol: B.ICE
+      - symbol: "B.ICE""
         weight: 0.001
-        currency: "Si.FORTS.1"
-        active_contract: 3
-        min_active_contract: 3
+        currency: "USD/RUB.MOEX.1"
+#        active_contract: 5
+#        min_active_contract: 5
         
-      - symbol: Si.FORTS
+      - symbol: "USD/RUB.MOEX.1"
         weight: 0
-        active_contract: 1
-        min_active_contract: 1
+        active_contract: -1
+        min_active_contract: -1
 
   - name: "PL-GC"
     params:
@@ -137,8 +150,8 @@ strategies:
       "limit.buy": 50
       "stop.buy": 30
       "risk.buy": 20
-      "spread": 0.25
-      active_contract: 5
+      "spread": 0.7
+      active_contract: 8
       
     legs:
     - symbol: "CL.NYMEX"
@@ -183,7 +196,7 @@ strategies:
       "limit.buy": 76
       "stop.buy": 50
       "risk.buy": 40
-      "spread": 0.65
+      "spread": 0.45
       active_contract: 1
     legs:
     - symbol: "LH.CME"
@@ -269,7 +282,7 @@ strategies:
         
   - name: "ZC"
     config:
-      roll_months_ahead: 3
+      roll_months_ahead: 1
     params:
       "limit.buy": 385
       "stop.buy": 325
@@ -283,7 +296,7 @@ strategies:
 
   - name: "ZL"
     config:
-      roll_months_ahead: 3
+      roll_months_ahead: 1
     params:
       "limit.buy": 36.8
       "stop.buy": 30
@@ -297,7 +310,7 @@ strategies:
 
   - name: "ZW"
     config:
-      roll_months_ahead: 3
+      roll_months_ahead: 1
     params:
       "limit.buy": 540
       "stop.buy": 400
@@ -331,4 +344,72 @@ strategies:
       active_contract: 5
     legs: 
     - symbol: "FVS.EUREX"
- 
+
+  - name: "FSTE"
+    config:
+      currency: "EUR/USD.E"
+      currency_power: 1
+    params:
+      "limit.buy": 310
+      "stop.buy": 230
+      "risk.buy": 200
+      "spread": 0.4
+      active_contract: 1
+    legs:
+    - symbol: "FSTE.EUREX"
+
+  - name: "ZS"
+    config:
+      roll_months_ahead: 3
+    params:
+      "limit.buy": 1000
+      "stop.buy": 850
+      "risk.buy": 700
+      "spread": 6
+      active_contract: 1
+    legs:
+    - symbol: "ZS.CBOT"
+      weight: 1
+      roll_pattern: [5, 11]       
+
+  - name: "B-T"
+    params:
+      "limit.buy": 2
+      "stop.buy": -2
+      "risk.buy": -4
+      "spread": 0.1
+      active_contract: 3
+    legs: 
+      - symbol: "B-T.ICE"
+        weight: -1
+
+  - name: "HG"
+    params:
+      "limit.buy": 3
+      "stop.buy": 2
+      "risk.buy": 1.5
+      "spread": 0.06
+      active_contract: 3
+      
+    legs:
+    - symbol: "HG.COMEX"
+
+  - name: "PL"
+    params:
+      "limit.buy": 950
+      "stop.buy": 800
+      "risk.buy": 700
+      "spread": 9
+      active_contract: 1
+    legs:
+    - symbol: "PL.NYMEX"
+
+  - name: "PA"
+    params:
+      "limit.buy": 750
+      "stop.buy": 500
+      "risk.buy": 400
+      "spread": 11
+      active_contract: 1
+    legs:
+    - symbol: "PA.NYMEX"
