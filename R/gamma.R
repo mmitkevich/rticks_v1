@@ -115,7 +115,12 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                     perfs_tz = as.integer(15),
                     roll_same_day_all_legs=T,
                     start=as_datetime("2011-01-01"), 
-                    stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% parse_periods(c("zero_position_freq", "perfs_freq"))  %>% parse_dates(c("start","stop"))
+                    stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% 
+              parse_periods(c("zero_position_freq", "perfs_freq"))  %>% 
+              parse_dates(c("start","stop"))
+  
+  init_spd_log(bt$config)
+  wlog("LOG INITIALIZED")
   
   enabled <- ifnull(enabled, bt$config$enabled)
   status_file = paste0(bt$config$outdir,run_name,"/", "errors.log")
@@ -148,6 +153,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
         cfg$custom_roll <- roll_day(day_of_month=cfg$roll_day_of_month, months_ahead = cfg$roll_months_ahead)
       acs <- ifnull(st$params$active_contract,0)
       rs <- acs %>% parmap(function(ac) {
+        init_spd_log(bt$config)
         wlog("CFG:\n", as.yaml(cfg))
         stparams <- params_defaults %>% modifyList(st$params)
         stparams$active_contract<-ac
@@ -197,6 +203,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           }
           r
         })
+        flush_spd_log()
         runs %>% map(~as.list(.)) 
       })
       rs %>% reduce(c)
