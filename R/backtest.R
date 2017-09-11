@@ -249,7 +249,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     }
     
     wlog("USING strategy parameters")
-    print(stparams[istpar,])
+    wlog(df_chr(stparams[istpar,]))
     
     gaps = data_frame()
     ct = NULL
