@@ -16,8 +16,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-07-07"
-  stop: "2017-07-07"
+  start: "2015-09-01"
+  stop: "2017-09-05"
   
   roll_day_of_month: 1
   roll_months_ahead: false
@@ -49,7 +49,7 @@ strategies:
       "stop.buy": 350
       "risk.buy": 300
       "spread": 9
-      "active_contract": 3
+      "active_contract": 2
     legs:
     - symbol: "W.LIFFE"
       roll_pattern: [3, 5, 10]       
@@ -110,10 +110,10 @@ strategies:
       currency: "EUR/USD.E"
       currency_power: 1
     params:
-      "limit.buy": 5.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "limit.buy": 5.6    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
-      "spread": 0.15
+      "spread": 0.25
       active_contract: 2
     legs: 
       - symbol: "C.ICE"
@@ -176,7 +176,7 @@ strategies:
 
   - name: "LH"
     config:
-      roll_months_ahead: 2
+      roll_months_ahead: 1
     params:
       "limit.buy": 76
       "stop.buy": 50
@@ -249,13 +249,13 @@ strategies:
 
   - name: "KC-RC"
     config:
-      roll_months_ahead: 1
+#      roll_months_ahead: 1
     params:
       "limit.buy": -200
       "stop.buy": -500
       "risk.buy": -600
       "spread": 30
-      active_contract: 1
+      active_contract: 2
     legs: 
       - symbol: "RC.LIFFE"
         weight: -1
@@ -267,11 +267,11 @@ strategies:
         
   - name: "ZC"
     config:
-      roll_months_ahead: 3
+      roll_months_ahead: 2
     params:
-      "limit.buy": 385
-      "stop.buy": 325
-      "risk.buy": 220
+      "limit.buy": 390
+      "stop.buy": 330
+      "risk.buy": 225
       "spread": 3
       active_contract: 1
 
@@ -295,7 +295,7 @@ strategies:
 
   - name: "ZW"
     config:
-      roll_months_ahead: 3
+      roll_months_ahead: 2
     params:
       "limit.buy": 540
       "stop.buy": 400
@@ -329,4 +329,26 @@ strategies:
       active_contract: 5
     legs: 
     - symbol: "FVS.EUREX"
+
+  - name: "ZS"
+    config:
+      roll_months_ahead: 3
+    params:
+      "limit.buy": 1000
+      "stop.buy": 850
+      "risk.buy": 500
+      "spread": 6
+      active_contract: 1
+    legs:
+    - symbol: "ZW.CBOT"
+      roll_pattern: [3, 11]       
  
+  - name: "GS"
+    params:
+      "limit.buy": 50000
+      "stop.buy": 35000
+      "risk.buy": 25000
+      "spread": 1000
+      active_contract: 5
+    legs:
+    - symbol: "GS.TOCOM"
