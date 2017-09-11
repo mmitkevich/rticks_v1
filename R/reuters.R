@@ -53,11 +53,11 @@ query_candles.reuters <- function(instruments = NULL,
                                        roll_same_day_all_legs=roll_same_day_all_legs,
                                        start=start, stop=stop)
                        ))
-  if(getOption("debug",F)){
+  #if(getOption("debug",F)){
     wlog("SCHEDULE")
-    print(schedule)
+    wlog(df_chr(schedule))
     #browser()
-  }
+  #}
   schedule <- schedule %>% .filter_schedule(start=start, stop=NULL) # FIXED FROM stop=stop
   q <- structure(new.env(), class="reuters")
   with(q, {
