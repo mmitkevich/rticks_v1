@@ -7,9 +7,11 @@ options(debug=F)
 cfg.reload()
 parinit(0)
 bt <- config.gamma("samples/grid_po.yaml")
-#MINS_PER_DAY=7*60*60
-bt <- bt %>% run_all.gamma(enabled=c("LH"), run_name = run_name_today("LH-test"), keep_data = F, IIS = c(1, 5, 10, 100))
+bt <- bt %>% run_all.gamma(
+  enabled = c("LH"), 
+  run_name = run_name_today("LH-test"), 
+  keep_data = F, 
+  IIS = c(1, 5, 10, 100))
 parstop()
-#last_plot()
+last_plot()
 bt_plot(bt$runs[[1]])
-bt_plot(bt$runs[[length(bt$runs)]])
