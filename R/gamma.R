@@ -203,9 +203,9 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #r$params %>% write.csv(paste0(outdir,"/results/",".params.csv"), row.names=F)
           r$schedule %>% write.csv(paste0(outdir,"/",r$results$schedule_file), row.names=F)
           r$name <- st$name
-          tmpfname <- paste0(all_res_file,".tmp")
+          tmpfname <- all_res_file# paste0(all_res_file,".tmp")
           wlog("results saved to ",tmpfname)
-          r$results %>% write.table(file=tmpfname, row.names=F, append = T, col.names = !file.exists(tmpfname))
+          r$results %>% write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
           if(!keep_data) {
             r$data<-NULL
             r$data.spread<-NULL
