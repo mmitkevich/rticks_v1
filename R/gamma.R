@@ -96,6 +96,16 @@ listify <- function(l, ns=NULL) {
   l
 }
 
+#'
+#'
+#' @export
+add_others <- function(r, s) {
+  for(n in names(s)) {
+    if(n %in% r)
+      r[n] <- s[n]
+  }
+  r
+}
 
 #'
 #'
@@ -190,7 +200,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           cur<-r$currency
           plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
           ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
-          r$results <- r$stparams %>% cbind(tail(r$metrics,1))
+          r$results <- tail(r$metrics, 1) %>% add_others(r$stparams)
           #r$results$returns_file <- paste0(stfname,".returns.csv")
           r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
           cat("SAVING TO",r$results$metrics_file)
@@ -205,7 +215,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$name <- st$name
           tmpfname <- all_res_file# paste0(all_res_file,".tmp")
           wlog("results saved to ",tmpfname)
-          r$results %>% write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
+          r$results %>% mutate(IIS=NA) %>%  write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
           if(!keep_data) {
             r$data<-NULL
             r$data.spread<-NULL
@@ -251,13 +261,16 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             mutate(symbol=paste0(symbol,".spread~",const_spread)))
           plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
-          r$results <- r$stparams %>% cbind(tail(r$metrics,1))
-          r$results$name<-r$name
-          r$results$IIS<-iis_days
+          r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
+          r$results$name <- r$name
+          r$results$IIS <- iis_days
           r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
           #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
           ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+          wlog("results saved to ",all_res_file)
+          r$results %>% write.table(file=all_res_file, row.names=F, append = T, sep=",", col.names = !file.exists(all_res_file))
+          
           runs <- c(runs,r)
           oos <- c(oos, r$metrics)
           gc()
