@@ -110,6 +110,13 @@ add_others <- function(r, s) {
 #'
 #'
 #' @export
+order_cols <- function(df) {
+  df[,order(colnames(df))]
+}
+
+#'
+#'
+#' @export
 run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), keep_data=F, IIS=NULL, IIS.plot=c(), best_interval=1) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
@@ -200,7 +207,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           cur<-r$currency
           plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
           ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
-          r$results <- tail(r$metrics, 1) %>% add_others(r$stparams)
+          r$results <- tail(r$metrics, 1) %>% add_others(r$stparams) %>% order_cols()
           #r$results$returns_file <- paste0(stfname,".returns.csv")
           r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
           cat("SAVING TO",r$results$metrics_file)
@@ -261,7 +268,9 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             mutate(symbol=paste0(symbol,".spread~",const_spread)))
           plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
-          r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
+          r$schedule_file <- NA
+          r$metrics_file <- NA
+          r$results <- tail(r$metrics,1) %>% add_others(r$stparams) %>% order_cols()
           r$results$name <- r$name
           r$results$IIS <- iis_days
           r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
