@@ -182,7 +182,7 @@ strategies:
       "stop.buy": 50
       "risk.buy": 40
       "spread": 0.8
-      active_contract: 1
+      active_contract: 2
     legs:
     - symbol: "LH.CME"
       roll_pattern: [10]
@@ -340,8 +340,8 @@ strategies:
       "spread": 6
       active_contract: 1
     legs:
-    - symbol: "ZW.CBOT"
-      roll_pattern: [3, 11]       
+    - symbol: "ZS.CBOT"
+      roll_pattern: [5, 11]       
  
   - name: "GS"
     params:
