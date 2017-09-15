@@ -101,7 +101,7 @@ listify <- function(l, ns=NULL) {
 #' @export
 add_others <- function(r, s) {
   for(n in names(s)) {
-    if(n %in% r)
+    if(!(n %in% r))
       r[n] <- s[n]
   }
   r
