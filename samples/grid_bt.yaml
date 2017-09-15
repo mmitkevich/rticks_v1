@@ -5,7 +5,7 @@ config:
   outdir: "/opt/bt/results/"
   #outdir: "~/results/"
 
-  perfs_freq: "minutes"
+  perfs_freq: "days"
   perfs_tz: 15
   
   no_cache: true
