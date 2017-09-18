@@ -135,8 +135,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                     perfs_freq = as.numeric(days(1)),
                     perfs_tz = as.integer(15),
                     roll_same_day_all_legs=T,
-                    start=as_datetime("2011-01-01"), 
-                    stop=as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% 
+                    start = as_datetime("2011-01-01"), 
+                    stop = as_datetime("2099-01-01")) %>% modifyList(bt$config) %>% 
               parse_periods(c("zero_position_freq", "perfs_freq"))  %>% 
               parse_dates(c("start","stop"))
   
@@ -147,7 +147,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   IIS <- ifnull(IIS, bt$config$IIS)
   
   status_file = paste0(bt$config$outdir,run_name,"/", "errors.log")
-  strats <- bt$strategies %>% keep(function(st)!isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
+  strats <- bt$strategies %>% keep(function(st) 
+    !isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   
   all_runs <- strats %>% map(function(st) { 
@@ -260,13 +261,21 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #browser()
           r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
           r <- r[[1]]
-          bt_reports(r, signals=metrics.oos %>% select(datetime, spread) %>% mutate(spread=lag(spread,default=0)), no_commission=bt$config$no_commission, currency=cfg$currency, currency_power = cfg$currency_power)
-          indx.compare<-indx.max #1
+          bt_reports(r, 
+                     signals = 
+                       metrics.oos %>% 
+                       select(datetime, spread) %>% 
+                       mutate(spread = lag(spread,default = 0)), 
+                     no_commission = bt$config$no_commission, 
+                     currency = cfg$currency, 
+                     currency_power = cfg$currency_power)
+          indx.compare <- indx.max
           const_spread <- runs[[indx.compare]]$params$spread
-          combined_metrics <- r$metrics %>% mutate(symbol=paste0(symbol, ".OOS.",iis_days)) %>% 
+          combined_metrics <- r$metrics %>% 
+            mutate(symbol = paste0(symbol, ".OOS.",iis_days)) %>% 
             bind_rows(runs[[indx.compare]]$metrics %>% 
             mutate(symbol=paste0(symbol,".spread~",const_spread)))
-          plt<-plot_bt(combined_metrics,enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
+          plt <- plot_bt(combined_metrics, enabled = c("pnl","pos","price","rpnl","spread")) # PLOT IN USD
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
           r$schedule_file <- NA
           r$metrics_file <- NA
@@ -279,7 +288,9 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
           wlog("results saved to ",all_res_file)
           r$results %>% write.table(file=all_res_file, row.names=F, append = T, sep=",", col.names = !file.exists(all_res_file))
-          
+          plt.histo <- ggplot(r$metrics, aes(spread)) + geom_histogram()
+          ggsave(paste0(outdir,"/img/", paste0(r$name,".spread"), ".png"))
+
           runs <- c(runs,r)
           oos <- c(oos, r$metrics)
           gc()
