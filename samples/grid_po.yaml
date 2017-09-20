@@ -48,7 +48,7 @@ strategies:
       "limit.buy": 500
       "stop.buy": 350
       "risk.buy": 300
-      "spread": 9
+      "spread": 5
       "active_contract": 2
     legs:
     - symbol: "W.LIFFE"
@@ -59,7 +59,7 @@ strategies:
       "limit.buy": 141
       "stop.buy": 100
       "risk.buy": 90
-      "spread": 1.5
+      "spread": 2
       active_contract: 2
     legs:
     - symbol: "KC.ICE"
@@ -135,8 +135,8 @@ strategies:
       "limit.buy": 50
       "stop.buy": 30
       "risk.buy": 20
-      "spread": 0.25
-      active_contract: 5
+      "spread": 0.7
+      active_contract: 7
       
     legs:
     - symbol: "CL.NYMEX"
@@ -146,7 +146,7 @@ strategies:
       "limit.buy": 75
       "stop.buy": 50
       "risk.buy": 25
-      "spread": 0.25
+      "spread": 0.4
       active_contract: 2
       
     legs:
@@ -204,7 +204,7 @@ strategies:
       "limit.buy": 16
       "stop.buy": 10
       "risk.buy": 8
-      "spread": 0.25
+      "spread": 0.3
       active_contract: 2
     legs:
     - symbol: "SB.ICE"
@@ -236,7 +236,7 @@ strategies:
       "limit.buy": 85
       "stop.buy": 55
       "risk.buy": 40
-      "spread": 1
+      "spread": 0.6
       active_contract: 3
     legs: 
       - symbol: "W.LIFFE"

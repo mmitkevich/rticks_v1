@@ -1,6 +1,6 @@
 config:
   log_path: "rticks.log"
-  outdir: "~/results/equity/"
+  outdir: "/opt/bt/results/"
 
   perfs_freq: "days"
   perfs_tz: 15
@@ -16,8 +16,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-07-01"
-  stop: "2017-07-01"
+  start: "2015-09-01"
+  stop: "2017-09-05"
   
   roll_day_of_month: 1
   roll_months_ahead: false
@@ -45,21 +45,21 @@ config:
 strategies:
   - name: "W"
     params:
-      "limit.buy": 600
-      "stop.buy": 300
+      "limit.buy": 500
+      "stop.buy": 350
       "risk.buy": 300
-      "spread": 9
-      "active_contract": 3
+      "spread": [0.02,0.5,1,2,3,4,5,7.5,10,12.5,15,20]
+      "active_contract": 2
     legs:
     - symbol: "W.LIFFE"
       roll_pattern: [3, 5, 10]       
 
   - name: "KC"
     params:
-      "limit.buy": 200
+      "limit.buy": 142
       "stop.buy": 100
       "risk.buy": 90
-      "spread": 1.5
+      "spread": [0.2,0.5,0.7,1,1.2,1.5,1.8,2.0,2.5,3.0]
       active_contract: 2
     legs:
     - symbol: "KC.ICE"
@@ -67,10 +67,10 @@ strategies:
 
   - name: "BRUB"
     params:
-      "limit.buy": 3700.0
+      "limit.buy": 3300.0
       "stop.buy": 2100.0
       "risk.buy": 1500.0
-      "spread": 50.0
+      "spread": [5, 10, 20, 30, 50, 75, 100, 125, 150, 200]
     config:
       mpi: 1
       multiplier: 1000.0
@@ -91,10 +91,10 @@ strategies:
 
   - name: "PL-GC"
     params:
-      "limit.buy": -80.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-      "stop.buy": -400.0    # FIXME: no buy lower than 18
+      "limit.buy": -280.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "stop.buy": -360.0    # FIXME: no buy lower than 18
       "risk.buy": -400.0
-      "spread": 10.0
+      "spread": [1, 2.5, 5, 7.5, 10, 12.5, 15, 20, 25, 30, 40, 50]
       active_contract: 1
     legs: 
       - symbol: "PL.NYMEX"
@@ -110,10 +110,10 @@ strategies:
       currency: "EUR/USD.E"
       currency_power: 1
     params:
-      "limit.buy": 9    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "limit.buy": 5.6    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
-      "spread": 0.2
+      "spread": [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
       active_contract: 2
     legs: 
       - symbol: "C.ICE"
@@ -121,10 +121,10 @@ strategies:
 
   - name: "CC"
     params:
-      "limit.buy": 3500
+      "limit.buy": 2100
       "stop.buy": 1500
       "risk.buy": 1000
-      "spread": 30
+      "spread": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 75, 100]
       active_contract: 2
     legs: 
       - symbol: "CC.ICE"
@@ -132,21 +132,21 @@ strategies:
 
   - name: "CL"
     params:
-      "limit.buy": 60
+      "limit.buy": 50
       "stop.buy": 30
       "risk.buy": 20
-      "spread": 0.25
-      active_contract: 5
+      "spread": [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.25, 1.5, 2]
+      active_contract: 7
       
     legs:
     - symbol: "CL.NYMEX"
 
   - name: "CT"
     params:
-      "limit.buy": 80
+      "limit.buy": 75
       "stop.buy": 50
       "risk.buy": 25
-      "spread": 0.25
+      "spread": [0.5, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5]
       active_contract: 2
       
     legs:
@@ -155,10 +155,10 @@ strategies:
 
   - name: "GE.CS"
     params:
-      "limit.buy": 0.45
+      "limit.buy": 0.25
       "stop.buy": 0.1
       "risk.buy": 0
-      "spread": 0.015
+      "spread": [0.005, 0.010,0.015, 0.020, 0.025, 0.03, 0,.04, 0.05]
       active_contract: 4
     legs:
     - symbol: "GE.CME.CS12M"
@@ -166,113 +166,60 @@ strategies:
 
   - name: "GC"
     params:
-      "limit.buy": 1400
+      "limit.buy": 1250
       "stop.buy": 1000
       "risk.buy": 700
-      "spread": 10
+      "spread": [1, 2.5, 5, 7.5, 10, 12.5, 15, 20, 25, 30, 40, 50]
       active_contract: 1
     legs:
     - symbol: "GC.COMEX"
 
   - name: "LH"
     config:
-      roll_months_ahead: 2
+      roll_months_ahead: 1
     params:
       "limit.buy": 76
       "stop.buy": 50
       "risk.buy": 40
-      "spread": 0.8
-      active_contract: 1
+      "spread": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1, 1.25, 1.5]
+      active_contract: 2
     legs:
     - symbol: "LH.CME"
       roll_pattern: [10]
 
-  - name: "NG"
-    params:
-      "limit.buy": 4
-      "stop.buy": 1.5
-      "risk.buy": 1.0
-      "spread": 0.05
-      active_contract: 3
-    legs:
-    - symbol: "NG.NYMEX"
-      weight: 1
-      #min_active_contract: -2
 
   - name: "SB"
     params:
-      "limit.buy": 26
+      "limit.buy": 16
       "stop.buy": 10
       "risk.buy": 8
-      "spread": 0.25
+      "spread": [0.02, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.5, 0.7, 1, 1.25, 1.5]
       active_contract: 2
     legs:
     - symbol: "SB.ICE"
       roll_pattern: [5, 10]
 
-#  - name: "VIX.RS"
-#    params:
-#      "limit.buy": 0.35
-#      "stop.buy": 0.0
-#      "risk.buy": -1.0
-#      "spread": 0.05
-#      active_contract: 5
-#    legs:
-#    - symbol: "VIX.CBOE.RS1M"
-#      roll_pattern: [5, 10]
 
   - name: "VIX"
     params:
-      "limit.buy": 25
-      "stop.buy": 15
+      "limit.buy": 20.5
+      "stop.buy": 17.5
       "risk.buy": 15.0
-      "spread": 0.25
+      "spread": [0.05, 0.10, 0.15, 0.25, 0.35, 0.5, 0.75, 1, 1.25, 1.5]
       active_contract: 6
     legs:
     - symbol: "VIX.CBOE"
 
-  - name: "W-SB"
-    params:
-      "limit.buy": 115
-      "stop.buy": 55
-      "risk.buy": 40
-      "spread": 1
-      active_contract: 3
-    legs: 
-      - symbol: "W.LIFFE"
-        weight: 1
-        roll_pattern: [3, 5, 10]
-        
-      - symbol: "SB.ICE"
-        weight: -22.04
-        roll_pattern: [3, 5, 10]
 
-  - name: "KC-RC"
-    config:
-      roll_months_ahead: 2
-    params:
-      "limit.buy": 200
-      "stop.buy": -600
-      "risk.buy": -600
-      "spread": 30
-      active_contract: 1
-    legs: 
-      - symbol: "RC.LIFFE"
-        weight: -1
-        roll_pattern: [3, 9]
-        
-      - symbol: "KC.ICE"
-        weight: 12.50
-        roll_pattern: [3, 9]
         
   - name: "ZC"
     config:
-      roll_months_ahead: 3
+      roll_months_ahead: 2
     params:
-      "limit.buy": 450
-      "stop.buy": 325
-      "risk.buy": 220
-      "spread": 3
+      "limit.buy": 390
+      "stop.buy": 330
+      "risk.buy": 225
+      "spread": [0.2, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 7, 10]
       active_contract: 1
 
     legs:
@@ -283,50 +230,13 @@ strategies:
     config:
       roll_months_ahead: 3
     params:
-      "limit.buy": 40
-      "stop.buy": 25
+      "limit.buy": 36.8
+      "stop.buy": 30
       "risk.buy": 23
-      "spread": 0.2
+      "spread": [0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.36, 0.44, 0.56, 0.7, 0.8]
       active_contract: 1
     legs:
     - symbol: "ZL.CBOT"
       weight: 1
       roll_pattern: [7, 12]       
 
-  - name: "ZW"
-    config:
-      roll_months_ahead: 3
-    params:
-      "limit.buy": 600
-      "stop.buy": 400
-      "risk.buy": 300
-      "spread": 6
-      active_contract: 1
-    legs:
-    - symbol: "ZW.CBOT"
-      roll_pattern: [5, 12]       
-
-  - name: "BND"
-    params:
-      "limit.buy": -80
-      "stop.buy": -86
-      "risk.buy": -88
-      "spread": 0.1
-      active_contract: 1
-    legs: 
-      - symbol: "BND.ARCA"
-        weight: -1
-
-  - name: "FVS"
-    config:
-      currency: "EUR/USD.E"
-      currency_power: 1
-    params:
-      "limit.buy": 30
-      "stop.buy": 17
-      "risk.buy": 15
-      "spread": 0.4
-      active_contract: 5
-    legs: 
-    - symbol: "FVS.EUREX"
- 
