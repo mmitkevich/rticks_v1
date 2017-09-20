@@ -205,13 +205,13 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           
           #runs[[st$name]] <- r
           bt_reports(r, no_commission=bt$config$no_commission, currency=cur, currency_power = cfg$currency_power)
-          cur<-r$currency
-          plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
+          cur <- r$currency
+          plt <- bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
           ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
           r$results <- tail(r$metrics, 1) %>% add_others(r$stparams) %>% order_cols()
           #r$results$returns_file <- paste0(stfname,".returns.csv")
           r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
-          cat("SAVING TO",r$results$metrics_file)
+          cat("SAVING TO", r$results$metrics_file)
           r$results$schedule_file <- paste0("res/", st$name, ".", ifnull(r$stparams$active_contract, 0), ".schedule.csv")
           r$results$name <- st$name
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
@@ -243,8 +243,11 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           R <- seq(1, length(metrics)) %>% map(function(i) {
             mt <- metrics[[i]]
             rs <- results[i,]
-            mt1 <- mt %>% mutate(is = rpnl - lag(rpnl, iis_days, default=0), 
-                                 oos = lead(rpnl) - rpnl)
+            perfs_tz = bt$config$perfs_tz
+            mtd <- mt %>% group_by(trunc((as.numeric(datetime)-60-perfs_tz*60*60)/(24*60*60))) %>% filter(row_number()==n()) %>% as_data_frame()
+            mt1 <- mtd %>% mutate(
+              is = rpnl - lag(rpnl, iis_days, default=0), 
+              oos = lead(rpnl) - rpnl)
             mt1$spread <- rs$spread
             mt1
           }) %>% bind_rows()
@@ -255,8 +258,9 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #      if(plot_delta)
           #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
           #browser()  
+          browser()
           signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
-          wfstparams <- head(stparams,1)
+          wfstparams <- head(stparams,1)x
           wfstparams$spread <- metrics.oos$spread[1]
           #browser()
           r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
@@ -269,7 +273,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                      no_commission = bt$config$no_commission, 
                      currency = cfg$currency, 
                      currency_power = cfg$currency_power)
-          indx.compare <- indx.max
+          indx.compare <- 1 #indx.max
           const_spread <- runs[[indx.compare]]$params$spread
           combined_metrics <- r$metrics %>% 
             mutate(symbol = paste0(symbol, ".OOS.",iis_days)) %>% 
