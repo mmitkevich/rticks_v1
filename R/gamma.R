@@ -205,13 +205,13 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           
           #runs[[st$name]] <- r
           bt_reports(r, no_commission=bt$config$no_commission, currency=cur, currency_power = cfg$currency_power)
-          cur<-r$currency
-          plt<-bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
+          cur <- r$currency
+          plt <- bt_plot(r,no_gaps=F, maxpoints = 1000) # PLOT IN USD
           ggsave(paste0(outdir,"/img/", stfname, ".png"), plot=plt)
           r$results <- tail(r$metrics, 1) %>% add_others(r$stparams) %>% order_cols()
           #r$results$returns_file <- paste0(stfname,".returns.csv")
           r$results$metrics_file <- paste0("res/", stfname, ".metrics.csv")
-          cat("SAVING TO",r$results$metrics_file)
+          cat("SAVING TO", r$results$metrics_file)
           r$results$schedule_file <- paste0("res/", st$name, ".", ifnull(r$stparams$active_contract, 0), ".schedule.csv")
           r$results$name <- st$name
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
@@ -223,7 +223,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$name <- st$name
           tmpfname <- all_res_file# paste0(all_res_file,".tmp")
           wlog("results saved to ",tmpfname)
-          r$results %>% mutate(IIS=NA) %>%  write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
+          r$results <- r$results %>% mutate(IIS=NA) %>% order_cols()
+          r$results %>% write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
           if(!keep_data) {
             r$data<-NULL
             r$data.spread<-NULL
@@ -243,8 +244,11 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           R <- seq(1, length(metrics)) %>% map(function(i) {
             mt <- metrics[[i]]
             rs <- results[i,]
-            mt1 <- mt %>% mutate(is = rpnl - lag(rpnl, iis_days, default=0), 
-                                 oos = lead(rpnl) - rpnl)
+            perfs_tz = bt$config$perfs_tz
+            mtd <- mt %>% group_by(trunc((as.numeric(datetime)-60-perfs_tz*60*60)/(24*60*60))) %>% filter(row_number()==n()) %>% as_data_frame()
+            mt1 <- mtd %>% mutate(
+              is = rpnl - lag(rpnl, iis_days, default=0), 
+              oos = lead(rpnl) - rpnl)
             mt1$spread <- rs$spread
             mt1
           }) %>% bind_rows()
@@ -269,7 +273,7 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
                      no_commission = bt$config$no_commission, 
                      currency = cfg$currency, 
                      currency_power = cfg$currency_power)
-          indx.compare <- indx.max
+          indx.compare <- 1 #indx.max
           const_spread <- runs[[indx.compare]]$params$spread
           combined_metrics <- r$metrics %>% 
             mutate(symbol = paste0(symbol, ".OOS.",iis_days)) %>% 
@@ -279,10 +283,11 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
           r$schedule_file <- NA
           r$metrics_file <- NA
-          r$results <- tail(r$metrics,1) %>% add_others(r$stparams) %>% order_cols()
+          r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
           r$results$name <- r$name
           r$results$IIS <- iis_days
           r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+          r$results <- r$results %>% order_cols()
           #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
           ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
