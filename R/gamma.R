@@ -223,7 +223,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$name <- st$name
           tmpfname <- all_res_file# paste0(all_res_file,".tmp")
           wlog("results saved to ",tmpfname)
-          r$results %>% mutate(IIS=NA) %>%  write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
+          r$results <- r$results %>% mutate(IIS=NA) %>% order_cols()
+          r$results %>% write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
           if(!keep_data) {
             r$data<-NULL
             r$data.spread<-NULL
@@ -258,9 +259,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           #      if(plot_delta)
           #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
           #browser()  
-          browser()
           signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
-          wfstparams <- head(stparams,1)x
+          wfstparams <- head(stparams,1)
           wfstparams$spread <- metrics.oos$spread[1]
           #browser()
           r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
@@ -283,10 +283,11 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$name <- paste0(st$name,".",ac,".OOS.", iis_days)
           r$schedule_file <- NA
           r$metrics_file <- NA
-          r$results <- tail(r$metrics,1) %>% add_others(r$stparams) %>% order_cols()
+          r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
           r$results$name <- r$name
           r$results$IIS <- iis_days
           r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+          r$results <- r$results %>% order_cols()
           #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
           ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
