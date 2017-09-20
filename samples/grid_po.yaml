@@ -352,3 +352,13 @@ strategies:
       active_contract: 5
     legs:
     - symbol: "GS.TOCOM"
+
+  - name: "FSTE"
+    params:
+      "limit.buy": 310
+      "stop.buy": 230
+      "risk.buy": 200
+      "spread": 4
+      active_contract: 1
+    legs:
+    - symbol: "FSTE.EUREX"
