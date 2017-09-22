@@ -223,11 +223,11 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$name <- st$name
           tmpfname <- all_res_file# paste0(all_res_file,".tmp")
           wlog("results saved to ",tmpfname)
-          r$results <- r$results %>% mutate(IIS=NA) %>% order_cols()
-          r$results %>% write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = !file.exists(tmpfname))
+          r$results <- r$results %>% mutate(iis=NA) %>% order_cols()
+          r$results %>% write.table(file=tmpfname, row.names=F, append = T, sep=",", col.names = T) # !file.exists(tmpfname)
           if(!keep_data) {
-            r$data<-NULL
-            r$data.spread<-NULL
+            r$data <- NULL
+            r$data.spread <- NULL
           }
           r
         })
@@ -285,14 +285,15 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
           r$metrics_file <- NA
           r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
           r$results$name <- r$name
-          r$results$IIS <- iis_days
+          r$results$iis <- iis_days
           r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+          r$results$schedule_file <- paste0("res/", r$name, ".", ifnull(r$results$active_contract, 0), ".schedule.csv")
           r$results <- r$results %>% order_cols()
           #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
           ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
           r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
           wlog("results saved to ",all_res_file)
-          r$results %>% write.table(file=all_res_file, row.names=F, append = T, sep=",", col.names = !file.exists(all_res_file))
+          r$results %>% write.table(file=all_res_file, row.names=F, append = T, sep=",", col.names = T) #!file.exists(all_res_file)
           plt.histo <- ggplot(r$metrics, aes(spread)) + geom_histogram()
           ggsave(paste0(outdir,"/img/", paste0(r$name,".spread"), ".png"))
 
