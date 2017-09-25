@@ -117,7 +117,13 @@ order_cols <- function(df) {
 #'
 #'
 #' @export
-run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run_name_today(), keep_data=F, IIS=NULL, IIS.plot=c(), best_interval=1) {
+run_all.gamma <- function(bt=config(path)$gridPath, 
+                          enabled=NULL, 
+                          run_name = run_name_today(), 
+                          keep_data=F, 
+                          IIS=NULL, 
+                          IIS.plot=c(), 
+                          best_interval=1) {
   if(is.character(bt))
     bt <- yaml::yaml.load_file(bt)
   bt$run_name <- run_name
@@ -150,6 +156,8 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
   strats <- bt$strategies %>% keep(function(st) 
     !isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
+  
+  qtile <- 0
   
   all_runs <- strats %>% map(function(st) { 
       ldir <- paste0(bt$config$outdir,run_name, "/",st$name,"/log")
@@ -246,13 +254,22 @@ run_all.gamma <- function(bt=config(path)$gridPath, enabled=NULL, run_name = run
             rs <- results[i,]
             perfs_tz = bt$config$perfs_tz
             mtd <- mt %>% group_by(trunc((as.numeric(datetime)-60-perfs_tz*60*60)/(24*60*60))) %>% filter(row_number()==n()) %>% as_data_frame()
+            mtd$spread <- rs$spread
             mt1 <- mtd %>% mutate(
-              is = rpnl - lag(rpnl, iis_days, default=0), 
-              oos = lead(rpnl) - rpnl)
-            mt1$spread <- rs$spread
+              is_qty_buy = qty_buy - lag(qty_buy, iis_days, default=0),
+              is_qty_sell = qty_sell - lag(qty_sell, iis_days, default=0),
+              oos_qty_buy = lead(qty_buy) - qty_buy,
+              oos_qty_sell = lead(qty_sell) - qty_sell,
+              is  = pmin(is_qty_buy, is_qty_sell)*spread,
+              oos = pmin(oos_qty_buy, oos_qty_sell)*spread
+              #is = rpnl - lag(rpnl, iis_days, default=0), 
+              #oos = lead(rpnl) - rpnl
+            )
             mt1
           }) %>% bind_rows()
-          metrics.oos <- R %>% group_by(datetime) %>% arrange(-is) %>% filter(row_number()==1) %>% 
+          R %>% write.csv(paste0(outdir, "/", paste0("res/",st$name,".",ac,".WF.", iis_days,".csv")), row.names=F)
+          metrics.oos <- R %>% group_by(datetime) %>% arrange(-is-spread*1e-50) %>%
+            filter(row_number()==1+trunc((n()-1)*qtile)) %>% 
             arrange(datetime)  %>% as_data_frame() %>% arrange(datetime)
           metrics.oos <- metrics.oos %>% mutate(rpnl=cumsum(oos)) %>% mutate(iis=iis_days) %>% 
             inner_join(metrics.max%>%transmute(datetime=datetime,rpnl.max=rpnl),by="datetime")  
