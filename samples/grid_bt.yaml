@@ -3,7 +3,6 @@
 config:
   log_path: "rticks.log"
   outdir: "/opt/bt/results/"
-  #outdir: "~/results/"
 
   perfs_freq: "days"
   perfs_tz: 15
@@ -19,8 +18,8 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-08-01"
-  stop: "2016-12-01"
+  start: "2015-09-01"
+  stop: "2017-09-01"
 
   start_full_pos: true
   roll_day_of_month: 1
@@ -69,7 +68,7 @@ strategies:
       "limit.buy": 200
       "stop.buy": 50
       "risk.buy": 50
-      "spread": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3]
+      "spread": [2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3]
       active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "KC.ICE"
@@ -121,7 +120,7 @@ strategies:
       "limit.buy": 6.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
-      "spread": [0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
+      "spread": [0.25, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
       active_contract: [1, 2]
     legs: 
       - symbol: "C.ICE"
@@ -132,7 +131,7 @@ strategies:
       "limit.buy": 3500
       "stop.buy": 1000
       "risk.buy": 1000
-      "spread": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
+      "spread": [30, 5, 10, 15, 20, 25, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
       active_contract: [1, 2, 3, 4, 5, 6]
     legs: 
       - symbol: "CC.ICE"
@@ -185,7 +184,7 @@ strategies:
       "limit.buy": 96
       "stop.buy": 40
       "risk.buy": 40
-      "spread": [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1]
+      "spread": [0.8, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.85, 0.9, 0.95, 1]
       active_contract: [1, 2, 3, 4, 5]
     legs:
     - symbol: "LH.CME"
