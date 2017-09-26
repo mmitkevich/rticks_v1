@@ -485,8 +485,7 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
     
     r$metrics <- r$metrics %>% inner_join(cur, by="datetime") %>% mutate(
       cur = ifelse(pos>0, cur_bid, cur_ask)) %>% 
-      filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
-      cur = cur,
+    filter(cur!=0 & cur_bid<=cur_ask) %>% mutate(
       commission = cur^currency_power*commission,
       assets = pnl-cash, assets_high=pnl_high-cash, assets_low=pnl_low-cash,
       cash = cumsum((cash-lag(cash,default=0))*cur^currency_power),
@@ -496,7 +495,7 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
       pnl_low = cash + assets_low*cur^currency_power,
       drisk = cur^currency_power*drisk,
       rpnl = cumsum((rpnl-lag(rpnl,default=0))*cur^currency_power)
-    )
+    ) %>% select(-cur, -cur_bid, -cur_ask, -assets, -assets_high, -assets_low)
   }
   
   # plot pnl
