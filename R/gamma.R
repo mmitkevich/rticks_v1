@@ -157,7 +157,7 @@ run_all.gamma <- function(bt=config(path)$gridPath,
     !isTRUE(st$name %in% bt$config$disabled) && (is.null(enabled) || isTRUE(st$name %in% enabled)))
   all_res_file <- paste0(bt$config$outdir, run_name, "/", "results.csv")
   
-  qtile <- 0
+  qtile <- 0.05
   
   all_runs <- strats %>% map(function(st) { 
       ldir <- paste0(bt$config$outdir,run_name, "/",st$name,"/log")
@@ -253,25 +253,39 @@ run_all.gamma <- function(bt=config(path)$gridPath,
             mt <- metrics[[i]]
             rs <- results[i,]
             perfs_tz = bt$config$perfs_tz
-            mtd <- mt %>% group_by(trunc((as.numeric(datetime)-60-perfs_tz*60*60)/(24*60*60))) %>% filter(row_number()==n()) %>% as_data_frame()
+            mtd <- mt %>% group_by(trunc((as.numeric(datetime)-60-perfs_tz*60*60)/(24*60*60*7))) %>% filter(row_number()==n()) %>% as_data_frame()
             mtd$spread <- rs$spread
+            iis.lag <- iis_days
             mt1 <- mtd %>% mutate(
-              is_qty_buy = qty_buy - lag(qty_buy, iis_days, default=0),
-              is_qty_sell = qty_sell - lag(qty_sell, iis_days, default=0),
+              is_qty_buy = qty_buy - lag(qty_buy, iis.lag, default=0),
+              is_qty_sell = qty_sell - lag(qty_sell, iis.lag, default=0),
               oos_qty_buy = lead(qty_buy) - qty_buy,
               oos_qty_sell = lead(qty_sell) - qty_sell,
-              is  = pmin(is_qty_buy, is_qty_sell)*spread,
-              oos = pmin(oos_qty_buy, oos_qty_sell)*spread
-              #is = rpnl - lag(rpnl, iis_days, default=0), 
-              #oos = lead(rpnl) - rpnl
+              is_lrpnl = pmin(is_qty_buy, is_qty_sell)*spread,
+              oos_lrpnl = pmin(oos_qty_buy, oos_qty_sell)*spread,
+              is_rpnl = rpnl - lag(rpnl, iis_days, default=0), 
+              oos_rpnl = lead(rpnl) - rpnl,
+              is  = is_rpnl
             )
+            #browser()
+            plt<-ggplot(mt1, aes(x=is, y=oos_lrpnl)) + geom_point() + ggtitle("lrpnl") + geom_smooth(method="lm")
+            ggsave(paste0(outdir,"/img/", st$name, ".", ac,".FIT.lrpnl.",iis_days,".spread~",rs$spread,".png"), plot=plt)
+            
+            plt<-ggplot(mt1, aes(x=is, y=oos_rpnl)) + geom_point() + ggtitle("rpnl") + geom_smooth(method="lm")
+            ggsave(paste0(outdir,"/img/", st$name, ".", ac,".FIT.rpnl.",iis_days,".spread~",rs$spread,".png"), plot=plt)
+
+            plt<-ggplot(mt1, aes(x=is_lrpnl, y=is_rpnl)) + geom_point() + ggtitle("lrpnl->rpnl") + geom_smooth(method="lm")
+            ggsave(paste0(outdir,"/img/", st$name, ".", ac,".lrpnl_rpnl.",iis_days,".spread~",rs$spread,".png"), plot=plt)
+            
+            #browser()
             mt1
           }) %>% bind_rows()
           R %>% write.csv(paste0(outdir, "/", paste0("res/",st$name,".",ac,".WF.", iis_days,".csv")), row.names=F)
-          metrics.oos <- R %>% group_by(datetime) %>% arrange(-is-spread*1e-50) %>%
-            filter(row_number()==1+trunc((n()-1)*qtile)) %>% 
+          metrics.oos <- R %>% group_by(datetime) %>% arrange(-is) %>%
+            filter(row_number()==1+trunc((n()-1)*qtile)) %>% # +
             arrange(datetime)  %>% as_data_frame() %>% arrange(datetime)
-          metrics.oos <- metrics.oos %>% mutate(rpnl=cumsum(oos)) %>% mutate(iis=iis_days) %>% 
+          metrics.oos <- metrics.oos %>% #mutate(rpnl=cumsum(oos_rpnl)) %>% 
+            mutate(iis=iis_days) %>% 
             inner_join(metrics.max%>%transmute(datetime=datetime,rpnl.max=rpnl),by="datetime")  
           #      if(plot_delta)
           #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
@@ -279,7 +293,6 @@ run_all.gamma <- function(bt=config(path)$gridPath,
           signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
           wfstparams <- head(stparams,1)
           wfstparams$spread <- metrics.oos$spread[1]
-          #browser()
           r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
           r <- r[[1]]
           bt_reports(r, 
@@ -290,7 +303,7 @@ run_all.gamma <- function(bt=config(path)$gridPath,
                      no_commission = bt$config$no_commission, 
                      currency = cfg$currency, 
                      currency_power = cfg$currency_power)
-          indx.compare <- 1 #indx.max
+          indx.compare <- indx.max
           const_spread <- runs[[indx.compare]]$params$spread
           combined_metrics <- r$metrics %>% 
             mutate(symbol = paste0(symbol, ".OOS.",iis_days)) %>% 
@@ -301,14 +314,17 @@ run_all.gamma <- function(bt=config(path)$gridPath,
           r$schedule_file <- NA
           r$metrics_file <- NA
           r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
-          r$results$name <- r$name
-          r$results$iis <- iis_days
-          r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
-          r$results$schedule_file <- paste0("res/", r$name, ".", ifnull(r$results$active_contract, 0), ".schedule.csv")
+        
+          if(nrow(r$metrics)>0) {
+            r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
+            r$results$schedule_file <- paste0("res/", r$name, ".", ifnull(r$results$active_contract, 0), ".schedule.csv")
+            r$results$name <- r$name
+            r$results$iis <- iis_days
+            r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
+          }
           r$results <- r$results %>% order_cols()
           #plt<-vplot(plt, ggplot(metrics.oos, aes(x=datetime,y=spread))+geom_line()+theme_bw())
           ggsave(paste0(outdir,"/img/", r$name, ".png"), plot=plt)
-          r$metrics %>% write.csv(paste0(outdir, "/", r$results$metrics_file), row.names=F)
           wlog("results saved to ",all_res_file)
           r$results %>% write.table(file=all_res_file, row.names=F, append = T, sep=",", col.names = T) #!file.exists(all_res_file)
           plt.histo <- ggplot(r$metrics, aes(spread)) + geom_histogram()
