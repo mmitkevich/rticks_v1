@@ -470,7 +470,7 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
   # view data
   r$metrics <- r$perfs %>% spread(metric, value) %>% as_data_frame()
   if(!is.null(signals))
-    r$metrics <- r$metrics %>% inner_join(signals, by="datetime")
+    r$metrics <- r$metrics %>% left_join(signals, by="datetime") %>% fill_(names(signals) %>% setdiff("datetime"))
   r$metrics <- r %>% metrics.gamma(...) # calculate additional metrics
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
