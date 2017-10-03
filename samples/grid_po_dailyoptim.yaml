@@ -19,9 +19,10 @@ config:
   start: "2015-09-01"
   stop: "2017-09-05"
   
+  start_full_pos: true
   roll_day_of_month: 1
   roll_months_ahead: false
-  roll_same_day_all_legs: T
+  roll_same_day_all_legs: true
   
   disabled: 
 #   - "W"
@@ -158,7 +159,7 @@ strategies:
       "limit.buy": 0.25
       "stop.buy": 0.1
       "risk.buy": 0
-      "spread": [0.005, 0.010,0.015, 0.020, 0.025, 0.03, 0,.04, 0.05]
+      "spread": [0.005, 0.010,0.015, 0.020, 0.025, 0.03, 0.04, 0.05]
       active_contract: 4
     legs:
     - symbol: "GE.CME.CS12M"
