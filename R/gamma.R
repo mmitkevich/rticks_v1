@@ -255,7 +255,8 @@ run_all.gamma <- function(bt=config(path)$gridPath,
         for(iis_indx in seq(1, length(IIS))) {
           iis_days <- IIS[iis_indx]
           oos_days <- ifelse(iis_indx<=length(OOS), OOS[iis_indx], 1)
-          wlog("WF", st$name,".",ac,"iis",iis_days,"oos",oos_days)
+          iis.lag <- trunc(iis_days/oos_days)
+          wlog("WF", st$name,".",ac,"iis",iis_days,"oos",oos_days, "lag",iis.lag)
           R <- seq(1, length(metrics)) %>% map(function(i) {
             mt <- metrics[[i]]
             rs <- results[i,]
@@ -264,16 +265,15 @@ run_all.gamma <- function(bt=config(path)$gridPath,
               filter(row_number()==n()) %>% as_data_frame()
             #browser()
             mtd$spread <- rs$spread
-            iis.lag <- trunc(iis_days/oos_days)
             stopifnot(iis.lag>0)
             mt1 <- mtd %>% mutate(
-              is_qty_buy = qty_buy - lag(qty_buy, iis.lag, default=0),
-              is_qty_sell = qty_sell - lag(qty_sell, iis.lag, default=0),
+              is_qty_buy = qty_buy - lag(qty_buy, n=iis.lag, default=0),
+              is_qty_sell = qty_sell - lag(qty_sell, n=iis.lag, default=0),
               oos_qty_buy = lead(qty_buy) - qty_buy,
               oos_qty_sell = lead(qty_sell) - qty_sell,
               is_lrpnl = pmin(is_qty_buy, is_qty_sell)*spread,
               oos_lrpnl = pmin(oos_qty_buy, oos_qty_sell)*spread,
-              is_rpnl = rpnl - lag(rpnl, iis_days, default=0), 
+              is_rpnl = rpnl - lag(rpnl, n=iis.lag, default=0), 
               oos_rpnl = lead(rpnl) - rpnl,
               is  = is_lrpnl
             )
@@ -301,16 +301,26 @@ run_all.gamma <- function(bt=config(path)$gridPath,
           #      if(plot_delta)
           #        metrics.oos <- metrics.oos %>% mutate(rpnl=rpnl-rpnl.max)
           #browser()  
-          signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1])
+          signal <- metrics.oos %>% select(datetime, spread) %>% rename(value=spread) %>% mutate(virtual_id=results$symbol[1]) %>%
+            mutate(datetime=datetime+0.1) # 100 ms
           wfstparams <- head(stparams,1)
           wfstparams$spread <- metrics.oos$spread[1]
-          r <- params_ac %>% backtest(stparams=wfstparams%>%mutate(iis=iis_days), "gamma", start=bt$config$start, stop=bt$config$stop, config=cfg, signals=list(spread=signal), data=data) 
+          r <- params_ac %>% backtest(
+            stparams = wfstparams %>% mutate(iis=iis_days), 
+            "gamma", 
+            start = bt$config$start, 
+            stop = bt$config$stop, 
+            config = cfg, 
+            signals = list(spread=signal), 
+            data = data) 
           r <- r[[1]]
+          #browser()
           bt_reports(r, 
                      signals = 
                        metrics.oos %>% 
                        select(datetime, spread) %>% 
-                       mutate(spread = lag(spread,default = 0)), 
+                       mutate(datetime = datetime+bt$config$perfs_freq)
+                     , 
                      no_commission = bt$config$no_commission, 
                      currency = cfg$currency, 
                      currency_power = cfg$currency_power)
@@ -326,7 +336,10 @@ run_all.gamma <- function(bt=config(path)$gridPath,
           r$schedule_file <- NA
           r$metrics_file <- NA
           r$results <- tail(r$metrics,1) %>% add_others(r$stparams)
-        
+          if(!keep_data) {
+            r$data <- NULL
+            r$data.spread <- NULL
+          }
           if(nrow(r$metrics)>0) {
             r$results$metrics_file <- paste0("res/", r$name, ".metrics.csv")
             r$results$schedule_file <- paste0("res/", r$name, ".", ifnull(r$results$active_contract, 0), ".schedule.csv")

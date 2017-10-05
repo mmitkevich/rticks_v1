@@ -1,0 +1,136 @@
+config:
+  log_path: "rticks.log"
+  outdir: "/opt/bt/results/"
+
+  perfs_freq: "minutes"
+  perfs_tz: 15
+  
+  no_cache: true
+  no_clean: false
+  no_save: false
+  
+  no_commission: true
+  check_big_qty: 3
+  IIS: [5, 30, 90, 180]
+  OOS: [1, 10, 30, 60]
+
+# 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
+  log_stdout: 3
+  log_level: 2
+
+  start: "2015-09-01"
+  stop: "2017-09-05"
+  
+  start_full_pos: false
+  roll_day_of_month: 1
+  roll_months_ahead: false
+  roll_same_day_all_legs: true
+  
+  disabled: 
+#   - "W"
+#   - "BRUB"
+#   - "PL-GC"
+#   - "C"
+#   - "CC"
+#   - "CL"
+#  - "PL-GC"
+#   - "CT"
+#   - "GC"
+#   - "GE.CS"
+#   - "KC"
+#   - "NG"
+#   - "FVS"
+   
+  enabled:
+#  - "BRUB"
+#  - "W-SB"
+
+strategies:
+  - name: "BRUB"
+    params:
+      "limit.buy": 3300.0
+      "stop.buy": 2100.0
+      "risk.buy": 1500.0
+      "spread": [10, 20, 50, 75, 100, 150, 200, 400]
+    config:
+      mpi: 1
+      multiplier: 1000.0
+      currency: "USD/RUB.MOEX"
+      currency_power: -1
+    
+    legs: 
+      - symbol: B.ICE
+        weight: 0.001
+        currency: "Si.FORTS.1"
+        active_contract: 3
+        min_active_contract: 3
+        
+      - symbol: Si.FORTS
+        weight: 0
+        active_contract: 1
+        min_active_contract: 1
+
+  - name: "PL-GC"
+    params:
+      "limit.buy": -280.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "stop.buy": -360.0    # FIXME: no buy lower than 18
+      "risk.buy": -400.0
+      "spread": [0.5, 5, 10, 25, 50, 75, 100]
+      active_contract: 1
+    legs: 
+      - symbol: "PL.NYMEX"
+        weight: 1
+        roll_pattern: [4, 10]
+        
+      - symbol: "GC.COMEX"
+        weight: -1
+        roll_pattern: [4, 10]
+
+  - name: "C"
+    config:
+      currency: "EUR/USD.E"
+      currency_power: 1
+    params:
+      "limit.buy": 5.6    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "stop.buy": 2.9    # FIXME: no buy lower than 18
+      "risk.buy": 2.9
+      "spread": [0.1, 0.50, 1, 2, 5, 10]
+      active_contract: 2
+    legs: 
+      - symbol: "C.ICE"
+        roll_pattern: [12]
+
+  - name: "CC"
+    params:
+      "limit.buy": 2100
+      "stop.buy": 1500
+      "risk.buy": 1000
+      "spread": [1, 5, 10, 30, 50, 70, 100, 200]
+      active_contract: 2
+    legs: 
+      - symbol: "CC.ICE"
+        roll_pattern: [5, 12]
+
+  - name: "CL"
+    params:
+      "limit.buy": 50
+      "stop.buy": 30
+      "risk.buy": 20
+      "spread": [0.05, 0.10, 0.20, 0.40, 0.8, 1.5,  2, 4, 10, 20]
+      active_contract: 7
+      
+    legs:
+    - symbol: "CL.NYMEX"
+
+  - name: "LH"
+    config:
+      roll_months_ahead: 1
+    params:
+      "limit.buy": 76
+      "stop.buy": 50
+      "risk.buy": 40
+      "spread": [0.05, 0.1, 0.3, 0.75, 1, 1.5, 3]
+      active_contract: 2
+    legs:
+    - symbol: "LH.CME"
+      roll_pattern: [10]
