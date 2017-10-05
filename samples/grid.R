@@ -6,12 +6,12 @@ options(debug=F)
 #options(error = recover)
 cfg.reload()
 parinit(0)
-bt <- config.gamma("samples/grid_test_results.yaml")
+bt <- config.gamma("samples/grid.yaml")
 bt <- bt %>% run_all.gamma(
-  enabled = c("C"), 
-  run_name = run_name_today("WF-ALL-rpnl")
-  #IIS = c(30, 60, 90), 
-  #OOS = c(1,   5, 30)
+  enabled = c("C", "CL", "CC"), 
+  run_name = run_name_today("KL-WF-test"),
+  IIS = c(5, 5, 10, 10, 10), 
+  OOS = c(1, 5, 1, 5, 10)
 )
 parstop()
 last_plot()
