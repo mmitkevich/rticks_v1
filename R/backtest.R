@@ -67,7 +67,7 @@ backtest_config_default = list(
   zero_position_on_rolls=F,
   zero_position_freq=NULL,
   custom_roll=NULL,
-  start_full_pos=T,
+  start_full_pos=F,
   
   roll_price="best",
   
@@ -252,7 +252,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
     }
     
     wlog("USING strategy parameters")
-    wlog(df_chr(stparams[istpar,]))
+    wlog(paste0("\n",df_chr(stparams[istpar,])))
     
     gaps = data_frame()
     ct = NULL
@@ -277,8 +277,14 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
           params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
         }
         if(is.na(params$pos)||config$start_full_pos) { # first
-          params$pos <- (max(params$limit.buy-ch$ask,0)/params$mpi+1)*params$gamma.buy
-          wlog("START POS=",params$pos)
+          dpos <- (max(params$limit.buy-ch$ask,0)/params$mpi)*params$gamma.buy - na_replace(params$pos)
+          wlog("START delta(pos) = delta(qty_buy/qty_sell) = ", dpos)
+          #browser()
+          params$pos <- na_replace(params$pos) + dpos
+          #if(dpos>0)
+          #  params$qty_buy <- params$qty_buy + dpos
+          #else
+          #  params$qty_sell <- params$qty_sell - dpos
         }
   
         # FIXME: we need virtual_id=LH.CME.3/5 instead
