@@ -1,6 +1,6 @@
 config:
   log_path: "rticks.log"
-  outdir: "~/results/equity/"
+  outdir: "/opt/bt/results/"
 
   perfs_freq: "days"
   perfs_tz: 15
@@ -16,9 +16,10 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-09-01"
-  stop: "2017-09-05"
+  start: "2015-10-01"
+  stop: "2017-10-01"
   
+  start_full_pos: false
   roll_day_of_month: 1
   roll_months_ahead: false
   roll_same_day_all_legs: T
@@ -56,7 +57,7 @@ strategies:
 
   - name: "KC"
     params:
-      "limit.buy": 141
+      "limit.buy": 142
       "stop.buy": 100
       "risk.buy": 90
       "spread": 2
@@ -176,7 +177,7 @@ strategies:
 
   - name: "LH"
     config:
-      roll_months_ahead: 1
+      roll_months_ahead: 3
     params:
       "limit.buy": 76
       "stop.buy": 50
@@ -185,14 +186,14 @@ strategies:
       active_contract: 2
     legs:
     - symbol: "LH.CME"
-      roll_pattern: [10]
+      roll_pattern: [4, 10]
 
   - name: "NG"
     params:
       "limit.buy": 3.5
       "stop.buy": 2.5
       "risk.buy": 1.5
-      "spread": 0.05
+      "spread": 0.035
       active_contract: 3
     legs:
     - symbol: "NG.NYMEX"
@@ -267,44 +268,44 @@ strategies:
         
   - name: "ZC"
     config:
-      roll_months_ahead: 2
+#      roll_months_ahead: 1
     params:
       "limit.buy": 390
       "stop.buy": 330
       "risk.buy": 225
       "spread": 3
-      active_contract: 1
+      active_contract: 3
 
     legs:
     - symbol: "ZC.CBOT"
-      roll_pattern: [5, 12]       
+#      roll_pattern: [5, 12]       
 
   - name: "ZL"
     config:
-      roll_months_ahead: 3
+#      roll_months_ahead: 3
     params:
       "limit.buy": 36.8
       "stop.buy": 30
       "risk.buy": 23
       "spread": 0.2
-      active_contract: 1
+      active_contract: 3
     legs:
     - symbol: "ZL.CBOT"
       weight: 1
-      roll_pattern: [7, 12]       
+#      roll_pattern: [7, 12]       
 
   - name: "ZW"
     config:
-      roll_months_ahead: 2
+#      roll_months_ahead: 2
     params:
-      "limit.buy": 540
+      "limit.buy": 470
       "stop.buy": 400
       "risk.buy": 300
       "spread": 6
-      active_contract: 1
+      active_contract: 3
     legs:
     - symbol: "ZW.CBOT"
-      roll_pattern: [5, 12]       
+#      roll_pattern: [5, 12]       
 
   - name: "BND"
     params:
@@ -343,15 +344,15 @@ strategies:
     - symbol: "ZS.CBOT"
       roll_pattern: [5, 11]       
  
-  - name: "GS"
-    params:
-      "limit.buy": 50000
-      "stop.buy": 35000
-      "risk.buy": 25000
-      "spread": 1000
-      active_contract: 5
-    legs:
-    - symbol: "GS.TOCOM"
+#  - name: "GS"
+#    params:
+#      "limit.buy": 50000
+#      "stop.buy": 35000
+#      "risk.buy": 25000
+#      "spread": 1000
+#      active_contract: 5
+#    legs:
+#    - symbol: "GS.TOCOM"
 
   - name: "FSTE"
     params:
@@ -362,3 +363,5 @@ strategies:
       active_contract: 1
     legs:
     - symbol: "FSTE.EUREX"
+    
+    
