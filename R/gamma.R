@@ -325,7 +325,12 @@ run_all.gamma <- function(bt=config(path)$gridPath,
                      currency = cfg$currency, 
                      currency_power = cfg$currency_power)
           #browser()
-          indx.compare <- indx.max
+          if("best" %in% bt$config$wf_benchmark) {
+            indx.compare <- indx.max
+          }else {
+            indx.compare <- 1
+          }
+          
           const_spread <- runs[[indx.compare]]$params$spread
           combined_metrics <- r$metrics %>% 
             mutate(symbol = paste0(symbol, ".OOS.",iis_days,"-",oos_days)) %>% 
