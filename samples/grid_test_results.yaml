@@ -13,7 +13,8 @@ config:
   check_big_qty: 3
   IIS: [5, 30, 90, 180]
   OOS: [1, 10, 30, 60]
-
+  wf_benchmark: ["best"]
+  
 # 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
   log_stdout: 3
   log_level: 2
