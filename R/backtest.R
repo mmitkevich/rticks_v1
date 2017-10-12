@@ -345,7 +345,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         params$cash <- params$cash - params$pos*price.new*params$multiplier # open the pos
         #browser()
         
-        signals.chunk <- signals %>% map(~ .x %>% filter(datetime>=ch$datetime))
+        ct = tail(chunk,1)        
+        signals.chunk <- signals %>% map(~ .x %>% filter(datetime>=ch$datetime & datetime<ct$datetime+60))
         r <- chunk %>% backtest.chunk(params, algo=algo, config=config, signals=signals.chunk)
         perfs <- perfs %>% bind_rows(r$perfs)
         params$pos  <- r$pos
@@ -354,7 +355,9 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         params$qty_sell <- r$qty_sell
         params$bid <- r$bid 
         params$ask <- r$ask
-        ct = tail(chunk,1)
+        if(!is.null(signals.chunk$spread) && nrow(signals.chunk$spread)>0) {
+          params$spread <- tail(signals.chunk$spread$value, 1)
+        }
       }
     }
     log_perf(timer, nrows, "average data processing speed")
@@ -476,14 +479,17 @@ bt_reports <- function(r, start=NULL, stop=NULL, currency=NULL, currency_power=1
   # view data
   r$metrics <- r$perfs %>% spread(metric, value) %>% as_data_frame()
   if(!is.null(signals))
-    r$metrics <- r$metrics %>% left_join(signals, by="datetime") %>% fill_(names(signals) %>% setdiff("datetime"))
+    r$metrics <- r$metrics %>% 
+      left_join(signals, by="datetime") %>% 
+      fill_(names(signals) %>% setdiff("datetime"))
   r$metrics <- r %>% metrics.gamma(...) # calculate additional metrics
   r$metrics.original <- r$metrics
   if(!is.null(currency)) {
     if(!is.data.frame(currency)) {
       cur <- query_candles(currency, start=min(r$metrics$datetime), stop=max(r$metrics$datetime)) %>% fetch_all() %>% 
         reduce(bind_rows)
-      cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
+      cur <- cur %>% to_freq(r$config$perfs_freq, tz_offset=r$config$perfs_tz, by="datetime") %>% 
+        as_data_frame() %>% transmute(datetime=datetime, cur_bid=bid, cur_ask=ask)
       r$currency <- cur
     }else{
       r$currency <- currency
