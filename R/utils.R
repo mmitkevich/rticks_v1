@@ -191,6 +191,7 @@ vplot <- function(...) {
 #'
 #' @export
 parinit <- function(.cores=detectCores(), .pkgs=NULL, .init=NULL) {
+  wlog("parinit", .cores)
   if(!is.null(.cores) && .cores>0) {
     if(is.null(.pkgs))
       .pkgs <- (.packages())
@@ -198,29 +199,53 @@ parinit <- function(.cores=detectCores(), .pkgs=NULL, .init=NULL) {
     clusterCall(.cluster, function(ps) { for(p in ps) library(p, character.only=TRUE) }, .pkgs)
     if(!is.null(.init))
       clusterEvalQ(.init())
-    options(cluster=.cluster)
     .cluster
   }else{
-    options(cluster=NULL)
     NULL
   }
 }
 
 #'
 #' @export
-parstop <- function(.cluster=getOption("cluster")) {
-  if(!is.null(.cluster)) {
+parstop <- function(.cluster) {
+  wlog("parstop", .cluster)
+  if(!is.null(.cluster) && !is.numeric(.cluster)) {
     stopCluster(.cluster)
   }
 }  
 
+#'
+#' @export
+parmap <- function(.xs, .f, .cores=getOption("cluster"), .cluster=NULL) {
+  wlog("parmap(", .cores,")")
+  if(is.null(.cores) || .cores<=1)
+    map(.xs, .f)
+  else {
+    has_own_cl <- F
+    if(is.null(.cluster))
+      .cluster <- .cores
+    if(is.numeric(.cluster)) {
+      .cluster <- parinit(.cluster)
+      has_own_cl <- T
+    }
+    rs <- parLapply(.cluster, .xs, function(.y, cores) {
+      options(cluster=cores)
+      wlog("pcores=",cores)
+      .f(.y)
+    }, .cores)
+    if(has_own_cl)
+      parstop(.cluster)
+    rs
+  }
+}
 
 #'
 #' @export
-parmap <- function(.xs, .f, .cluster=getOption("cluster")) {
-  if(is.null(.cluster))
-    map(.xs,.f)
-  else{
-    parLapply(.cluster, .xs, as_function(.f))
-  }
+ggsave1 <- function(filename = NULL, plot = last_plot(),
+                           device = NULL, path = NULL,
+                           scale = 1, width = 11,
+                           height = 7, units = c("in", "cm", "mm"),
+                           dpi = 150, ...)
+{
+  ggsave(filename, plot, device, path, scale, width, height, units, dpi, ...)
 }
