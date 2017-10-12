@@ -1,302 +1,173 @@
 config:
-  log_path: "rticks.log"
-  outdir: "~/results/equity/"
-
-  perfs_freq: "minutes"
+  log_path: rticks.log
+  outdir: /opt/bt/results/
+  perfs_freq: days
   perfs_tz: 15
-  
-  no_cache: true
-  no_clean: false
-  no_save: false
-  
-  no_commission: false
+  no_cache: yes
+  no_clean: no
+  no_save: no
+  no_commission: yes
   check_big_qty: 3
-
-# 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
+  IIS:
+  - 5
+  - 5
+  - 10
+  - 10
+  - 10
+  - 30
+  - 30
+  - 30
+  - 30
+  OOS:
+  - 1
+  - 5
+  - 1
+  - 5
+  - 10
+  - 1
+  - 5
+  - 10
+  - 30
   log_stdout: 3
   log_level: 2
-
-#  start: "2015-07-01"
-#  stop: "2017-07-01"
-
-  start: "2011-01-01"
-  stop: "2017-07-01"
-  
+  start: '2015-09-01'
+  stop: '2017-09-05'
+  start_full_pos: no
   roll_day_of_month: 1
-  roll_months_ahead: false
-  roll_same_day_all_legs: T
-  
-  disabled: 
-#   - "W"
-#   - "BRUB"
-#   - "PL-GC"
-#   - "C"
-#   - "CC"
-#   - "CL"
-#  - "PL-GC"
-#   - "CT"
-#   - "GC"
-#   - "GE.CS"
-#   - "KC"
-#   - "NG"
-#   - "FVS"
-   
-#  enabled:
-#  - "W"
-
+  roll_months_ahead: no
+  roll_same_day_all_legs: yes
+  disabled: ~
+  enabled: ~
 strategies:
-  - name: "W-SB"
-    params:
-      "limit.buy": 85
-      "stop.buy": 55
-      "risk.buy": 40
-      "spread": 1
-      active_contract: 3
-    legs: 
-      - symbol: "W.LIFFE"
-        weight: 1
-        roll_pattern: [3, 5, 10]
-        
-      - symbol: "SB.ICE"
-        weight: -22.04
-        roll_pattern: [3, 5, 10]
+- name: BRUB
+  params:
+    limit.buy: 3300.0
+    stop.buy: 2100.0
+    risk.buy: 1500.0
+    spread:
+    - 10
+    - 20
+    - 50
+    - 75
+    - 100
+    - 150
+    - 200
+    - 400
+  config:
+    mpi: 1
+    multiplier: 1000.0
+    currency: USD/RUB.MOEX
+    currency_power: -1
+  legs:
+  - symbol: B.ICE
+    weight: 0.001
+    currency: Si.FORTS.1
+    active_contract: 3
+    min_active_contract: 3
+  - symbol: Si.FORTS
+    weight: 0
+    active_contract: 1
+    min_active_contract: 1
+- name: PL-GC
+  params:
+    limit.buy: -280.0
+    stop.buy: -360.0
+    risk.buy: -400.0
+    spread:
+    - 0.5
+    - 5
+    - 10
+    - 25
+    - 50
+    - 75
+    - 100
+    active_contract: 1
+  legs:
+  - symbol: PL.NYMEX
+    weight: 1
+    roll_pattern:
+    - 4
+    - 10
+  - symbol: GC.COMEX
+    weight: -1
+    roll_pattern:
+    - 4
+    - 10
+- name: C
+  config:
+    currency: EUR/USD.E
+    currency_power: 1
+  params:
+    limit.buy: 5.6
+    stop.buy: 2.9
+    risk.buy: 2.9
+    spread:
+    - 0.1
+    - 0.5
+    - 1
+    - 2
+    - 5
+    - 10
+    active_contract: 2
+  legs:
+  - symbol: C.ICE
+    roll_pattern: 12
+- name: CC
+  params:
+    limit.buy: 2100
+    stop.buy: 1500
+    risk.buy: 1000
+    spread:
+    - 1
+    - 5
+    - 10
+    - 30
+    - 50
+    - 70
+    - 100
+    - 200
+    active_contract: 2
+  legs:
+  - symbol: CC.ICE
+    roll_pattern:
+    - 5
+    - 12
+- name: CL
+  params:
+    limit.buy: 50
+    stop.buy: 30
+    risk.buy: 20
+    spread:
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.4
+    - 0.8
+    - 1.5
+    - 2
+    - 4
+    - 10
+    - 20
+    active_contract: 7
+  legs:
+  - symbol: CL.NYMEX
+- name: LH
+  config:
+    roll_months_ahead: 1
+  params:
+    limit.buy: 76
+    stop.buy: 50
+    risk.buy: 40
+    spread:
+    - 0.05
+    - 0.1
+    - 0.3
+    - 0.75
+    - 1
+    - 1.5
+    - 3
+    active_contract: 2
+  legs:
+  - symbol: LH.CME
+    roll_pattern: 10
 
-  - name: "W"
-    params:
-      "limit.buy": 500
-      "stop.buy": 350
-      "risk.buy": 300
-      "spread": [3, 10, 50]
-      "active_contract": [1, 2, 3]
-    legs:
-    - symbol: "W.LIFFE"
-      roll_pattern: [5, 10]       
-
-  - name: "KC"
-    params:
-      "limit.buy": 141
-      "stop.buy": 100
-      "risk.buy": 90
-      "spread": 1.5
-      active_contract: 2
-    legs:
-    - symbol: "KC.ICE"
-
-  - name: "BRUB"
-    params:
-      "limit.buy": 3300.0
-      "stop.buy": 2100.0
-      "risk.buy": 1500.0
-      "spread": 50.0
-    config:
-      mpi: 1
-      multiplier: 1000.0
-      currency: "USD/RUB.MOEX"
-      currency_power: -1
-    
-    legs: 
-      - symbol: B.ICE
-        weight: 0.001
-        currency: "Si.FORTS.1"
-        active_contract: 3
-        min_active_contract: 3
-        
-      - symbol: Si.FORTS
-        weight: 0
-        active_contract: 1
-        min_active_contract: 1
-
-  - name: "PL-GC"
-    params:
-      "limit.buy": -200.0    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-      "stop.buy": -360.0    # FIXME: no buy lower than 18
-      "risk.buy": -400.0
-      "spread": 20.0
-      active_contract: 1
-    legs: 
-      - symbol: "PL.NYMEX"
-        weight: 1
-        roll_pattern: [4, 10]
-        
-      - symbol: "GC.COMEX"
-        weight: -1
-
-  - name: "C"
-    config:
-      currency: "EUR/USD.E"
-      currency_power: 1
-    params:
-      "limit.buy": 5.5    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-      "stop.buy": 2.9    # FIXME: no buy lower than 18
-      "risk.buy": 2.9
-      "spread": 0.1
-      active_contract: 2
-    legs: 
-      - symbol: "C.ICE"
-        roll_pattern: [12]
-
-  - name: "CC"
-    config:
-      currency: "EUR/USD.E"
-      currency_power: 1
-    params:
-      "limit.buy": 2100
-      "stop.buy": 1500
-      "risk.buy": 1000
-      "spread": 30
-      active_contract: 1
-    legs: 
-      - symbol: "CC.ICE"
-        weight: 1
-        roll_pattern: [5, 12]
-
-  - name: "CL"
-    params:
-      "limit.buy": 50
-      "stop.buy": 30
-      "risk.buy": 20
-      "spread": 0.25
-      active_contract: 2
-      
-    legs:
-    - symbol: "CL.NYMEX"
-
-  - name: "CT"
-    params:
-      "limit.buy": 75
-      "stop.buy": 50
-      "risk.buy": 25
-      "spread": 0.25
-      active_contract: 2
-      
-    legs:
-    - symbol: "CT.ICE"
-      roll_pattern: [5, 12]
-
-  - name: "GE.CS"
-    params:
-      "limit.buy": 0.25
-      "stop.buy": 0.1
-      "risk.buy": 0
-      "spread": 0.015
-      active_contract: 4
-    legs:
-    - symbol: "GE.CME.CS12M"
-      roll_pattern: [12]
-      
-
-  - name: "GC"
-    params:
-      "limit.buy": 1250
-      "stop.buy": 1000
-      "risk.buy": 700
-      "spread": 10
-      active_contract: 1
-    legs:
-    - symbol: "GC.COMEX"
-
-  - name: "LH"
-    params:
-      "limit.buy": 76
-      "stop.buy": 50
-      "risk.buy": 40
-      "spread": 0.8
-      active_contract: 1
-    legs:
-    - symbol: "LH.CME"
-      roll_pattern: [10]
-
-  - name: "NG"
-    params:
-      "limit.buy": 3.5
-      "stop.buy": 2.5
-      "risk.buy": 2.0
-      "spread": 0.05
-      active_contract: 3
-    legs:
-    - symbol: "NG.NYMEX"
-      weight: 1
-      min_active_contract: -2
-#      roll_pattern: [3]
-
-  - name: "SB"
-    params:
-      "limit.buy": 16
-      "stop.buy": 10
-      "risk.buy": 8
-      "spread": 0.25
-      active_contract: 2
-    legs:
-    - symbol: "SB.ICE"
-      roll_pattern: [5, 10]
-
-  - name: "VIX.RS"
-    params:
-      "limit.buy": 0.35
-      "stop.buy": 0.0
-      "risk.buy": -1.0
-      "spread": 0.05
-      active_contract: 5
-    legs:
-    - symbol: "VIX.CBOE.RS1M"
-#      roll_pattern: [5, 10]
-
-  - name: "VIX"
-    params:
-      "limit.buy": 20.5
-      "stop.buy": 17.5
-      "risk.buy": 15.0
-      "spread": 0.25
-      active_contract: 6
-    legs:
-    - symbol: "VIX.CBOE"
-#      roll_pattern: [5, 10]
-
-  - name: "ZC"
-    params:
-      "limit.buy": 385
-      "stop.buy": 325
-      "risk.buy": 220
-      "spread": 3
-      active_contract: 1
-
-    legs:
-    - symbol: "ZC.CBOT"
-#      roll_pattern: [5, 10]       
-
-  - name: "ZL"
-    params:
-      "limit.buy": 36.8
-      "stop.buy": 30
-      "risk.buy": 23
-      "spread": 0.2
-      active_contract: 1
-    legs:
-    - symbol: "ZL.CBOT"
-      weight: 1
-      roll_pattern: [7, 12]       
-
-  - name: "ZW"
-    params:
-      "limit.buy": 540
-      "stop.buy": 400
-      "risk.buy": 300
-      "spread": 6
-      active_contract: 1
-    legs:
-    - symbol: "ZW.CBOT"
-      roll_pattern: [5, 12]       
-
-  - name: "FVS"
-#    config:
-#      currency: "EUR/USD.E"
-#      currency_power: 1
-    params:
-      "limit.buy": 23
-      "stop.buy": 19
-      "risk.buy": 15
-      "spread": 0.4
-      active_contract: 5
-    legs: 
-    - symbol: "FVS.EUREX"
- 
