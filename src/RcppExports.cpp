@@ -7,7 +7,7 @@ using namespace Rcpp;
 
 // flush_spd_log
 void flush_spd_log();
-RcppExport SEXP rticks_flush_spd_log() {
+RcppExport SEXP _rticks_flush_spd_log() {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     flush_spd_log();
@@ -16,7 +16,7 @@ END_RCPP
 }
 // init_spd_log
 void init_spd_log(List config);
-RcppExport SEXP rticks_init_spd_log(SEXP configSEXP) {
+RcppExport SEXP _rticks_init_spd_log(SEXP configSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< List >::type config(configSEXP);
@@ -26,7 +26,7 @@ END_RCPP
 }
 // spd_log
 void spd_log(IntegerVector lvl, CharacterVector s);
-RcppExport SEXP rticks_spd_log(SEXP lvlSEXP, SEXP sSEXP) {
+RcppExport SEXP _rticks_spd_log(SEXP lvlSEXP, SEXP sSEXP) {
 BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< IntegerVector >::type lvl(lvlSEXP);
@@ -37,7 +37,7 @@ END_RCPP
 }
 // bt_gamma
 List bt_gamma(CharacterVector clazz, List data, List params, List config, List signals);
-RcppExport SEXP rticks_bt_gamma(SEXP clazzSEXP, SEXP dataSEXP, SEXP paramsSEXP, SEXP configSEXP, SEXP signalsSEXP) {
+RcppExport SEXP _rticks_bt_gamma(SEXP clazzSEXP, SEXP dataSEXP, SEXP paramsSEXP, SEXP configSEXP, SEXP signalsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -49,4 +49,17 @@ BEGIN_RCPP
     rcpp_result_gen = Rcpp::wrap(bt_gamma(clazz, data, params, config, signals));
     return rcpp_result_gen;
 END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"_rticks_flush_spd_log", (DL_FUNC) &_rticks_flush_spd_log, 0},
+    {"_rticks_init_spd_log", (DL_FUNC) &_rticks_init_spd_log, 1},
+    {"_rticks_spd_log", (DL_FUNC) &_rticks_spd_log, 2},
+    {"_rticks_bt_gamma", (DL_FUNC) &_rticks_bt_gamma, 5},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_rticks(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
 }

@@ -17,7 +17,7 @@ urls:
 db:
   dbDriver: "PostgreSQL"
   dbname: "quant"
-  host: "quant1.prod.ghcg.com"
+  host: "quant3.prod.zorg.sh"
   port: 5432
   user: "mim"
   password: "d#)x{>S{]_,4]c"

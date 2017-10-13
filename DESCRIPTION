@@ -1,3 +1,4 @@
+
 Package: rticks
 Type: Package
 Title: What the Package Does in One 'Title Case' Line
@@ -20,11 +21,10 @@ Depends:
     purrrlyr,
     R.utils,
     RPostgreSQL,
+    lazyeval,
     DBI,
     jsonlite,
-    functional,
     scales,
     parallel,
-    PortfolioAnalytics
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
