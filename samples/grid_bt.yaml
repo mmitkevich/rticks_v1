@@ -1711,3 +1711,43 @@ strategies:
       active_contract: [1, 2, 3, 4]
     legs:
     - symbol: TF.ICE
+
+  - name: "YI.ICE"
+    params:
+      "limit.buy": 21
+      "stop.buy": 13
+      "risk.buy": 13
+      "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
+      active_contract: [1, 2, 3, 4, 5, 6]
+    legs:
+    - symbol: YI.ICE
+
+  - name: "R.ICE"
+    params:
+      "limit.buy": 130
+      "stop.buy": 120
+      "risk.buy": 120
+      "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "R.ICE"
+
+  - name: "OJ.ICE"
+    params:
+      "limit.buy": 230
+      "stop.buy": 100
+      "risk.buy": 100
+      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: [1, 2, 3, 4, 5, 6]
+    legs:
+    - symbol: "OJ.ICE"
+
+  - name: "YG.ICE"
+    params:
+      "limit.buy": 1400
+      "stop.buy": 700
+      "risk.buy": 100
+      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
+      active_contract: [1, 2, 3, 4]
+    legs:
+    - symbol: "YG.ICE"
