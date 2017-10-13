@@ -280,7 +280,7 @@ run_all.gamma <- function(bt=config(path)$gridPath,
               is_rpnl = rpnl - lag(rpnl, n=iis.lag, default=0), 
               oos_rpnl = lead(rpnl) - rpnl,
               is  = is_lrpnl,
-              oos = oos_lrpnl
+              oos = oos_rpnl
             )
             #browser()
             #if(isTRUE(cfg$wf_analysis)){
