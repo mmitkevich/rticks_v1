@@ -9,10 +9,10 @@ config:
   no_clean: false
   no_save: false
   
-  no_commission: true
+  no_commission: false
   check_big_qty: 3
-  IIS: [5, 30, 90, 180]
-  OOS: [1, 10, 30, 60]
+  IIS: [5, 5, 30, 30, 30, 30]
+  OOS: [1, 5, 1, 5, 10, 30]
   wf_benchmark: ["best"]
   
 # 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
@@ -103,21 +103,21 @@ strategies:
 
   - name: "CC"
     params:
-      "limit.buy": 2100
+      "limit.buy": 3500
       "stop.buy": 1500
       "risk.buy": 1000
-      "spread": [1, 5, 10, 30, 50, 70, 100, 200]
-      active_contract: 2
+      "spread": [20, 30, 40, 50, 60, 70, 80, 90, 100]
+      active_contract: 3
     legs: 
       - symbol: "CC.ICE"
-        roll_pattern: [5, 12]
+#        roll_pattern: [5, 12]
 
   - name: "CL"
     params:
       "limit.buy": 50
       "stop.buy": 30
       "risk.buy": 20
-      "spread": [0.05, 0.10, 0.20, 0.40, 0.8, 1.5,  2, 4, 10, 20]
+      "spread": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2]
       active_contract: 7
       
     legs:
@@ -135,3 +135,14 @@ strategies:
     legs:
     - symbol: "LH.CME"
       roll_pattern: [10]
+
+  - name: "ZC"
+    params:
+      "limit.buy": 400
+      "stop.buy": 330
+      "risk.buy": 225
+      "spread": [2, 4, 6, 8, 10, 12, 14]
+      active_contract: 3
+
+    legs:
+    - symbol: "ZC.CBOT"
