@@ -5,7 +5,7 @@
 #'
 #' @export
 flush_spd_log <- function() {
-    invisible(.Call('rticks_flush_spd_log', PACKAGE = 'rticks'))
+    invisible(.Call('_rticks_flush_spd_log', PACKAGE = 'rticks'))
 }
 
 #' init_logger
@@ -13,7 +13,7 @@ flush_spd_log <- function() {
 #' init common R/Cpp logger
 #' @export
 init_spd_log <- function(config) {
-    invisible(.Call('rticks_init_spd_log', PACKAGE = 'rticks', config))
+    invisible(.Call('_rticks_init_spd_log', PACKAGE = 'rticks', config))
 }
 
 #' spdlog
@@ -21,7 +21,7 @@ init_spd_log <- function(config) {
 #' write to spdlog/stdout
 #' @export
 spd_log <- function(lvl, s) {
-    invisible(.Call('rticks_spd_log', PACKAGE = 'rticks', lvl, s))
+    invisible(.Call('_rticks_spd_log', PACKAGE = 'rticks', lvl, s))
 }
 
 #' bt_gamma
@@ -29,6 +29,6 @@ spd_log <- function(lvl, s) {
 #' will backtest gamma scalping
 #' @export
 bt_gamma <- function(clazz, data, params, config, signals) {
-    .Call('rticks_bt_gamma', PACKAGE = 'rticks', clazz, data, params, config, signals)
+    .Call('_rticks_bt_gamma', PACKAGE = 'rticks', clazz, data, params, config, signals)
 }
 

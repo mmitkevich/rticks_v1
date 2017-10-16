@@ -13,8 +13,8 @@ config:
   
   no_commission: false
   check_big_qty: 3
-  IIS: [5, 30, 90, 180]
-  OOS: [1, 10, 30, 60]
+  IIS: [5, 30, 90]
+  OOS: [5, 30, 30]
 
 # 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
   log_stdout: 3
@@ -29,31 +29,29 @@ config:
   roll_same_day_all_legs: true
   
   disabled: 
-#   - "BRUB"
-#   - "PL-GC"
-#   - "C"
-#   - "CC"
-#   - "CL"
-#  - "PL-GC"
-#   - "CT"
-#   - "GC"
-#   - "GE.CS"
-#   - "KC"
-#   - "NG"
+#
 #   - "FVS"
    
   enabled:
   - "W"
+  - "KC"
+  - "BRUB"  
+  - "PL-GC"  
   - "C"
   - "CC"
-#  - "KC"
-#  - "ZW"
-#  - "ZL"
-#  - "ZC"
-#  - "PL-GC"
-#  - "CT"
-#  - "CL"
-
+  - "CL"   
+  - "CT"
+  - "GE.CS"  
+  - "GC"
+  - "LH"
+  - "NG"
+  - "SB"
+  - "VIX"
+  - "W-SB"
+  - "KC-RC"
+  - "ZW"
+  - "ZL"
+  - "ZC"
 strategies:
   - name: "W"
     params:
@@ -61,7 +59,7 @@ strategies:
       "stop.buy": 200
       "risk.buy": 200
       "spread": [5, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5, 5.2, 5.4, 5.6, 5.8, 6, 6.2, 6.4, 6.6, 6.8, 7]
-      "active_contract": [1, 2, 3, 4, 5]
+      "active_contract": [2]
     legs:
     - symbol: "W.LIFFE"
 
@@ -71,7 +69,7 @@ strategies:
       "stop.buy": 50
       "risk.buy": 50
       "spread": [2, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [2]
     legs:
     - symbol: "KC.ICE"
 
@@ -81,12 +79,12 @@ strategies:
       "stop.buy": 1500.0
       "risk.buy": 1500.0
       "spread": [50, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
-      active_contract: [1,2,3,4,5,6]
+      active_contract: [1]
     config:
       mpi: 1
       multiplier: 1000.0
-#      currency: "USD/RUB.MOEX"
-#      currency_power: -1
+      currency: "USD/RUB.MOEX"
+      currency_power: -1
     
     legs: 
       - symbol: "B.ICE"
@@ -123,7 +121,7 @@ strategies:
       "stop.buy": 2.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
       "spread": [0.25, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
-      active_contract: [1, 2]
+      active_contract: [1]
     legs: 
       - symbol: "C.ICE"
         roll_pattern: [12]
@@ -134,7 +132,7 @@ strategies:
       "stop.buy": 1000
       "risk.buy": 1000
       "spread": [30, 5, 10, 15, 20, 25, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
-      active_contract: [1, 2, 3, 4, 5, 6]
+      active_contract: [2]
     legs: 
       - symbol: "CC.ICE"
 
@@ -144,7 +142,7 @@ strategies:
       "stop.buy": 25
       "risk.buy": 20
       "spread": [0.7, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      active_contract: [7]
       
     legs:
     - symbol: "CL.NYMEX"
@@ -155,7 +153,7 @@ strategies:
       "stop.buy": 40
       "risk.buy": 25
       "spread": [0.4, 0.02, 0.06, 0.10, 0.14, 0.18, 0.22, 0.26, 0.30, 0.34, 0.38, 0.42, 0.46, 0.50, 0.54, 0.58, 0.62, 0.66, 0.70, 0.74, 0.78, 0.82, 0.86, 0.90]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [2]
       
     legs:
     - symbol: "CT.ICE"
@@ -166,7 +164,7 @@ strategies:
       "stop.buy": 0
       "risk.buy": 0
       "spread": [0.015, 0.005, 0.010, 0.015, 0.020, 0.025, 0.030, 0.035, 0.040]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [4]
     legs:
     - symbol: "GE.CME.CS12M"
       roll_pattern: [12]
@@ -177,7 +175,7 @@ strategies:
       "stop.buy": 900
       "risk.buy": 700
       "spread": [10, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15]
-      active_contract: [1, 2, 3]
+      active_contract: [1]
     legs:
     - symbol: "GC.COMEX"
 
@@ -187,7 +185,7 @@ strategies:
       "stop.buy": 40
       "risk.buy": 40
       "spread": [0.8, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.85, 0.9, 0.95, 1]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [2]
     legs:
     - symbol: "LH.CME"
 #      roll_pattern: [10]
@@ -198,7 +196,7 @@ strategies:
       "stop.buy": 1.5
       "risk.buy": 1.0
       "spread": [0.035, 0.005, 0.010, 0.015, 0.020, 0.025, 0.030, 0.035, 0.040, 0.045, 0.050, 0.055, 0.060, 0.065, 0.070, 0.075, 0.08, 0.085, 0.09, 0.095, 0.1]
-      active_contract: [1, 2, 3, 4, 5, 6]
+      active_contract: [3]
     legs:
     - symbol: "NG.NYMEX"
 
@@ -208,7 +206,7 @@ strategies:
       "stop.buy": 8
       "risk.buy": 8
       "spread": [0.3, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.24, 0.26, 0.28, 0.30, 0.32, 0.34, 0.36, 0.38, 0.40]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [2]
     legs:
     - symbol: "SB.ICE"
 
@@ -229,7 +227,7 @@ strategies:
       "stop.buy": 10
       "risk.buy": 10
       "spread": [0.25, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8]
+      active_contract: [6]
     legs:
     - symbol: "VIX.CBOE"
 
@@ -239,7 +237,7 @@ strategies:
       "stop.buy": 40
       "risk.buy": 40
       "spread": [0.6, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1]
-      active_contract: [1, 2, 3]
+      active_contract: [3]
     legs: 
       - symbol: "W.LIFFE"
         weight: 1
@@ -255,7 +253,7 @@ strategies:
       "stop.buy": -700
       "risk.buy": -700
       "spread": [30, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [2]
     legs: 
       - symbol: "RC.LIFFE"
         weight: -1
@@ -271,7 +269,7 @@ strategies:
       "stop.buy": 250
       "risk.buy": 220
       "spread": [3, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [3]
 
     legs:
     - symbol: "ZC.CBOT"
@@ -282,7 +280,7 @@ strategies:
       "stop.buy": 23
       "risk.buy": 23
       "spread": [0.2, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [3]
     legs:
     - symbol: "ZL.CBOT"
       weight: 1
@@ -293,7 +291,7 @@ strategies:
       "stop.buy": 350
       "risk.buy": 300
       "spread": [6, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-      active_contract: [1, 2, 3, 4, 5]
+      active_contract: [3]
     legs:
     - symbol: "ZW.CBOT"
 
@@ -314,7 +312,7 @@ strategies:
       "stop.buy": 10
       "risk.buy": 10
       "spread": [0.4, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1]
-      active_contract: [1, 2, 3, 4, 5, 6, 7]
+      active_contract: [5]
     legs: 
     - symbol: "FVS.EUREX"
 
@@ -324,7 +322,7 @@ strategies:
       "stop.buy": 200
       "risk.buy": 200
       "spread": [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3, 3.2, 3.4, 3.6, 3.8, 4, 4.2, 4.4, 4.6, 4.8, 5]
-      active_contract: [1, 2]
+      active_contract: [1]
     legs:
     - symbol: "FSTE.EUREX"
 
@@ -1504,252 +1502,3 @@ strategies:
     legs:
     - symbol: 6501.TSE
 
- - name: BS6.SGX
-    params:
-      limit.buy: 1.7
-      stop.buy: 0.6
-      risk.buy: 0.6
-      spread: [0.008, 0.016, 0.024, 0.032, 0.04, 0.048, 0.056, 0.064, 0.072, 0.08, 0.088, 0.096, 0.104, 0.112, 0.12, 0.128, 0.136, 0.144, 0.152, 0.16]
-      active_contract: 1.0
-    legs:
-    - symbol: BS6.SGX
-
-  - name: Z74.SGX
-    params:
-      limit.buy: 4.8
-      stop.buy: 3.2
-      risk.buy: 3.2
-      spread:
-      - 0.01
-      - 0.02
-      - 0.03
-      - 0.04
-      - 0.05
-      - 0.06
-      - 0.07
-      - 0.08
-      - 0.09
-      - 0.1
-      - 0.11
-      - 0.12
-      - 0.13
-      - 0.14
-      - 0.15
-      - 0.16
-      - 0.17
-      - 0.18
-      - 0.19
-      - 0.2
-      active_contract: 1.0
-    legs:
-    - symbol: Z74.SGX
-
-  - name: D05.SGX
-    params:
-      limit.buy: 27.5
-      stop.buy: 12.6
-      risk.buy: 12.6
-      spread: [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
-      active_contract: 1.0
-    legs:
-    - symbol: D05.SGX
-
-  - name: U11.SGX
-    params:
-      limit.buy: 31.5
-      stop.buy: 15.8
-      risk.buy: 15.8
-      spread: [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
-      active_contract: 1.0
-    legs:
-    - symbol: U11.SGX
-
-  - name: "GF"
-    params:
-      "limit.buy": 200
-      "stop.buy": 110
-      "risk.buy": 110
-      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8]
-    legs:
-    - symbol: "GF.CME"
-
-  - name: "LE"
-    params:
-      "limit.buy": 150
-      "stop.buy": 80
-      "risk.buy": 80
-      "spread": [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
-      active_contract: [1, 2, 3, 4, 5, 6]
-    legs:
-    - symbol: LE.CME
-
-  - name: "NK"
-    params:
-      "limit.buy": 22000
-      "stop.buy": 16000
-      "risk.buy": 16000
-      "spread": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: NK.CME
-
-  - name: "EMD"
-    params:
-      "limit.buy": 1900
-      "stop.buy": 1000
-      "risk.buy": 1000
-      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: EMD.CME
-
-  - name: "LBS"
-    params:
-      "limit.buy": 400
-      "stop.buy": 200
-      "risk.buy": 200
-      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
-      active_contract: [1, 2, 3, 4, 5, 6]
-    legs:
-    - symbol: "LBS.CME"
-
-  - name: "YM"
-    params:
-      "limit.buy": 23000
-      "stop.buy": 15000
-      "risk.buy": 15000
-      "spread": [16.0, 32.0, 48.0, 64.0, 80.0, 96.0, 112.0, 128.0, 144.0, 160.0, 176.0, 192.0, 208.0, 224.0, 240.0, 256.0, 272.0, 288.0, 304.0, 320.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: "YM.CBOT"
-
-  - name: "ZM"
-    params:
-      "limit.buy": 420
-      "stop.buy": 250
-      "risk.buy": 250
-      "spread": [0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7, 3.0, 3.3, 3.6, 3.9, 4.2, 4.5, 4.8, 5.1, 5.4, 5.7, 6.0]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8]
-    legs:
-    - symbol: "ZM.CBOT"
-
-  - name: "ZO"
-    params:
-      "limit.buy": 310
-      "stop.buy": 150
-      "risk.buy": 150
-      "spread": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0]
-      active_contract: [1, 2, 3, 4, 5]
-    legs:
-    - symbol: "ZO.CBOT"
-
-  - name: "ZR"
-    params:
-      "limit.buy": 15
-      "stop.buy": 8
-      "risk.buy": 8
-      "spread": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2]
-      active_contract: [1, 2, 3, 4, 5, 6]
-    legs:
-    - symbol: "ZR.CBOT"
-
-  - name: "EH"
-    params:
-      "limit.buy": 1.7
-      "stop.buy": 1.2
-      "risk.buy": 1.2
-      "spread": [0.002, 0.004, 0.006, 0.008, 0.01, 0.012, 0.014, 0.016, 0.018, 0.02, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032, 0.034, 0.036, 0.038, 0.04]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-    legs:
-    - symbol: "EH.CBOT"
-
-  - name: "NK"
-    params:
-      "limit.buy": 22000
-      "stop.buy": 16000
-      "risk.buy": 16000
-      "spread": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: NK.CME
-
-  - name: "G.ICE"
-    params:
-      "limit.buy": 600
-      "stop.buy": 270
-      "risk.buy": 270
-      "spread": [2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0, 38.0, 40.0]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    legs:
-    - symbol: G.ICE
-
-  - name: "MME.ICE"
-    params:
-      "limit.buy": 1200
-      "stop.buy": 700
-      "risk.buy": 700
-      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: MME.ICE
-
-  - name: "RS.ICE"
-    params:
-      "limit.buy": 550
-      "stop.buy": 430
-      "risk.buy": 430
-      "spread": [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0]
-      active_contract: [1, 2, 3, 4, 5]
-    legs:
-    - symbol: RS.ICE
-
-  - name: "TF.ICE"
-    params:
-      "limit.buy": 1600
-      "stop.buy": 900
-      "risk.buy": 900
-      "spread": [1.6, 3.2, 4.8, 6.4, 8.0, 9.6, 11.2, 12.8, 14.4, 16.0, 17.6, 19.2, 20.8, 22.4, 24.0, 25.6, 27.2, 28.8, 30.4, 32.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: TF.ICE
-
-  - name: "YI.ICE"
-    params:
-      "limit.buy": 21
-      "stop.buy": 13
-      "risk.buy": 13
-      "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
-      active_contract: [1, 2, 3, 4, 5, 6]
-    legs:
-    - symbol: YI.ICE
-
-  - name: "R.ICE"
-    params:
-      "limit.buy": 130
-      "stop.buy": 120
-      "risk.buy": 120
-      "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: "R.ICE"
-
-  - name: "OJ.ICE"
-    params:
-      "limit.buy": 230
-      "stop.buy": 100
-      "risk.buy": 100
-      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
-      active_contract: [1, 2, 3, 4, 5, 6]
-    legs:
-    - symbol: "OJ.ICE"
-
-  - name: "YG.ICE"
-    params:
-      "limit.buy": 1400
-      "stop.buy": 700
-      "risk.buy": 100
-      "spread": [0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2, 8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0]
-      active_contract: [1, 2, 3, 4]
-    legs:
-    - symbol: "YG.ICE"

@@ -2,7 +2,7 @@ config:
   log_path: "rticks.log"
   outdir: "/opt/bt/results/"
 
-  perfs_freq: "minutes"
+  perfs_freq: "days"
   perfs_tz: 15
   
   no_cache: true
@@ -11,15 +11,17 @@ config:
   
   no_commission: false
   check_big_qty: 3
+
   IIS: [5, 5, 30, 30, 30, 30]
   OOS: [1, 5, 1, 5, 10, 30]
-  wf_benchmark: ["best"]
-  
+  wf_benchmark: ["best.all", "first", "best.oos"]
+
 # 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
   log_stdout: 3
   log_level: 2
 
   start: "2015-09-01"
+  #stop: "2015-12-01"
   stop: "2017-09-05"
   
   start_full_pos: false
@@ -114,7 +116,7 @@ strategies:
 
   - name: "CL"
     params:
-      "limit.buy": 50
+      "limit.buy": 350
       "stop.buy": 30
       "risk.buy": 20
       "spread": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.4, 1.6, 1.8, 2]
