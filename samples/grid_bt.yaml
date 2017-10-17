@@ -1504,7 +1504,7 @@ strategies:
     legs:
     - symbol: 6501.TSE
 
- - name: BS6.SGX
+  - name: BS6.SGX
     params:
       limit.buy: 1.7
       stop.buy: 0.6
