@@ -12,8 +12,10 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
     pars$spread <- NULL
   qtys <- qtys %>% inner_join(pars, by="symbol")
   #browser()
-  qtys <- qtys %>% mutate(
-    rpnl = (pmin(qty_buy, qty_sell)-lag(pmin(qty_buy, qty_sell),default=0)) * spread * multiplier
+  spreadi <- lag(qtys$spread)
+  spreadi[1] <- spreadi[2]
+  qtys <- qtys %>% mutate(spread1=spreadi,
+    rpnl = (pmin(qty_buy, qty_sell)-lag(pmin(qty_buy, qty_sell),default=0)) * spread1 * multiplier
   ) %>% mutate(rpnl=cumsum(na_replace(rpnl)))
   
   if(!no_commission)
@@ -60,7 +62,7 @@ leg_defaults <- list(symbol=NA, weight=1, power=1, active_contract=0, min_active
 #'
 #'
 #' @export
-params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, stop.buy=NA, limit.sell=+Inf, stop.sell=+Inf, spread=1, pos=NA, active_contract=0)
+params_defaults <- list(gamma.buy=1, gamma.sell=1, risk.buy=NA, limit.buy=NA, stop.buy=NA, limit.sell=+Inf, stop.sell=+Inf, spread=1, pos=NA, active_contract=0, kpos=0)
 
 #'
 #'
@@ -194,7 +196,10 @@ run_all.gamma <- function(bt=config(path)$gridPath,
         stparams$active_contract<-ac
         stparams<-stparams %>% expand.grid(stringsAsFactors=F) %>% as_data_frame()
         #browser()
-        stparams$spread <- unlist(stparams$spread)
+        stparams <- stparams %>% map(unlist) %>% as_data_frame()
+        #stparams$spread <- unlist(stparams$spread)
+        #stparams$kpos <- unlist(stparams$spread)
+        
         wlog("STPARAMS:\n", df_chr(stparams))
         params_ac <- params %>% mutate(active_contract=ifelse(active_contract==-1, 1, active_contract+ac), 
                                        min_active_contract=ifelse(min_active_contract==-1, 1, min_active_contract+ac))
@@ -280,7 +285,7 @@ run_all.gamma <- function(bt=config(path)$gridPath,
               is_rpnl = rpnl - lag(rpnl, n=iis.lag, default=0), 
               oos_rpnl = lead(rpnl) - rpnl,
               is  = is_lrpnl,
-              oos = oos_rpnl
+              oos = oos_lrpnl
             )
             #browser()
             #if(isTRUE(cfg$wf_analysis)){
@@ -330,8 +335,7 @@ run_all.gamma <- function(bt=config(path)$gridPath,
             r <- r[[1]]
             bt_reports(r, 
                        signals = 
-                         spread_signal %>% rename(spread=value) %>%
-                         mutate(datetime = datetime+bt$config$perfs_freq)
+                         spread_signal %>% rename(spread=value) # %>% mutate(datetime = datetime+bt$config$perfs_freq)
                        , 
                        no_commission = bt$config$no_commission, 
                        currency = cfg$currency, 
@@ -368,6 +372,7 @@ run_all.gamma <- function(bt=config(path)$gridPath,
           r <- runbt(signal, "OOS")
           r.max <- runbt(signal.max,"MAX")
           #browser()
+          
           
           combined_metrics <-  r$metrics  %>% bind_rows(r.max$metrics) %>% 
             bind_rows(runs[[1]]$metrics %>% mutate(symbol=paste0(symbol,".spread~",spread1))) %>% 
