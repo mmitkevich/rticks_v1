@@ -285,6 +285,9 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
           #  params$qty_buy <- params$qty_buy + dpos
           #else
           #  params$qty_sell <- params$qty_sell - dpos
+          params$gamma_pos.buy <- params$kpos/((params$limit.buy-params$stop.buy)/params$mpi) # maximum position
+          #params$gamma_pos.sell <- params$kpos/((params$limit.buy-params$stop.buy)/params$mpi) # maximum position
+          params$gamma_pos.sell <- 0
         }
   
         # FIXME: we need virtual_id=LH.CME.3/5 instead
