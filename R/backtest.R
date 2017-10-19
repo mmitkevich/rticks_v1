@@ -351,6 +351,7 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
         ct = tail(chunk,1)        
         signals.chunk <- signals %>% map(~ .x %>% filter(datetime>=ch$datetime & datetime<ct$datetime+60))
         r <- chunk %>% backtest.chunk(params, algo=algo, config=config, signals=signals.chunk)
+        r$perfs$datetime <- as_datetime(r$perfs$datetime)
         perfs <- perfs %>% bind_rows(r$perfs)
         params$pos  <- r$pos
         params$cash <- r$cash
@@ -364,7 +365,6 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
       }
     }
     log_perf(timer, nrows, "average data processing speed")
-    perfs$datetime <- as_datetime(perfs$datetime)
     flush_spd_log()
     qq <- new.env(); #as.environment(as.list(q, all.names=TRUE))
     for(n in ls(q, all.names=TRUE)) assign(n, get(n, q), qq)
