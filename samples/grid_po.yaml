@@ -111,8 +111,8 @@ strategies:
       currency: "EUR/USD.E"
       currency_power: 1
     params:
-      "limit.buy": 5.6    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
-      "stop.buy": 2.9    # FIXME: no buy lower than 18
+      "limit.buy": 7.6    # buy when price <= buy only.  NA. +Inf = buy always.  -Inf = buy never
+      "stop.buy": 4.9    # FIXME: no buy lower than 18
       "risk.buy": 2.9
       "spread": 0.25
       active_contract: 2
@@ -307,29 +307,6 @@ strategies:
     - symbol: "ZW.CBOT"
 #      roll_pattern: [5, 12]       
 
-  - name: "BND"
-    params:
-      "limit.buy": -80
-      "stop.buy": -86
-      "risk.buy": -88
-      "spread": 0.1
-      active_contract: 1
-    legs: 
-      - symbol: "BND.ARCA"
-        weight: -1
-
-  - name: "FVS"
-    config:
-      currency: "EUR/USD.E"
-      currency_power: 1
-    params:
-      "limit.buy": 23
-      "stop.buy": 19
-      "risk.buy": 15
-      "spread": 0.4
-      active_contract: 5
-    legs: 
-    - symbol: "FVS.EUREX"
 
   - name: "ZS"
     config:
@@ -343,16 +320,7 @@ strategies:
     legs:
     - symbol: "ZS.CBOT"
       roll_pattern: [5, 11]       
- 
-#  - name: "GS"
-#    params:
-#      "limit.buy": 50000
-#      "stop.buy": 35000
-#      "risk.buy": 25000
-#      "spread": 1000
-#      active_contract: 5
-#    legs:
-#    - symbol: "GS.TOCOM"
+
 
   - name: "FSTE"
     params:
@@ -364,4 +332,21 @@ strategies:
     legs:
     - symbol: "FSTE.EUREX"
     
-    
+  - name: "GF"
+    params:
+      "limit.buy": 160
+      "stop.buy": 120
+      "risk.buy": 100
+      "spread": 3
+      active_contract: 3
+    legs:
+    - symbol: "GF.CME"
+   
+#  - name: "RB"
+#    params:
+#      "limit.buy": 1.85
+#      "stop.buy": 1.25
+#      "risk.buy": 1
+#      "spread": [0.0005, 0.001, 0.0015, 0.002, 0.0025, 0.003, 0.0035, 0.004, 0.0045, 0.005, 0.0055, 0.006, 0.0065, 0.007, 0.0075, 0.008, 0.0085, 0.009, 0.0095, 0.01, 0.0105, 0.011, 0.0115, 0.012, 0.0125, 0.013, 0.0135, 0.014, 0.0145, 0.015]
+#      active_contract: [1, 2, 3, 4, 5, 6]
+#    legs:
