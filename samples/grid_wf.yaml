@@ -13,8 +13,8 @@ config:
   
   no_commission: false
   check_big_qty: 3
-  IIS: [5, 30, 90]
-  OOS: [5, 30, 30]
+ # IIS: [5, 30, 90]
+#  OOS: [5, 30, 30]
 
 # 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
   log_stdout: 3
