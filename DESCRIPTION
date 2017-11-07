@@ -26,5 +26,6 @@ Depends:
     jsonlite,
     scales,
     parallel,
+    RcppRoll
 LinkingTo: Rcpp
 RoxygenNote: 5.0.1
