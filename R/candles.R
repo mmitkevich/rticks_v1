@@ -2,23 +2,23 @@
 #' 
 #' @export
 
-query_candles <- function(instruments = NULL, 
-                          schedule = NULL,
-                          active_contract = 1,
-                          min_active_contract = 1,
-                          custom_roll = NULL,
-                          start = NULL, 
-                          stop = lubridate::now(), 
-                          provider = "reuters", ...) {
-  query_fn <- get(paste0("query_candles.", provider))
-  query_fn(instruments = instruments, 
-           schedule = schedule,
-           active_contract = active_contract,
-           min_active_contract = min_active_contract,
-           custom_roll = custom_roll,
-           start = start,
-           stop = stop,...)
-}
+#query_candles <- function(instruments = NULL, 
+#                          schedule = NULL,
+#                          active_contract = 1,
+#                          min_active_contract = 1,
+#                          custom_roll = NULL,
+#                          start = NULL, 
+#                          stop = lubridate::now(), 
+#                          provider = "reuters", ...) {
+#  query_fn <- get(paste0("query_candles.", provider))
+#  query_fn(instruments = instruments, 
+#           schedule = schedule,
+#           active_contract = active_contract,
+#           min_active_contract = min_active_contract,
+#           custom_roll = custom_roll,
+#           start = start,
+#           stop = stop,...)
+#}
 
   
 #' print chunk
@@ -88,7 +88,7 @@ clean_mim.chunk <- function(chunk,
 query_candles_cache <- function(instruments, active_contract=1, min_active_contract=1, 
                                 roll_pattern=NULL, start=NULL, stop=lubridate::now(), 
                                 schedule=NULL, config=list(no_cache=T, no_clean=T, no_save=T, 
-                                                           custom_roll=NULL, roll_same_day_all_legs=F)) {
+                                                           custom_roll=NULL, roll_same_day_all_legs=F, source="reuters")) {
   instruments <- query_instruments(instruments)
   if(!is.null(roll_pattern)&&!is.na(roll_pattern)) {
     instruments$active_contract <- roll_pattern
@@ -101,7 +101,7 @@ query_candles_cache <- function(instruments, active_contract=1, min_active_contr
   if(config$no_cache || !file.exists(path)) {
     q <- query_candles(instruments, active_contract = active_contract, 
                        min_active_contract=min_active_contract, start=start, stop=stop, custom_roll=config$custom_roll, 
-                       roll_same_day_all_legs=config$roll_same_day_all_legs)
+                       roll_same_day_all_legs=config$roll_same_day_all_legs, source=config$source)
     data <- q %>% fetch_all()
     data_raw <- q$data
     if(!config$no_save) {

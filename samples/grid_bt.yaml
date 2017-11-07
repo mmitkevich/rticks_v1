@@ -3,7 +3,7 @@
 config:
   log_path: "rticks.log"
   outdir: "/opt/bt/results/"
-
+  source: "reuters"
   perfs_freq: "days"
   perfs_tz: 15
   
