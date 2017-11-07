@@ -32,7 +32,7 @@ ifply <- function(.x, .f, .p=function()T,...) {
 #' query candles from reuters minutes sql database
 #' @examples
 #' @export
-query_candles.reuters <- function(instruments = NULL, 
+query_candles <- function(instruments = NULL, 
                                   schedule = NULL,
                                active_contract = 1,
                                min_active_contract = 1,
@@ -40,6 +40,7 @@ query_candles.reuters <- function(instruments = NULL,
                                roll_same_day_all_legs=T,
                                start = NULL, 
                                stop = lubridate::now(), 
+                               source = "reuters",
                                where = NULL) {
   if(!is.data.frame(instruments) || !has_name(instruments, "active_contract"))
     instruments <- query_instruments(instruments)
@@ -60,11 +61,13 @@ query_candles.reuters <- function(instruments = NULL,
   #}
   schedule <- schedule %>% .filter_schedule(start=start, stop=NULL) # FIXED FROM stop=stop
   q <- structure(new.env(), class="reuters")
+  w <- c(source %>% nnmap(~ paste0("source","=",sql.quote(.))), where) %>% reduce(sql.and)
+  #browser()
   with(q, {
     schedule = schedule
     stop = stop
     start = ifnull(start, timeline(schedule, start = start)[1])
-    where = where
+    where = w
     active_contract = active_contract
     fields = .reuters.fields
     instruments = instruments
