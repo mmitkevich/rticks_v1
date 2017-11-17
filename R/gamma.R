@@ -6,7 +6,7 @@ metrics.gamma <- function(env, no_commission=F, currency=NULL) {
   qtys <- env$metrics
   if(has_name(qtys, "commission"))
     qtys <- qtys %>% select(-commission)
-  pars <- env$params %>% select(symbol, multiplier, commission, spread) %>% mutate(commission=na_replace(0))
+  pars <- env$params %>% select(symbol, multiplier, commission, spread) %>% mutate(commission=na_replace(commission,0))
   if(has_name(qtys, "spread"))
     pars$spread <- NULL
   qtys <- qtys %>% inner_join(pars, by="symbol")
