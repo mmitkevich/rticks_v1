@@ -276,6 +276,8 @@ backtest <- function(params, algo, stparams=NULL, start=NULL, stop=lubridate::no
           price.old <- ifelse(config$roll_price=="mid" || !is_roll, 0.5*(ct$ask+ct$bid), ifelse(params$pos>0, ct$bid, ct$ask))
           params$cash <- params$cash + params$pos*price.old*params$multiplier # close the position
         }
+        params$gamma_pos.buy <- 0
+        params$gamma_pos.sell <- 0
         if(is.na(params$pos)||config$start_full_pos) { # first
           dpos <- (max(params$limit.buy-ch$ask,0)/params$mpi)*params$gamma.buy - na_replace(params$pos)
           wlog("START delta(pos) = delta(qty_buy/qty_sell) = ", dpos)
