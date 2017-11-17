@@ -1,8 +1,10 @@
 config:
   log_path: "rticks.log"
   outdir: "/opt/bt/results/"
+  
+  source: "reuters"
 
-  perfs_freq: "days"
+  perfs_freq: "minutes"
   perfs_tz: 15
   
   no_cache: true
@@ -16,13 +18,13 @@ config:
   log_stdout: 3
   log_level: 2
 
-  start: "2015-10-01"
-  stop: "2017-10-01"
+  start: "2015-11-01"
+  stop: "2017-11-01"
   
-  start_full_pos: false
+  start_full_pos: true
   roll_day_of_month: 1
   roll_months_ahead: false
-  roll_same_day_all_legs: T
+  roll_same_day_all_legs: true
   
   disabled: 
 #   - "W"
@@ -184,6 +186,7 @@ strategies:
       "risk.buy": 40
       "spread": 0.8
       active_contract: 2
+      pos: 0
     legs:
     - symbol: "LH.CME"
       roll_pattern: [4, 10]
@@ -287,7 +290,7 @@ strategies:
       "limit.buy": 36.8
       "stop.buy": 30
       "risk.buy": 23
-      "spread": 0.2
+      "spread": [0.1, 0.2, 0.4, 0.8]
       active_contract: 3
     legs:
     - symbol: "ZL.CBOT"
@@ -333,6 +336,8 @@ strategies:
     - symbol: "FSTE.EUREX"
     
   - name: "GF"
+    config:
+      source: "kibot"
     params:
       "limit.buy": 160
       "stop.buy": 120

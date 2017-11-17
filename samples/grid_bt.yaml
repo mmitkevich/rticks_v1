@@ -13,15 +13,15 @@ config:
   
   no_commission: false
   check_big_qty: 3
-  IIS: [5, 30, 90, 180]
-  OOS: [1, 10, 30, 60]
+#  IIS: [5, 30, 90, 180]
+#  OOS: [1, 10, 30, 60]
 
 # 0 = trace, 1 = debug, 2 = info, 3 = warn, 4 = critical  
   log_stdout: 3
   log_level: 2
 
-  start: "2015-09-01"
-  stop: "2017-09-01"
+  start: "2015-11-01"
+  stop: "2017-11-01"
 
   start_full_pos: true
   roll_day_of_month: 1
@@ -43,9 +43,9 @@ config:
 #   - "FVS"
    
   enabled:
-  - "W"
-  - "C"
-  - "CC"
+#  - "W"
+#  - "C"
+#  - "CC"
 #  - "KC"
 #  - "ZW"
 #  - "ZL"
@@ -1585,12 +1585,14 @@ strategies:
     - symbol: LE.CME
 
   - name: "NK"
+    config:
+      source: "kibot"
     params:
       "limit.buy": 22000
       "stop.buy": 16000
       "risk.buy": 16000
       "spread": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0]
-      active_contract: [1, 2, 3, 4]
+      active_contract: [1, 2]
     legs:
     - symbol: NK.CME
 
@@ -1655,12 +1657,14 @@ strategies:
     - symbol: "ZR.CBOT"
 
   - name: "EH"
+    config:
+      source: "kibot"
     params:
       "limit.buy": 1.7
       "stop.buy": 1.2
       "risk.buy": 1.2
       "spread": [0.002, 0.004, 0.006, 0.008, 0.01, 0.012, 0.014, 0.016, 0.018, 0.02, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032, 0.034, 0.036, 0.038, 0.04]
-      active_contract: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      active_contract: [1, 2, 3, 4, 5, 6]
     legs:
     - symbol: "EH.CBOT"
 
@@ -1725,12 +1729,14 @@ strategies:
     - symbol: YI.ICE
 
   - name: "R.ICE"
+    config:
+      source: "kibot"
     params:
       "limit.buy": 130
       "stop.buy": 120
       "risk.buy": 120
       "spread": [0.04, 0.08, 0.12, 0.16, 0.2, 0.24, 0.28, 0.32, 0.36, 0.4, 0.44, 0.48, 0.52, 0.56, 0.6, 0.64, 0.68, 0.72, 0.76, 0.8]
-      active_contract: [1, 2, 3, 4]
+      active_contract: [1]
     legs:
     - symbol: "R.ICE"
 
